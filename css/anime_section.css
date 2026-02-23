@@ -1,0 +1,84 @@
+.anime-section {
+    padding: 16px 0;
+}
+
+.anime-section .container {
+    background:
+        linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
+        url('https://www.hobbydigi.com/media/mageplaza/bannerslider/banner/image/2/0/2023-03-14_modelkit.jpg');
+    background-size: cover;
+    background-position: center left;
+    color: white;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.anime-carousel-control-prev,
+.anime-carousel-control-next {
+    width: 50px;
+    height: 50px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.7;
+    z-index: 5;
+}
+
+.anime-section-title {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s ease;
+}
+
+.anime-section-title.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.anime-section-subtitle {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.8s ease 0.2s;
+}
+
+.anime-section-subtitle.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.anime-carousel-item .col {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s ease;
+}
+
+.carousel-item.animate-initial .col {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.carousel-item.animate-initial .col:nth-child(1) {
+    transition-delay: 0.1s;
+}
+
+.carousel-item.animate-initial .col:nth-child(2) {
+    transition-delay: 0.2s;
+}
+
+.carousel-item.animate-initial .col:nth-child(3) {
+    transition-delay: 0.3s;
+}
+
+.carousel-item.animate-initial .col:nth-child(4) {
+    transition-delay: 0.4s;
+}
+
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

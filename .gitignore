@@ -1,0 +1,10 @@
+# 环境变量（含密钥，勿提交）
+.env
+
+# Composer 依赖（部署时用 composer install）
+/vendor/
+
+# 系统与 IDE
+.DS_Store
+.idea/
+*.log
