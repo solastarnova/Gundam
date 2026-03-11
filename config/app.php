@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'base_url' => '/project',
+    'base_url' => '',
     'site_name' => '高達模型商城',
     'order_number_prefix' => 'ORD',
     'site_name_en' => 'Gundam Shop',
