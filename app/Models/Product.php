@@ -61,4 +61,27 @@ class Product extends Model
         $stmt->execute([$term, $term]);
         return $stmt->fetchAll() ?: [];
     }
+
+    /**
+     * 获取商品总数
+     */
+    public function getTotalCount(): int
+    {
+        $stmt = $this->pdo->query("SELECT COUNT(*) FROM items");
+        return (int)$stmt->fetchColumn();
+    }
+
+    /**
+     * 获取低库存商品
+     */
+    public function getLowStock(int $threshold = 10, int $limit = 5): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT * FROM items WHERE stock_quantity < ? ORDER BY stock_quantity ASC LIMIT ?"
+        );
+        $stmt->bindValue(1, $threshold, \PDO::PARAM_INT);
+        $stmt->bindValue(2, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll() ?: [];
+    }
 }

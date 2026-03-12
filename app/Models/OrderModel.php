@@ -91,4 +91,30 @@ class OrderModel extends Model
         }
         return $stats;
     }
+
+/**
+ * 获取订单总数
+ */
+public function getTotalCount(): int
+{
+    $stmt = $this->pdo->query("SELECT COUNT(*) FROM orders");
+    return (int)$stmt->fetchColumn();
+}
+
+/**
+ * 获取最近订单（用于仪表盘）
+ */
+public function getRecentOrders(int $limit = 5): array
+{
+    $stmt = $this->pdo->prepare(
+        "SELECT o.*, u.name as user_name 
+         FROM orders o 
+         LEFT JOIN users u ON o.user_id = u.id 
+         ORDER BY o.created_at DESC 
+         LIMIT ?"
+    );
+    $stmt->bindValue(1, $limit, \PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll() ?: [];
+}
 }

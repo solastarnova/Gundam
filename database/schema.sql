@@ -112,6 +112,19 @@ CREATE TABLE `order_items` (
   KEY `idx_order_items_item` (`item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `admins` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `last_login` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `admins` (`username`, `password`) VALUES 
+('admin', '$2y$10$YourHashedPasswordHere');
+
 SET FOREIGN_KEY_CHECKS = 1;
 
 COMMIT;

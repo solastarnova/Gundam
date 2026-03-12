@@ -77,4 +77,28 @@ $router->post('/api/payment/create-intent', 'PaymentController', 'createIntent')
 $router->post('/api/payment/create-paypal-order', 'PaymentController', 'createPaypalOrder');
 $router->post('/api/payment/confirm', 'PaymentController', 'confirm');
 
+// 后台登录（无需认证）
+$router->get('/admin/login', 'Admin\LoginController', 'index');
+$router->post('/admin/login', 'Admin\LoginController', 'login');
+$router->get('/admin/logout', 'Admin\LoginController', 'logout');
+
+// 需要认证的后台页面
+$router->get('/admin/dashboard', 'Admin\DashboardController', 'index');
+
+// 商品管理
+$router->get('/admin/products', 'Admin\ProductController', 'index');
+$router->get('/admin/products/create', 'Admin\ProductController', 'create');
+$router->post('/admin/products/save', 'Admin\ProductController', 'save');
+$router->get('/admin/products/edit/:id', 'Admin\ProductController', 'edit');
+$router->get('/admin/products/delete/:id', 'Admin\ProductController', 'delete');
+
+// 订单管理
+$router->get('/admin/orders', 'Admin\OrderController', 'index');
+$router->get('/admin/orders/:id', 'Admin\OrderController', 'detail');
+$router->post('/admin/orders/:id/status', 'Admin\OrderController', 'updateStatus');
+
+// 用户管理
+$router->get('/admin/users', 'Admin\UserController', 'index');
+$router->get('/admin/users/:id', 'Admin\UserController', 'show');
+
 return $router;

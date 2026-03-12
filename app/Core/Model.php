@@ -12,4 +12,9 @@ class Model
     {
         $this->pdo = $pdo ?? Database::getConnection();
     }
+
+    public function getPdo(): \PDO
+    {
+        return $this->pdo;
+    }
 }

@@ -41,7 +41,8 @@ class View
         $data['url'] = fn (string $path = '') => $this->url($path);
         $content = $this->render($view, $data);
         $data['content'] = $content;
-        echo $this->render('layouts/' . $layout, $data);
+        $layoutView = str_contains($layout, '/') ? $layout : 'layouts/' . $layout;
+        echo $this->render($layoutView, $data);
     }
 
     public function asset(string $path): string

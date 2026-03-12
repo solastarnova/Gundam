@@ -85,4 +85,13 @@ class UserModel extends Model
         $this->updatePassword($userId, $newPassword);
         return null;
     }
+
+    /**
+     * 获取用户总数
+     */
+    public function getTotalCount(): int
+    {
+        $stmt = $this->pdo->query("SELECT COUNT(*) FROM users");
+        return (int)$stmt->fetchColumn();
+    }
 }
