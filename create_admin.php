@@ -1,28 +1,22 @@
 <?php
-/**
- * create_admin.php - 管理员账号创建工具（带路径诊断）
- */
 
-// 开启错误显示
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// 获取当前脚本的绝对路径
 $scriptPath = __FILE__;
 $scriptDir = dirname($scriptPath);
 $documentRoot = $_SERVER['DOCUMENT_ROOT'] ?? '';
 $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
 
-// 计算相对路径
 $relativePath = str_replace($documentRoot, '', $scriptDir);
 
 echo "<!DOCTYPE html>
 <html>
 <head>
     <meta charset='UTF-8'>
-    <title>创建管理员账号 - 路径诊断</title>
+    <title>建立管理員帳號 - 路徑診斷</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
         .container { max-width: 1000px; margin: 0 auto; }
@@ -39,22 +33,21 @@ echo "<!DOCTYPE html>
 <body>
     <div class='container'>";
 
-echo "<h1>🔧 路径诊断信息</h1>";
+echo "<h1>🔧 路徑診斷資訊</h1>";
 
 echo "<table>";
-echo "<tr><th>项目</th><th>值</th></tr>";
+echo "<tr><th>項目</th><th>值</th></tr>";
 echo "<tr><td>__FILE__</td><td>" . __FILE__ . "</td></tr>";
 echo "<tr><td>__DIR__</td><td>" . __DIR__ . "</td></tr>";
 echo "<tr><td>DOCUMENT_ROOT</td><td>" . ($documentRoot ?: '未设置') . "</td></tr>";
 echo "<tr><td>REQUEST_URI</td><td>" . $requestUri . "</td></tr>";
 echo "<tr><td>SCRIPT_NAME</td><td>" . $scriptName . "</td></tr>";
-echo "<tr><td>相对路径</td><td>" . $relativePath . "</td></tr>";
+echo "<tr><td>相對路徑</td><td>" . $relativePath . "</td></tr>";
 echo "</table>";
 
-// 检查关键文件是否存在
-echo "<h2>📁 文件检查</h2>";
+echo "<h2>📁 檔案檢查</h2>";
 echo "<table>";
-echo "<tr><th>文件</th><th>状态</th></tr>";
+echo "<tr><th>檔案</th><th>狀態</th></tr>";
 
 $filesToCheck = [
     'bootstrap.php' => __DIR__ . '/bootstrap.php',
@@ -73,24 +66,22 @@ foreach ($filesToCheck as $name => $path) {
 }
 echo "</table>";
 
-// 尝试加载 bootstrap
-echo "<h2>🚀 尝试加载 bootstrap.php</h2>";
+echo "<h2>🚀 嘗試載入 bootstrap.php</h2>";
 
 $bootstrapPath = __DIR__ . '/bootstrap.php';
 if (file_exists($bootstrapPath)) {
-    echo "<p class='success'>✅ 找到 bootstrap.php，正在加载...</p>";
+    echo "<p class='success'>✅ 找到 bootstrap.php，正在載入...</p>";
     require_once $bootstrapPath;
-    echo "<p class='success'>✅ bootstrap.php 加载成功</p>";
+    echo "<p class='success'>✅ bootstrap.php 載入成功</p>";
 } else {
     echo "<p class='error'>❌ 找不到 bootstrap.php</p>";
-    echo "<p>请确认文件位置。可能的情况：</p>";
+    echo "<p>請確認檔案位置。可能的情況：</p>";
     echo "<ul>";
-    echo "<li>当前目录: " . __DIR__ . "</li>";
+    echo "<li>當前目錄: " . __DIR__ . "</li>";
     echo "<li>期望位置: " . $bootstrapPath . "</li>";
     echo "</ul>";
     
-    // 尝试查找 bootstrap.php
-    echo "<h3>🔍 搜索 bootstrap.php</h3>";
+    echo "<h3>🔍 搜尋 bootstrap.php</h3>";
     $searchDirs = [__DIR__, dirname(__DIR__), $documentRoot];
     foreach ($searchDirs as $dir) {
         if (is_dir($dir)) {
@@ -104,18 +95,17 @@ if (file_exists($bootstrapPath)) {
     }
 }
 
-// 如果 bootstrap 加载成功，继续创建管理员
-if (file_exists($bootstrapPath) && isset($pdo)) {
+if (file_exists($bootstrapPath)) {
     try {
-        echo "<h2>👤 创建管理员账号</h2>";
+        $pdo = \App\Core\Database::getConnection();
+        echo "<h2>👤 建立管理員帳號</h2>";
         
         $admin_username = 'admin';
         $admin_password = 'admin123';
         
-        // 检查管理员表
         $stmt = $pdo->query("SHOW TABLES LIKE 'admins'");
         if ($stmt->rowCount() == 0) {
-            echo "<p>创建管理员表...</p>";
+            echo "<p>建立管理員資料表...</p>";
             $sql = "CREATE TABLE IF NOT EXISTS `admins` (
                 `id` int(11) NOT NULL AUTO_INCREMENT,
                 `username` varchar(50) NOT NULL,
@@ -126,46 +116,43 @@ if (file_exists($bootstrapPath) && isset($pdo)) {
                 UNIQUE KEY `username` (`username`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
             $pdo->exec($sql);
-            echo "<p class='success'>✅ 管理员表创建成功</p>";
+            echo "<p class='success'>✅ 管理員資料表建立成功</p>";
         }
         
-        // 生成密码
         $hashedPassword = password_hash($admin_password, PASSWORD_DEFAULT);
         
-        // 插入或更新
         $stmt = $pdo->prepare("SELECT id FROM admins WHERE username = ?");
         $stmt->execute([$admin_username]);
         
         if ($stmt->fetch()) {
             $stmt = $pdo->prepare("UPDATE admins SET password = ? WHERE username = ?");
             $stmt->execute([$hashedPassword, $admin_username]);
-            echo "<p class='success'>✅ 管理员密码已更新</p>";
+        echo "<p class='success'>✅ 管理員密碼已更新</p>";
         } else {
             $stmt = $pdo->prepare("INSERT INTO admins (username, password) VALUES (?, ?)");
             $stmt->execute([$admin_username, $hashedPassword]);
-            echo "<p class='success'>✅ 管理员账号创建成功</p>";
+            echo "<p class='success'>✅ 管理員帳號建立成功</p>";
         }
         
-        echo "<p><strong>用户名:</strong> $admin_username</p>";
-        echo "<p><strong>密码:</strong> $admin_password</p>";
-        echo "<p><strong>登录地址:</strong> <a href='/admin/login'>/admin/login</a></p>";
+        echo "<p><strong>用戶名:</strong> $admin_username</p>";
+        echo "<p><strong>密碼:</strong> $admin_password</p>";
+        echo "<p><strong>登入地址:</strong> <a href='/admin/login'>/admin/login</a></p>";
         
     } catch (Exception $e) {
-        echo "<p class='error'>❌ 错误: " . $e->getMessage() . "</p>";
+        echo "<p class='error'>❌ 錯誤: " . $e->getMessage() . "</p>";
     }
 }
 
 echo "<hr>";
-echo "<p class='warning'><strong>⚠️ 重要：使用后请立即删除此文件！</strong></p>";
-echo "<p><a href='javascript:void(0)' onclick='if(confirm(\"确定删除？\")) window.location.href=\"?delete=1\"'>点击删除此文件</a></p>";
+echo "<p class='warning'><strong>⚠️ 重要：使用後請立即刪除此檔案！</strong></p>";
+echo "<p><a href='javascript:void(0)' onclick='if(confirm(\"確定刪除？\")) window.location.href=\"?delete=1\"'>點擊刪除此檔案</a></p>";
 
-// 删除自己
 if (isset($_GET['delete']) && $_GET['delete'] == 1) {
     if (unlink(__FILE__)) {
-        echo "<p class='success'>✅ 文件已删除</p>";
+        echo "<p class='success'>✅ 檔案已刪除</p>";
         echo "<script>setTimeout(function() { window.location.href = '/'; }, 2000);</script>";
     } else {
-        echo "<p class='error'>❌ 文件删除失败，请手动删除</p>";
+        echo "<p class='error'>❌ 檔案刪除失敗，請手動刪除</p>";
     }
 }
 

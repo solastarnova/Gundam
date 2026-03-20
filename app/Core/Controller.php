@@ -2,18 +2,18 @@
 
 namespace App\Core;
 
+use App\Core\Config;
+use App\Services\MoneyFormatter;
+
 class Controller
 {
     protected View $view;
     protected string $baseUrl = '';
-    /** @var array<string, mixed> */
-    private static ?array $configCache = null;
 
     public function __construct()
     {
         $this->view = new View();
-        $config = $this->getConfig();
-        $base = rtrim($config['base_url'] ?? '', '/');
+        $base = rtrim(Config::get('base_url', ''), '/');
         if ($base === '' && isset($_SERVER['SCRIPT_NAME'])) {
             $base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
             if ($base === '/' || $base === '\\') {
@@ -25,8 +25,14 @@ class Controller
 
     protected function render(string $view, array $data = [], string $layout = 'main'): void
     {
+        $currency = Config::get('currency', []);
+        if (!is_array($currency)) {
+            $currency = [];
+        }
         $data['asset'] = fn (string $path) => $this->view->asset($path);
         $data['url'] = fn (string $path = '') => $this->view->url($path);
+        $data['currency'] = $currency;
+        $data['money'] = fn (float $amount): string => MoneyFormatter::format($amount);
         $this->view->renderWithLayout($view, $data, $layout);
     }
 
@@ -53,7 +59,9 @@ class Controller
                 if ($url === '' || $url === '/') {
                     $url = $baseUrl . '/';
                 } elseif (isset($url[0]) && $url[0] === '/') {
-                    $url = $baseUrl . $url;
+                    if (strpos($url, $baseUrl) !== 0) {
+                        $url = $baseUrl . $url;
+                    }
                 } else {
                     $url = rtrim($baseUrl, '/') . '/' . $url;
                 }
@@ -94,7 +102,7 @@ class Controller
         if (!isset($_SESSION['user_id'])) {
             http_response_code(401);
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['error' => '未登入', 'success' => false], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => '未登入', 'message' => '未登入'], JSON_UNESCAPED_UNICODE);
             return false;
         }
         return true;
@@ -140,18 +148,14 @@ class Controller
         return $url;
     }
 
-    /** @return array<string, mixed> */
     protected function getConfig(): array
     {
-        if (self::$configCache === null) {
-            self::$configCache = require __DIR__ . '/../../config/app.php';
-        }
-        return self::$configCache;
+        return Config::all();
     }
 
     protected function getSiteName(): string
     {
-        return (string) ($this->getConfig()['site_name'] ?? '高達模型商城');
+        return (string) Config::get('site_name', '高達模型商城');
     }
 
     protected function isLocalEnvironment(): bool
@@ -176,7 +180,7 @@ class Controller
         if ($password === '') {
             return '請輸入密碼';
         }
-        $minLength = $minLength ?? (int) ($this->getConfig()['min_password_length'] ?? 8);
+        $minLength = $minLength ?? (int) Config::get('min_password_length', 8);
         if (strlen($password) < $minLength) {
             return "密碼至少需 {$minLength} 個字元";
         }
@@ -192,6 +196,25 @@ class Controller
             return '兩次輸入的密碼不一致';
         }
         return null;
+    }
+
+    protected function validateVerificationCodeFormat(string $code): ?string
+    {
+        if ($code === '') {
+            return '請輸入驗證碼';
+        }
+        $codeLength = (int) Config::get('verification_code.length', 6);
+        if (!preg_match('/^\d{' . $codeLength . '}$/', $code)) {
+            return "驗證碼應為 {$codeLength} 位數字";
+        }
+        return null;
+    }
+
+    protected function generateVerificationCode(): string
+    {
+        $codeLength = (int) Config::get('verification_code.length', 6);
+        $maxValue = (int) str_repeat('9', $codeLength);
+        return str_pad((string) random_int(0, $maxValue), $codeLength, '0', STR_PAD_LEFT);
     }
 
     protected function handleValidationErrors(array $errors, array $oldInput, string $errorKey, string $oldKey, string $redirectUrl): void

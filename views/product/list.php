@@ -13,7 +13,6 @@ if ($maxPrice <= $minPrice) {
 ?>
 <div class="container-fluid product-list">
     <div class="row">
-        <!-- 模型專區側邊欄（與 www1 一致） -->
         <div class="col-lg-3 col-md-4">
             <div class="model-sidebar">
                 <h3 class="model-sidebar-title">模型專區</h3>
@@ -61,8 +60,8 @@ if ($maxPrice <= $minPrice) {
                             </div>
                         </div>
                         <div class="price-display">
-                            <span id="current-min-price">HK$<?= (int) floor($minPrice) ?></span>
-                            <span id="current-max-price">HK$<?= (int) ceil($maxPrice) ?></span>
+                            <span id="current-min-price"><?= htmlspecialchars($money((float) floor($minPrice)), ENT_QUOTES, 'UTF-8') ?></span>
+                            <span id="current-max-price"><?= htmlspecialchars($money((float) ceil($maxPrice)), ENT_QUOTES, 'UTF-8') ?></span>
                         </div>
                         <div class="filter-buttons">
                             <button class="btn btn-primary btn-sm" type="button" id="btn-apply-price">應用篩選</button>
@@ -86,7 +85,6 @@ if ($maxPrice <= $minPrice) {
             </div>
         </div>
 
-        <!-- 產品列表（與 www1 一致） -->
         <div class="col-lg-9 col-md-8">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div class="d-flex align-items-center">
@@ -133,9 +131,9 @@ if ($maxPrice <= $minPrice) {
                             </div>
                             <div class="price-section mt-3">
                                 <div class="d-flex align-items-center mb-2">
-                                    <span class="final-price">HK$ <?= number_format($price, 0) ?></span>
+                                    <span class="final-price"><?= htmlspecialchars($money((float) $price), ENT_QUOTES, 'UTF-8') ?></span>
                                     <?php if ($original > $price): ?>
-                                    <span class="original-price ms-2">HK$ <?= number_format($original, 0) ?></span>
+                                    <span class="original-price ms-2"><?= htmlspecialchars($money((float) $original), ENT_QUOTES, 'UTF-8') ?></span>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -161,6 +159,22 @@ if ($maxPrice <= $minPrice) {
 <script>
 (function() {
     var base = window.APP_BASE || '';
+    var currency = window.APP_CURRENCY || {};
+    var formatMoney = typeof window.formatMoney === 'function'
+        ? window.formatMoney
+        : function(value) {
+            var amount = Number(value || 0);
+            try {
+                return new Intl.NumberFormat(currency.locale || 'zh-HK', {
+                    style: 'currency',
+                    currency: currency.code || undefined,
+                    minimumFractionDigits: Number.isInteger(currency.decimals) ? currency.decimals : 2,
+                    maximumFractionDigits: Number.isInteger(currency.decimals) ? currency.decimals : 2
+                }).format(amount);
+            } catch (e) {
+                return (currency.symbol || '') + amount.toFixed(Number.isInteger(currency.decimals) ? currency.decimals : 2);
+            }
+        };
     var container = document.getElementById('products-container');
     var productCount = <?= (int) $productCount ?>;
     var minPrice = <?= (int) floor($minPrice) ?>, maxPrice = <?= (int) ceil($maxPrice) ?>;
@@ -191,8 +205,8 @@ if ($maxPrice <= $minPrice) {
         activeTrack.style.width = (pctMax - pctMin) + '%';
     }
     function updatePriceDisplay() {
-        if (curMinEl) curMinEl.textContent = 'HK$' + currentMin;
-        if (curMaxEl) curMaxEl.textContent = 'HK$' + currentMax;
+        if (curMinEl) curMinEl.textContent = formatMoney(currentMin);
+        if (curMaxEl) curMaxEl.textContent = formatMoney(currentMax);
     }
 
     function getSelectedCategory() {

@@ -4,19 +4,16 @@ $imgPath = $asset('images/' . (trim($item['image_path'] ?? '') ?: 'placeholder.j
 ?>
 
 <script>
-// 在佈局中 footer 也會補 APP_BASE，這裡確保 isLoggedIn 存在
 window.isLoggedIn = <?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>;
 </script>
 
 <div class="container1">
-    <!-- 左邊：商品圖片 -->
     <div class="product-image">
         <img src="<?= $imgPath ?>"
              alt="<?= htmlspecialchars($item['name']) ?>"
              onerror="this.onerror=null; this.src='<?= $asset('images/placeholder.jpg') ?>';">
     </div>
 
-    <!-- 右邊：商品資訊 -->
     <div class="product-info">
         <h1><?= htmlspecialchars($item['name']) ?></h1>
 
@@ -25,7 +22,6 @@ window.isLoggedIn = <?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>;
             <span><?= number_format($item['review_count'] ?? rand(800, 1500)) ?> 人加購</span>
         </p>
 
-        <!-- 折扣標籤 -->
         <?php if ($discountPercent > 0): ?>
         <div class="discount-badge">
             限時折扣 <?= $discountPercent ?>% OFF
@@ -34,9 +30,9 @@ window.isLoggedIn = <?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>;
 
         <div class="price-section">
             <div class="price">
-                <span class="final-price">HK$ <?= number_format($finalPrice) ?></span>
+                <span class="final-price"><?= htmlspecialchars($money((float) $finalPrice), ENT_QUOTES, 'UTF-8') ?></span>
                 <?php if ($discount > $finalPrice): ?>
-                    <span class="original-price">HK$ <?= number_format($discount) ?></span>
+                    <span class="original-price"><?= htmlspecialchars($money((float) $discount), ENT_QUOTES, 'UTF-8') ?></span>
                 <?php endif; ?>
             </div>
             <div class="hkd-price">
@@ -44,7 +40,6 @@ window.isLoggedIn = <?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>;
             </div>
         </div>
 
-        <!-- 數量選擇 -->
         <div class="quantity mt-4">
             <label class="fw-bold">數量</label>
             <div class="d-flex align-items-center">
@@ -58,7 +53,6 @@ window.isLoggedIn = <?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>;
             </div>
         </div>
 
-        <!-- 按鈕區域 -->
         <div class="actions mt-4">
             <button type="button" class="add-to-cart" id="product-add-to-cart-btn"
                     data-product-id="<?= (int)$item['id'] ?>"
@@ -81,7 +75,6 @@ window.isLoggedIn = <?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>;
             </button>
         </div>
 
-        <!-- 商品描述 -->
         <div class="product-description mt-4 p-3 bg-light rounded">
             <h5 class="fw-bold"><i class="bi bi-info-circle"></i> 商品描述</h5>
             <p class="mb-0"><?= nl2br(htmlspecialchars($item['description'] ?? '暫無描述')) ?></p>
@@ -102,7 +95,6 @@ function changeQty(delta) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // 加入購物車按鈕
     var addBtn = document.getElementById('product-add-to-cart-btn');
     if (addBtn && typeof window.addToCart === 'function') {
         addBtn.addEventListener('click', function() {
@@ -117,7 +109,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 收藏按鈕
     var favBtn = document.getElementById('product-favorite-btn');
     if (!favBtn) return;
     var productId = parseInt(favBtn.dataset.productId, 10) || 0;

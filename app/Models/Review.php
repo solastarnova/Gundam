@@ -9,8 +9,8 @@ use App\Core\Model;
  */
 class Review extends Model
 {
-    private const STATUS_COMPLETED = 'Completed';
-    private const STATUS_CONFIRMED = 'Confirmed';
+    public const STATUS_COMPLETED = 'Completed';
+    public const STATUS_CONFIRMED = 'Confirmed';
 
     /**
      * Get featured reviews (e.g. for homepage).
@@ -32,6 +32,15 @@ class Review extends Model
         $stmt->bindValue(1, $limit, \PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll() ?: [];
+    }
+
+    public function hasUnreviewedPurchase(int $userId, int $itemId): bool
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT 1 FROM user_item WHERE user_id = ? AND item_id = ? AND status = ? AND (is_reviewed = 0 OR is_reviewed IS NULL) LIMIT 1"
+        );
+        $stmt->execute([$userId, $itemId, self::STATUS_CONFIRMED]);
+        return $stmt->fetch() !== false;
     }
 
     /**

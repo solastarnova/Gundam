@@ -2,6 +2,7 @@
 $url = $url ?? fn($p = '') => $p;
 $asset = $asset ?? fn($p) => $p;
 $isLoggedIn = $isLoggedIn ?? $is_logged_in ?? false;
+$money = $money ?? fn(float $amount) => number_format($amount, 2);
 ?>
 <div class="container mt-5 pt-5">
     <h2 class="mb-4">購物車</h2>
@@ -30,7 +31,7 @@ $isLoggedIn = $isLoggedIn ?? $is_logged_in ?? false;
                 <tfoot>
                     <tr>
                         <td colspan="3" class="text-end fw-bold">總計：</td>
-                        <td colspan="2" class="text-primary fs-4 fw-bold" id="cart-total">HK$0</td>
+                        <td colspan="2" class="text-primary fs-4 fw-bold" id="cart-total"><?= htmlspecialchars($money(0.0), ENT_QUOTES, 'UTF-8') ?></td>
                     </tr>
                 </tfoot>
             </table>
@@ -46,6 +47,23 @@ $isLoggedIn = $isLoggedIn ?? $is_logged_in ?? false;
 <script>
 (function() {
     var base = window.APP_BASE || '';
+    var formatMoney = (typeof window.formatMoney === 'function')
+        ? window.formatMoney
+        : function(v) {
+            var cfg = window.APP_CURRENCY || {};
+            var amount = Number(v || 0);
+            try {
+                if (cfg.code) {
+                    return new Intl.NumberFormat(cfg.locale || 'zh-HK', {
+                        style: 'currency',
+                        currency: cfg.code,
+                        minimumFractionDigits: Number.isInteger(cfg.decimals) ? cfg.decimals : 2,
+                        maximumFractionDigits: Number.isInteger(cfg.decimals) ? cfg.decimals : 2
+                    }).format(amount);
+                }
+            } catch (e) {}
+            return (cfg.symbol || '') + amount.toFixed(Number.isInteger(cfg.decimals) ? cfg.decimals : 2);
+        };
     var tbody = document.getElementById('cart-items');
     var totalEl = document.getElementById('cart-total');
     var actionsEl = document.getElementById('cart-actions');
@@ -58,7 +76,7 @@ $isLoggedIn = $isLoggedIn ?? $is_logged_in ?? false;
                 var items = (data && data.items) ? data.items : [];
                 if (items.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5"><div class="empty-cart"><i class="bi bi-cart-x empty-cart-icon"></i><h5 class="mt-3 text-muted">購物車是空的</h5><a href="' + (base + 'products') + '" class="btn btn-primary mt-3">去逛逛</a></div></td></tr>';
-                    if (totalEl) totalEl.textContent = 'HK$0';
+                    if (totalEl) totalEl.textContent = formatMoney(0);
                     if (actionsEl) actionsEl.classList.add('d-none');
                 } else {
                     var html = '';
@@ -71,14 +89,14 @@ $isLoggedIn = $isLoggedIn ?? $is_logged_in ?? false;
                         var cartId = (item.cart_item_id || item.id || index);
                         html += '<tr>';
                         html += '<td><div class="d-flex align-items-center"><img src="' + img + '" class="cart-thumbnail me-3" alt=""><div><div class="fw-bold">' + (item.name || '').replace(/</g, '&lt;') + '</div><small class="text-muted">編號: ' + (item.id || 'N/A') + '</small></div></div></td>';
-                        html += '<td class="fw-bold">HK$' + (parseFloat(item.price) || 0).toFixed(0) + '</td>';
+                        html += '<td class="fw-bold">' + formatMoney(parseFloat(item.price) || 0) + '</td>';
                         html += '<td><div class="quantity-control"><button class="btn btn-sm btn-outline-secondary cart-qty-minus" type="button" data-cart-id="' + cartId + '"><i class="bi bi-dash"></i></button><span class="cart-qty-display fw-bold">' + (item.qty || 1) + '</span><button class="btn btn-sm btn-outline-secondary cart-qty-plus" type="button" data-cart-id="' + cartId + '"><i class="bi bi-plus"></i></button></div></td>';
-                        html += '<td class="fw-bold text-primary">HK$' + sub.toFixed(0) + '</td>';
+                        html += '<td class="fw-bold text-primary">' + formatMoney(sub) + '</td>';
                         html += '<td><button class="btn btn-outline-danger btn-sm cart-remove" type="button" data-cart-id="' + cartId + '"><i class="bi bi-trash"></i> 移除</button></td>';
                         html += '</tr>';
                     });
                     tbody.innerHTML = html;
-                    if (totalEl) totalEl.textContent = 'HK$' + total.toFixed(0);
+                    if (totalEl) totalEl.textContent = formatMoney(total);
                     if (actionsEl) actionsEl.classList.remove('d-none');
                     bindCartEvents(items);
                 }

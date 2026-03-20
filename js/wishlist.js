@@ -1,7 +1,3 @@
-/**
- * 喜愛清單：商品詳情頁收藏按鈕用
- * 依賴 api/wishlist/check、api/wishlist/toggle，與 window.APP_BASE、window.isLoggedIn
- */
 (function () {
     var base = function () { return window.APP_BASE || ''; };
 

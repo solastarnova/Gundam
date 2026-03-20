@@ -3,6 +3,9 @@ $url = $url ?? fn($p = '') => $p;
 $asset = $asset ?? fn($p) => $p;
 $order = $order ?? null;
 $orderItems = $orderItems ?? [];
+$canReviewItems = $canReviewItems ?? [];
+$reviewSuccess = $reviewSuccess ?? null;
+$reviewError = $reviewError ?? null;
 ?>
 <div class="container my-5 pt-5">
     <div class="row justify-content-center">
@@ -11,6 +14,13 @@ $orderItems = $orderItems ?? [];
                 <h2 class="mb-1">訂單詳情</h2>
                 <p class="text-muted">查看訂單的詳細資訊與商品列表</p>
             </div>
+
+            <?php if (!empty($reviewSuccess)): ?>
+                <div class="alert alert-success"><?= htmlspecialchars($reviewSuccess) ?></div>
+            <?php endif; ?>
+            <?php if (!empty($reviewError)): ?>
+                <div class="alert alert-danger"><?= htmlspecialchars($reviewError) ?></div>
+            <?php endif; ?>
 
             <?php if ($order): ?>
                 <div class="row">
@@ -23,20 +33,56 @@ $orderItems = $orderItems ?? [];
                                 <?php if (!empty($orderItems)): ?>
                                     <div class="list-group list-group-flush">
                                         <?php foreach ($orderItems as $item): ?>
-                                            <?php $itemId = (int)($item['item_id'] ?? 0); $detailUrl = $itemId ? $url('product/' . $itemId) : '#'; ?>
-                                            <div class="list-group-item d-flex align-items-center gap-3">
-                                                <a href="<?= $detailUrl ?>" class="text-decoration-none">
-                                                    <img src="<?= $asset('images/placeholder.jpg') ?>" alt="" class="rounded" style="width: 64px; height: 64px; object-fit: cover;">
-                                                </a>
-                                                <div class="flex-grow-1">
-                                                    <h6 class="mb-1">
-                                                        <a href="<?= $detailUrl ?>" class="text-decoration-none text-dark"><?= htmlspecialchars($item['product_name'] ?? '') ?></a>
-                                                    </h6>
-                                                    <small class="text-muted">數量：<?= (int)($item['quantity'] ?? 0) ?></small>
-                                                    <p class="mb-0 mt-1 text-danger fw-bold">
-                                                        HK$<?= number_format((float)($item['price'] ?? 0), 2) ?> × <?= (int)($item['quantity'] ?? 0) ?> = HK$<?= number_format((float)($item['price'] ?? 0) * (int)($item['quantity'] ?? 0), 2) ?>
-                                                    </p>
+                                            <?php
+                                            $itemId = (int)($item['item_id'] ?? 0);
+                                            $detailUrl = $itemId ? $url('product/' . $itemId) : '#';
+                                            $canReview = !empty($canReviewItems[$itemId]);
+                                            ?>
+                                            <div class="list-group-item">
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <a href="<?= $detailUrl ?>" class="text-decoration-none">
+                                                        <img src="<?= $asset('images/placeholder.jpg') ?>" alt="" class="rounded" style="width: 64px; height: 64px; object-fit: cover;">
+                                                    </a>
+                                                    <div class="flex-grow-1">
+                                                        <h6 class="mb-1">
+                                                            <a href="<?= $detailUrl ?>" class="text-decoration-none text-dark"><?= htmlspecialchars($item['product_name'] ?? '') ?></a>
+                                                        </h6>
+                                                        <small class="text-muted">數量：<?= (int)($item['quantity'] ?? 0) ?></small>
+                                                        <p class="mb-0 mt-1 text-danger fw-bold">
+                                                            <?= htmlspecialchars($money((float)($item['price'] ?? 0)), ENT_QUOTES, 'UTF-8') ?> × <?= (int)($item['quantity'] ?? 0) ?> = <?= htmlspecialchars($money((float)($item['price'] ?? 0) * (int)($item['quantity'] ?? 0)), ENT_QUOTES, 'UTF-8') ?>
+                                                        </p>
+                                                    </div>
                                                 </div>
+                                                <?php if ($canReview): ?>
+                                                <div class="mt-3 pt-3 border-top">
+                                                    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#review-form-<?= $itemId ?>" aria-expanded="false">撰寫評價</button>
+                                                    <div class="collapse mt-2" id="review-form-<?= $itemId ?>">
+                                                        <form method="post" action="<?= $url('account/review') ?>">
+                                                            <input type="hidden" name="item_id" value="<?= $itemId ?>">
+                                                            <input type="hidden" name="order_id" value="<?= (int)($order['id'] ?? 0) ?>">
+                                                            <div class="mb-2">
+                                                                <label class="form-label small">評價標題</label>
+                                                                <input type="text" class="form-control form-control-sm" name="review_title" placeholder="選填" maxlength="255">
+                                                            </div>
+                                                            <div class="mb-2">
+                                                                <label class="form-label small">評價內容</label>
+                                                                <textarea class="form-control form-control-sm" name="review_content" rows="2" placeholder="分享您的使用心得" required></textarea>
+                                                            </div>
+                                                            <div class="mb-2">
+                                                                <label class="form-label small">評分</label>
+                                                                <select class="form-select form-select-sm" name="review_rating" required>
+                                                                    <option value="5">5 星</option>
+                                                                    <option value="4">4 星</option>
+                                                                    <option value="3">3 星</option>
+                                                                    <option value="2">2 星</option>
+                                                                    <option value="1">1 星</option>
+                                                                </select>
+                                                            </div>
+                                                            <button type="submit" class="btn btn-primary btn-sm">提交評價</button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                                <?php endif; ?>
                                             </div>
                                         <?php endforeach; ?>
                                     </div>
@@ -74,7 +120,7 @@ $orderItems = $orderItems ?? [];
                                     <p class="mb-3"><strong>配送地址：</strong><br><span class="text-muted small" style="white-space: pre-line;"><?= htmlspecialchars($order['shipping_address']) ?></span></p>
                                 <?php endif; ?>
                                 <hr>
-                                <p class="mb-0 d-flex justify-content-between"><strong>訂單總額</strong><strong class="text-danger">HK$<?= number_format((float)($order['total_amount'] ?? 0), 2) ?></strong></p>
+                                <p class="mb-0 d-flex justify-content-between"><strong>訂單總額</strong><strong class="text-danger"><?= htmlspecialchars($money((float)($order['total_amount'] ?? 0)), ENT_QUOTES, 'UTF-8') ?></strong></p>
                                 <hr>
                                 <a href="<?= $url('account/orders') ?>" class="btn btn-outline-secondary w-100">返回訂單列表</a>
                             </div>

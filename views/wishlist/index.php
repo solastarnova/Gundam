@@ -1,10 +1,10 @@
 <?php
 $url = $url ?? fn($p = '') => $p;
 ?>
-<div class="container my-5 pt-5">
-    <div class="row">
+<div class="container account-page my-5 pt-5">
+    <div class="row account-layout">
         <div class="col-lg-3 col-md-4">
-            <div class="sidebar">
+            <div class="sidebar account-sidebar">
                 <h5 class="px-4 mb-4 text-dark fw-bold">我的帳戶</h5>
                 <div class="nav flex-column">
                     <a href="<?= $url('account') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-person me-2"></i> 個人資料</a>
@@ -12,14 +12,14 @@ $url = $url ?? fn($p = '') => $p;
                     <a href="<?= $url('wishlist') ?>" class="nav-link d-flex align-items-center active"><i class="bi bi-heart me-2"></i> 喜愛清單</a>
                     <a href="#coupons" class="nav-link d-flex align-items-center"><i class="bi bi-ticket-perforated me-2"></i> 優惠券</a>
                     <a href="<?= $url('account/addresses') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-geo-alt me-2"></i> 預設地址</a>
-                    <a href="#payment" class="nav-link d-flex align-items-center"><i class="bi bi-credit-card me-2"></i> 付款方式</a>
-                    <a class="nav-link d-flex" href="<?= $url('account/settings') ?>"> 修改密碼</a>
+                    <a href="<?= $url('account/payment') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-credit-card me-2"></i> 付款方式</a>
+                    <a class="nav-link d-flex" href="<?= $url('account/settings') ?>"> 帳戶設定</a>
                     <a class="nav-link d-flex text-primary" href="<?= $url('logout') ?>"> 登出</a>
                 </div>
             </div>
         </div>
-        <div class="bg-white rounded shadow-sm col-lg-9 col-md-8">
-            <div class="py-3">
+        <div class="col-lg-9 col-md-8">
+            <div class="account-main-card account-main-padding">
                 <div class="mb-4">
                     <h4 class="mb-4">喜愛清單</h4>
                     <p class="page-subtitle">收藏您喜愛的商品，隨時查看與購買</p>
@@ -84,7 +84,7 @@ $url = $url ?? fn($p = '') => $p;
                     </a>
                     <div class="card-body d-flex flex-column">
                         <h6 class="card-title text-truncate mb-2" title="${escapeHtml(item.name || '')}">${escapeHtml(item.name || '')}</h6>
-                        <p class="card-text text-danger fw-bold mb-2">HK$ ${Number(item.price || 0).toFixed(0)}</p>
+                        <p class="card-text text-danger fw-bold mb-2">${(typeof window.formatMoney === 'function' ? window.formatMoney(Number(item.price || 0)) : Number(item.price || 0).toFixed(2))}</p>
                         <div class="d-flex gap-2 mt-auto">
                             <button class="btn btn-primary btn-sm flex-grow-1 btn-add-cart-wishlist" data-index="${index}" type="button">
                                 <i class="bi bi-cart-plus"></i> 加入購物車

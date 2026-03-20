@@ -4,16 +4,35 @@
     const baseUrl = (window.APP_BASE || '').replace(/\/$/, '') + '/';
     const stripePublishableKey = window.STRIPE_PUBLISHABLE_KEY || '';
     const paypalClientId = window.PAYPAL_CLIENT_ID || '';
-    const shippingConfig = window.SHIPPING_CONFIG || { express_fee: 80, standard_fee: 50, free_threshold: 500 };
+    const shippingConfig = window.SHIPPING_CONFIG || { express_fee: 0, standard_fee: 0, free_threshold: 0 };
+    const walletBalance = parseFloat(window.WALLET_BALANCE || 0) || 0;
+    const formatMoney = typeof window.formatMoney === 'function'
+        ? window.formatMoney
+        : function(v) {
+            const cfg = window.APP_CURRENCY || {};
+            const amount = Number(v || 0);
+            try {
+                if (cfg.code) {
+                    return new Intl.NumberFormat(cfg.locale || 'zh-HK', {
+                        style: 'currency',
+                        currency: cfg.code,
+                        minimumFractionDigits: Number.isInteger(cfg.decimals) ? cfg.decimals : 2,
+                        maximumFractionDigits: Number.isInteger(cfg.decimals) ? cfg.decimals : 2
+                    }).format(amount);
+                }
+            } catch (e) {}
+            return (cfg.symbol || '') + amount.toFixed(Number.isInteger(cfg.decimals) ? cfg.decimals : 2);
+        };
 
     let cartItems = [];
     let stripe = null;
     let cardElement = null;
     let paymentIntentClientSecret = null;
     let paymentIntentId = null;
+    let orderNumberForConfirm = null;
     let paypalButtons = null;
 
-    /** 將地址物件格式化成單行字串（與後端 AddressModel::formatAddressAsOneLine 一致） */
+    // 將地址物件格式化為單行字串（與後端一致）
     function formatAddressOneLine(addr) {
         if (!addr) return '';
         var parts = [
@@ -28,7 +47,7 @@
         return parts.join(' ');
     }
 
-    /** 取得目前選擇的配送地址單行字串 */
+    // 取得目前選擇的配送地址（單行）
     function getSelectedShippingAddress() {
         var radio = document.querySelector('input[name="checkout_address"]:checked');
         if (radio && radio.getAttribute('data-address-one-line')) {
@@ -84,6 +103,11 @@
         return el ? el.value : 'standard';
     }
 
+    function isUseWalletEnabled() {
+        var walletEl = document.getElementById('useWalletBalance');
+        return !!(walletEl && walletEl.checked);
+    }
+
     function calculateTotals() {
         let subtotal = 0;
         const qtyKey = function(item) { return parseInt(item.qty ?? item.quantity, 10) || 1; };
@@ -95,10 +119,10 @@
         const method = getShippingMethod();
         let shippingFee = 0;
         if (method === 'express') {
-            shippingFee = parseFloat(shippingConfig.express_fee) || 80;
+            shippingFee = parseFloat(shippingConfig.express_fee) || 0;
         } else {
-            const threshold = parseFloat(shippingConfig.free_threshold) || 500;
-            shippingFee = subtotal >= threshold ? 0 : (parseFloat(shippingConfig.standard_fee) || 50);
+            const threshold = parseFloat(shippingConfig.free_threshold) || 0;
+            shippingFee = subtotal >= threshold ? 0 : (parseFloat(shippingConfig.standard_fee) || 0);
         }
         return { subtotal, shippingFee, total: subtotal + shippingFee };
     }
@@ -107,10 +131,18 @@
         const t = calculateTotals();
         const subEl = document.getElementById('subtotal');
         const feeEl = document.getElementById('shippingFee');
+        const orderTotalEl = document.getElementById('orderTotal');
+        const walletBalanceEl = document.getElementById('walletBalance');
+        const walletUsedEl = document.getElementById('walletUsed');
         const totalEl = document.getElementById('final-total');
-        if (subEl) subEl.textContent = 'HK$' + t.subtotal.toFixed(2);
-        if (feeEl) feeEl.textContent = 'HK$' + t.shippingFee.toFixed(2);
-        if (totalEl) totalEl.textContent = 'HK$' + t.total.toFixed(2);
+        const walletUsed = isUseWalletEnabled() ? Math.max(0, Math.min(walletBalance, t.total)) : 0;
+        const payable = Math.max(0, t.total - walletUsed);
+        if (subEl) subEl.textContent = formatMoney(t.subtotal);
+        if (feeEl) feeEl.textContent = formatMoney(t.shippingFee);
+        if (orderTotalEl) orderTotalEl.textContent = formatMoney(t.total);
+        if (walletBalanceEl) walletBalanceEl.textContent = formatMoney(walletBalance);
+        if (walletUsedEl) walletUsedEl.textContent = '-' + formatMoney(walletUsed);
+        if (totalEl) totalEl.textContent = formatMoney(payable);
         if (typeof updateCartBadge === 'function') updateCartBadge();
     }
 
@@ -136,14 +168,14 @@
             html += '<div class="d-flex align-items-center py-3 border-bottom checkout-order-row" data-cart-id="' + cartId + '">';
             html += '<a href="' + detailUrl + '" class="d-flex align-items-center text-decoration-none text-dark flex-grow-1 me-2">';
             html += '<img src="' + imgPath + '" alt="" class="rounded me-3 checkout-item-img">';
-            html += '<div class="flex-grow-1"><div class="fw-bold">' + name + '</div><small class="text-muted">HK$' + price.toFixed(0) + '/件</small></div>';
+            html += '<div class="flex-grow-1"><div class="fw-bold">' + name + '</div><small class="text-muted">' + formatMoney(price) + '/件</small></div>';
             html += '</a>';
             html += '<div class="d-flex align-items-center quantity-control me-2">';
             html += '<button type="button" class="btn btn-sm btn-outline-secondary checkout-qty-minus" data-cart-id="' + cartId + '" aria-label="減少">−</button>';
             html += '<span class="checkout-qty-display mx-2 fw-bold" data-cart-id="' + cartId + '">' + qty + '</span>';
             html += '<button type="button" class="btn btn-sm btn-outline-secondary checkout-qty-plus" data-cart-id="' + cartId + '" aria-label="增加">+</button>';
             html += '</div>';
-            html += '<span class="fw-bold text-primary me-2" style="min-width:4rem;">HK$' + subtotal + '</span>';
+            html += '<span class="fw-bold text-primary me-2" style="min-width:4rem;">' + formatMoney(subtotal) + '</span>';
             html += '<button type="button" class="btn btn-sm btn-link text-danger p-0 border-0 checkout-item-remove" data-cart-id="' + cartId + '" title="移除">×</button>';
             html += '</div>';
         });
@@ -244,13 +276,17 @@
         return fetch(baseUrl + 'api/payment/create-intent', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({ shipping_method: getShippingMethod() })
+            body: new URLSearchParams({
+                shipping_method: getShippingMethod(),
+                use_wallet: isUseWalletEnabled() ? '1' : '0'
+            })
         }).then(function(r) { return r.json(); });
     }
 
     function confirmOrder(payload) {
         payload.shipping_address = payload.shipping_address || getSelectedShippingAddress();
         payload.shipping_method = getShippingMethod();
+        payload.use_wallet = isUseWalletEnabled() ? '1' : '0';
         return fetch(baseUrl + 'api/payment/confirm', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -306,10 +342,12 @@
                 return;
             }
             if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-                confirmOrder({
+                var payload = {
                     payment_intent_id: result.paymentIntent.id,
                     payment_method: 'credit_card'
-                }).then(function(data) {
+                };
+                if (orderNumberForConfirm) payload.order_number = orderNumberForConfirm;
+                confirmOrder(payload).then(function(data) {
                     setConfirmLoading(false);
                     if (data.success) {
                         alert('訂單已確認，訂單編號：' + (data.order_number || data.order_id));
@@ -354,6 +392,7 @@
             }
             paymentIntentClientSecret = data.client_secret;
             paymentIntentId = data.payment_intent_id;
+            orderNumberForConfirm = data.order_number || null;
             handleStripeConfirm();
         }).catch(function() {
             setConfirmLoading(false);
@@ -377,9 +416,13 @@
                     return fetch(baseUrl + 'api/payment/create-paypal-order', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams({ shipping_method: getShippingMethod() })
+                        body: new URLSearchParams({
+                            shipping_method: getShippingMethod(),
+                            use_wallet: isUseWalletEnabled() ? '1' : '0'
+                        })
                     }).then(function(r) { return r.json(); }).then(function(res) {
                         if (!res.success) throw new Error(res.message || '建立 PayPal 訂單失敗');
+                        orderNumberForConfirm = res.order_number || null;
                         return actions.order.create({
                             purchase_units: [{ amount: { value: res.amount, currency_code: res.currency } }]
                         });
@@ -387,10 +430,9 @@
                 },
                 onApprove: function(data, actions) {
                     return actions.order.capture().then(function(details) {
-                        return confirmOrder({
-                            paypal_order_id: details.id,
-                            payment_method: 'paypal'
-                        });
+                        var payload = { paypal_order_id: details.id, payment_method: 'paypal' };
+                        if (orderNumberForConfirm) payload.order_number = orderNumberForConfirm;
+                        return confirmOrder(payload);
                     }).then(function(data) {
                         if (data.success) {
                             alert('訂單已確認，訂單編號：' + (data.order_number || data.order_id));
@@ -426,6 +468,8 @@
     });
     var shippingEl = document.getElementById('shipping');
     if (shippingEl) shippingEl.addEventListener('change', updateSummary);
+    var walletToggleEl = document.getElementById('useWalletBalance');
+    if (walletToggleEl) walletToggleEl.addEventListener('change', updateSummary);
 
     var confirmBtn = document.getElementById('confirmOrderBtn');
     if (confirmBtn) confirmBtn.addEventListener('click', handleConfirmClick);

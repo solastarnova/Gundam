@@ -13,6 +13,8 @@ DROP TABLE IF EXISTS `orders`;
 DROP TABLE IF EXISTS `user_addresses`;
 DROP TABLE IF EXISTS `user_favorites`;
 DROP TABLE IF EXISTS `user_item`;
+DROP TABLE IF EXISTS `user_wallet_transactions`;
+DROP TABLE IF EXISTS `user_wallets`;
 DROP TABLE IF EXISTS `users`;
 DROP TABLE IF EXISTS `items`;
 
@@ -31,7 +33,12 @@ CREATE TABLE `users` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
+  `phone` varchar(50) DEFAULT NULL,
   `password` varchar(255) NOT NULL,
+  `password_reset_hash` varchar(255) DEFAULT NULL,
+  `password_reset_expires_at` datetime DEFAULT NULL,
+  `status` enum('active','disabled') NOT NULL DEFAULT 'active',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `unq_users_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -89,6 +96,8 @@ CREATE TABLE `orders` (
   `user_id` int(11) NOT NULL,
   `total_amount` decimal(10,2) NOT NULL,
   `payment_method` varchar(50) DEFAULT NULL,
+  `payment_provider` varchar(50) DEFAULT NULL,
+  `payment_reference` varchar(100) DEFAULT NULL,
   `shipping_address` text NOT NULL,
   `status` enum('pending','paid','shipped','completed','cancelled') NOT NULL DEFAULT 'pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -112,7 +121,25 @@ CREATE TABLE `order_items` (
   KEY `idx_order_items_item` (`item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE `admins` (
+CREATE TABLE IF NOT EXISTS `user_wallets` (
+  `user_id` int(11) NOT NULL,
+  `balance` decimal(10,2) NOT NULL DEFAULT 0.00,
+  PRIMARY KEY (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `user_wallet_transactions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `type` enum('refund','payment','adjustment') NOT NULL,
+  `order_id` int(11) DEFAULT NULL,
+  `description` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_wallet_tx_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `admins` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `username` varchar(50) NOT NULL,
   `password` varchar(255) NOT NULL,
@@ -122,7 +149,7 @@ CREATE TABLE `admins` (
   UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `admins` (`username`, `password`) VALUES 
+INSERT IGNORE INTO `admins` (`username`, `password`) VALUES
 ('admin', '$2y$10$YourHashedPasswordHere');
 
 SET FOREIGN_KEY_CHECKS = 1;

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Core\Model;
+use App\Services\OrderStatusService;
 
 class OrderModel extends Model
 {
@@ -37,9 +38,9 @@ class OrderModel extends Model
     }
 
     /**
-     * 取得訂單明細
+     * Get order items by order ID.
      *
-     * @param int $orderId 訂單 ID
+     * @param int $orderId
      * @return array
      */
     public function getOrderItems(int $orderId): array
@@ -59,12 +60,28 @@ class OrderModel extends Model
      */
     public function updateStatus(int $orderId, int $userId, string $status): bool
     {
-        $allowed = ['pending', 'paid', 'shipped', 'completed', 'cancelled'];
-        if (!in_array($status, $allowed, true)) {
+        if (!OrderStatusService::isAllowed($status)) {
             return false;
         }
         $stmt = $this->pdo->prepare("UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ? AND user_id = ?");
         $stmt->execute([$status, $orderId, $userId]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Update order status (admin; no user_id check; status must be in config order_status.allowed).
+     *
+     * @param int    $orderId
+     * @param string $status
+     * @return bool
+     */
+    public function updateStatusByAdmin(int $orderId, string $status): bool
+    {
+        if (!OrderStatusService::isAllowed($status)) {
+            return false;
+        }
+        $stmt = $this->pdo->prepare("UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?");
+        $stmt->execute([$status, $orderId]);
         return $stmt->rowCount() > 0;
     }
 
@@ -76,13 +93,77 @@ class OrderModel extends Model
     }
 
     /**
-     * @return array{pending: int, paid: int, shipped: int, completed: int, cancelled: int}
+     * Get order count per user ID (for admin user list).
+     *
+     * @param array $userIds
+     * @return array<int, int> [user_id => count]
      */
-    public function getUserOrderStats(int $userId): array
+    public function getOrderCountByUserIds(array $userIds): array
     {
-        $stmt = $this->pdo->prepare("SELECT status, COUNT(*) AS cnt FROM orders WHERE user_id = ? GROUP BY status");
-        $stmt->execute([$userId]);
-        $stats = ['pending' => 0, 'paid' => 0, 'shipped' => 0, 'completed' => 0, 'cancelled' => 0];
+        if ($userIds === []) {
+            return [];
+        }
+        $ids = array_map('intval', array_values($userIds));
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $sql = "SELECT user_id, COUNT(*) AS cnt FROM orders WHERE user_id IN ($placeholders) GROUP BY user_id";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($ids);
+        $result = [];
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            $result[(int) $row['user_id']] = (int) $row['cnt'];
+        }
+        return $result;
+    }
+
+    /**
+     * Get paginated order list for admin (optional status filter).
+     *
+     * @param array $filters
+     * @param int   $page
+     * @param int   $perPage
+     * @return array{total: int, rows: list<array<string, mixed>>}
+     */
+    public function getListForAdmin(array $filters, int $page, int $perPage): array
+    {
+        $status = isset($filters['status']) ? trim((string) $filters['status']) : '';
+        $offset = (max(1, $page) - 1) * $perPage;
+
+        $where = '';
+        $params = [];
+        if ($status !== '') {
+            $where = ' WHERE o.status = ?';
+            $params = [$status];
+        }
+
+        $countSql = "SELECT COUNT(*) FROM orders" . ($status !== '' ? ' WHERE status = ?' : '');
+        $stmt = $this->pdo->prepare($countSql);
+        $stmt->execute($params);
+        $total = (int) $stmt->fetchColumn();
+
+        $sql = "SELECT o.*, u.name AS user_name FROM orders o LEFT JOIN users u ON o.user_id = u.id" . $where . " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
+        $stmt = $this->pdo->prepare($sql);
+        $idx = 1;
+        foreach ($params as $v) {
+            $stmt->bindValue($idx++, $v);
+        }
+        $stmt->bindValue($idx++, $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue($idx++, $offset, \PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        return ['total' => $total, 'rows' => $rows];
+    }
+
+    /**
+     * Get order count by status (all orders; for admin).
+     *
+     * @return array<string, int>
+     */
+    public function getAllOrderStats(): array
+    {
+        $stmt = $this->pdo->query("SELECT status, COUNT(*) AS cnt FROM orders GROUP BY status");
+        $allowed = OrderStatusService::allowed();
+        $stats = array_fill_keys($allowed, 0);
         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
             $s = $row['status'] ?? '';
             if (isset($stats[$s])) {
@@ -92,29 +173,70 @@ class OrderModel extends Model
         return $stats;
     }
 
-/**
- * 获取订单总数
- */
-public function getTotalCount(): int
-{
-    $stmt = $this->pdo->query("SELECT COUNT(*) FROM orders");
-    return (int)$stmt->fetchColumn();
-}
+    /**
+     * Get order count by status for one user.
+     *
+     * @param int $userId
+     * @return array<string, int>
+     */
+    public function getUserOrderStats(int $userId): array
+    {
+        $stmt = $this->pdo->prepare("SELECT status, COUNT(*) AS cnt FROM orders WHERE user_id = ? GROUP BY status");
+        $stmt->execute([$userId]);
+        $allowed = OrderStatusService::allowed();
+        $stats = array_fill_keys($allowed, 0);
+        while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            $s = $row['status'] ?? '';
+            if (isset($stats[$s])) {
+                $stats[$s] = (int) $row['cnt'];
+            }
+        }
+        return $stats;
+    }
 
-/**
- * 获取最近订单（用于仪表盘）
- */
-public function getRecentOrders(int $limit = 5): array
-{
-    $stmt = $this->pdo->prepare(
-        "SELECT o.*, u.name as user_name 
-         FROM orders o 
-         LEFT JOIN users u ON o.user_id = u.id 
-         ORDER BY o.created_at DESC 
-         LIMIT ?"
-    );
-    $stmt->bindValue(1, $limit, \PDO::PARAM_INT);
-    $stmt->execute();
-    return $stmt->fetchAll() ?: [];
-}
+    public function getTotalCount(): int
+    {
+        $stmt = $this->pdo->query("SELECT COUNT(*) FROM orders");
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Get recent orders for admin dashboard.
+     *
+     * @param int $limit
+     * @return list<array<string, mixed>>
+     */
+    public function getRecentOrders(int $limit = 5): array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT o.*, u.name as user_name
+             FROM orders o
+             LEFT JOIN users u ON o.user_id = u.id
+             ORDER BY o.created_at DESC
+             LIMIT ?"
+        );
+        $stmt->bindValue(1, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Replenish inventory for an order that was returned/cancelled.
+     *
+     * Stock is deducted during order creation; when admin sets status to
+     * `cancelled`, we reverse the deduction by adding back order_items.quantity.
+     *
+     * This method assumes caller controls when to call it (e.g. only on
+     * transition into `cancelled`).
+     */
+    public function replenishStockForOrder(int $orderId): void
+    {
+        $stmt = $this->pdo->prepare(
+            "UPDATE items i
+             JOIN order_items oi ON i.id = oi.item_id
+             SET i.stock_quantity = i.stock_quantity + oi.quantity
+             WHERE oi.order_id = ?"
+        );
+        $stmt->execute([$orderId]);
+    }
 }

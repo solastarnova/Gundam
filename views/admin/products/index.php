@@ -17,14 +17,13 @@ $totalPages = ceil($total / $limit);
         </a>
     </div>
     
-    <!-- 搜索框 -->
     <div class="row mb-4">
         <div class="col-md-6">
             <form method="GET" action="<?= $url('admin/products') ?>" class="d-flex">
                 <input type="text" 
                        name="search" 
                        class="form-control me-2" 
-                       placeholder="搜索商品名称或分类..."
+                       placeholder="搜尋商品名稱或分類..."
                        value="<?= htmlspecialchars($search) ?>">
                 <button type="submit" class="btn btn-outline-primary">
                     <i class="bi bi-search"></i>
@@ -33,14 +32,13 @@ $totalPages = ceil($total / $limit);
         </div>
     </div>
     
-    <!-- 商品列表 -->
     <?php if (empty($products)): ?>
         <div class="text-center py-5">
             <i class="bi bi-box" style="font-size: 48px; color: #ccc;"></i>
-            <h5 class="mt-3 text-muted">暂无商品</h5>
+            <h5 class="mt-3 text-muted">暫無商品</h5>
             <?php if (!empty($search)): ?>
-                <p class="text-muted">没有找到与"<?= htmlspecialchars($search) ?>"相关的商品</p>
-                <a href="<?= $url('admin/products') ?>" class="btn btn-outline-secondary mt-2">清除搜索</a>
+                <p class="text-muted">沒有找到與「<?= htmlspecialchars($search) ?>」相關的商品</p>
+                <a href="<?= $url('admin/products') ?>" class="btn btn-outline-secondary mt-2">清除搜尋</a>
             <?php else: ?>
                 <a href="<?= $url('admin/products/create') ?>" class="btn btn-primary mt-2">立即添加</a>
             <?php endif; ?>
@@ -51,11 +49,11 @@ $totalPages = ceil($total / $limit);
                 <thead>
                     <tr>
                         <th style="width: 60px;">ID</th>
-                        <th style="width: 80px;">图片</th>
-                        <th>商品名称</th>
-                        <th>分类</th>
-                        <th>价格</th>
-                        <th>库存</th>
+                        <th style="width: 80px;">圖片</th>
+                        <th>商品名稱</th>
+                        <th>分類</th>
+                        <th>價格</th>
+                        <th>庫存</th>
                         <th style="width: 150px;">操作</th>
                     </tr>
                 </thead>
@@ -74,10 +72,10 @@ $totalPages = ceil($total / $limit);
                             <small class="text-muted"><?= htmlspecialchars(substr($product['description'] ?? '', 0, 30)) ?>...</small>
                         </td>
                         <td>
-                            <span class="badge bg-info text-white"><?= htmlspecialchars($product['category'] ?? '未分类') ?></span>
+                            <span class="badge bg-info text-white"><?= htmlspecialchars($product['category'] ?? '未分類') ?></span>
                         </td>
                         <td>
-                            <strong class="text-danger">HK$ <?= number_format($product['price']) ?></strong>
+                            <strong class="text-danger"><?= htmlspecialchars($money((float) $product['price']), ENT_QUOTES, 'UTF-8') ?></strong>
                         </td>
                         <td>
                             <?php if ($product['stock_quantity'] > 10): ?>
@@ -85,18 +83,18 @@ $totalPages = ceil($total / $limit);
                             <?php elseif ($product['stock_quantity'] > 0): ?>
                                 <span class="badge bg-warning"><?= $product['stock_quantity'] ?></span>
                             <?php else: ?>
-                                <span class="badge bg-danger">缺货</span>
+                                <span class="badge bg-danger">缺貨</span>
                             <?php endif; ?>
                         </td>
                         <td>
                             <a href="<?= $url('admin/products/edit/' . $product['id']) ?>" 
-                               class="btn btn-sm btn-warning" title="编辑">
+                               class="btn btn-sm btn-warning" title="編輯">
                                 <i class="bi bi-pencil"></i>
                             </a>
                             <a href="<?= $url('admin/products/delete/' . $product['id']) ?>" 
                                class="btn btn-sm btn-danger" 
-                               title="删除"
-                               onclick="return confirm('确定要删除该商品吗？\n<?= htmlspecialchars($product['name']) ?>')">
+                               title="刪除"
+                               onclick="return confirm('確定要刪除該商品嗎？\n<?= htmlspecialchars($product['name']) ?>')">
                                 <i class="bi bi-trash"></i>
                             </a>
                         </td>
@@ -106,7 +104,6 @@ $totalPages = ceil($total / $limit);
             </table>
         </div>
         
-        <!-- 分页 -->
         <?php if ($totalPages > 1): ?>
         <nav>
             <ul class="pagination">
@@ -142,7 +139,7 @@ $totalPages = ceil($total / $limit);
         <?php endif; ?>
         
         <div class="text-muted text-center mt-2">
-            共 <?= $total ?> 件商品，当前显示第 <?= ($page-1)*$limit+1 ?> - <?= min($page*$limit, $total) ?> 件
+            共 <?= $total ?> 件商品，當前顯示第 <?= ($page-1)*$limit+1 ?> - <?= min($page*$limit, $total) ?> 件
         </div>
     <?php endif; ?>
 </div>

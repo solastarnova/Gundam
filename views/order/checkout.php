@@ -3,14 +3,17 @@ $url = $url ?? fn($p = '') => $p;
 $asset = $asset ?? fn($p) => $p;
 $stripePublishableKey = $stripePublishableKey ?? '';
 $paypalClientId = $paypalClientId ?? '';
-$shippingConfig = $shippingConfig ?? ['express_fee' => 80, 'standard_fee' => 50, 'free_threshold' => 500];
+$shippingConfig = $shippingConfig ?? ['express_fee' => 0, 'standard_fee' => 0, 'free_threshold' => 0];
 $defaultShippingAddress = $defaultShippingAddress ?? '香港';
+$walletBalance = isset($walletBalance) ? (float) $walletBalance : 0.0;
+$money = $money ?? fn(float $amount) => number_format($amount, 2);
+$checkoutJsPath = dirname(__DIR__, 2) . '/js/checkout.js';
+$checkoutJsVersion = is_file($checkoutJsPath) ? (string) filemtime($checkoutJsPath) : (string) time();
 ?>
 <div class="container mt-5 pt-5">
     <h2 class="mb-4">結帳付款</h2>
     <div class="row">
         <div class="col-lg-8">
-            <!-- 收貨地址（參考 Reference，保持現有 card 風格） -->
             <div class="card mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span>收貨地址</span>
@@ -22,7 +25,6 @@ $defaultShippingAddress = $defaultShippingAddress ?? '香港';
                             <p class="text-muted mb-0">載入地址中...</p>
                         </div>
                         <div id="addressCardsContainer" class="row g-2" style="display: none;">
-                            <!-- 地址卡片由 JS 動態產生 -->
                         </div>
                         <div id="noAddressMessage" style="display: none;" class="text-center py-3">
                             <p class="text-muted mb-2">尚未儲存任何收件地址</p>
@@ -51,11 +53,19 @@ $defaultShippingAddress = $defaultShippingAddress ?? '香港';
                             <option value="express">快速配送 (1 工作天)</option>
                         </select>
                     </div>
-                    <p class="mb-1">商品總額：<span id="subtotal" class="float-end">HK$0.00</span></p>
-                    <p class="mb-1">運費：<span id="shippingFee" class="float-end">HK$0.00</span></p>
+                    <p class="mb-1">商品總額：<span id="subtotal" class="float-end"><?= htmlspecialchars($money(0.0), ENT_QUOTES, 'UTF-8') ?></span></p>
+                    <p class="mb-1">運費：<span id="shippingFee" class="float-end"><?= htmlspecialchars($money(0.0), ENT_QUOTES, 'UTF-8') ?></span></p>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="useWalletBalance" <?= $walletBalance > 0 ? 'checked' : '' ?> <?= $walletBalance > 0 ? '' : 'disabled' ?>>
+                        <label class="form-check-label small" for="useWalletBalance">
+                            使用錢包餘額抵扣
+                        </label>
+                    </div>
+                    <p class="mb-1">錢包餘額：<span id="walletBalance" class="float-end"><?= htmlspecialchars($money($walletBalance), ENT_QUOTES, 'UTF-8') ?></span></p>
+                    <p class="mb-1 text-success">錢包抵扣：<span id="walletUsed" class="float-end">-<?= htmlspecialchars($money(0.0), ENT_QUOTES, 'UTF-8') ?></span></p>
                     <hr>
-                    <p class="fs-5 fw-bold">應付總額：<span id="final-total" class="float-end text-danger">HK$0.00</span></p>
-                    <!-- 付款方式 -->
+                    <p class="mb-1">訂單總額：<span id="orderTotal" class="float-end"><?= htmlspecialchars($money(0.0), ENT_QUOTES, 'UTF-8') ?></span></p>
+                    <p class="fs-5 fw-bold">實際需支付：<span id="final-total" class="float-end text-danger"><?= htmlspecialchars($money(0.0), ENT_QUOTES, 'UTF-8') ?></span></p>
                     <div class="mb-3">
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="paymentMethod" id="paymentStripe" value="stripe" <?= $stripePublishableKey ? 'checked' : '' ?> <?= $stripePublishableKey ? '' : 'disabled' ?>>
@@ -87,7 +97,8 @@ $defaultShippingAddress = $defaultShippingAddress ?? '香港';
 <script src="https://js.stripe.com/v3/"></script>
 <?php if ($paypalClientId): ?>
 <?php
-$paypalCurrency = 'HKD';
+$paypalCurrency = strtoupper((string) (($currency['code'] ?? '')));
+$paypalCurrency = $paypalCurrency !== '' ? $paypalCurrency : 'USD';
 $paypalLocale = 'zh_HK';
 $paypalSdkUrl = sprintf(
     'https://www.paypal.com/sdk/js?client-id=%s&currency=%s&locale=%s',
@@ -104,5 +115,6 @@ window.STRIPE_PUBLISHABLE_KEY = <?= json_encode($stripePublishableKey, JSON_UNES
 window.PAYPAL_CLIENT_ID = <?= json_encode($paypalClientId, JSON_UNESCAPED_UNICODE) ?>;
 window.SHIPPING_CONFIG = <?= json_encode($shippingConfig, JSON_UNESCAPED_UNICODE) ?>;
 window.DEFAULT_SHIPPING_ADDRESS = <?= json_encode($defaultShippingAddress, JSON_UNESCAPED_UNICODE) ?>;
+window.WALLET_BALANCE = <?= json_encode($walletBalance, JSON_UNESCAPED_UNICODE) ?>;
 </script>
-<script src="<?= $asset('js/checkout.js') ?>"></script>
+<script src="<?= $asset('js/checkout.js') ?>?v=<?= urlencode($checkoutJsVersion) ?>"></script>

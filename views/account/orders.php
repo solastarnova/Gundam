@@ -1,10 +1,10 @@
 <?php
 $url = $url ?? fn($p = '') => $p;
 ?>
-<div class="container my-5 pt-5">
-    <div class="row">
+<div class="container account-page my-5 pt-5">
+    <div class="row account-layout">
         <div class="col-lg-3 col-md-4">
-            <div class="sidebar">
+            <div class="sidebar account-sidebar">
                 <h5 class="px-4 mb-4 text-dark fw-bold">我的帳戶</h5>
                 <div class="nav flex-column">
                     <a href="<?= $url('account') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-person me-2"></i> 個人資料</a>
@@ -12,14 +12,14 @@ $url = $url ?? fn($p = '') => $p;
                     <a href="<?= $url('wishlist') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-heart me-2"></i> 喜愛清單</a>
                     <a href="#coupons" class="nav-link d-flex align-items-center"><i class="bi bi-ticket-perforated me-2"></i> 優惠券</a>
                     <a href="<?= $url('account/addresses') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-geo-alt me-2"></i> 預設地址</a>
-                    <a href="#payment" class="nav-link d-flex align-items-center"><i class="bi bi-credit-card me-2"></i> 付款方式</a>
-                    <a class="nav-link d-flex" href="<?= $url('account/settings') ?>"> 修改密碼</a>
+                    <a href="<?= $url('account/payment') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-credit-card me-2"></i> 付款方式</a>
+                    <a class="nav-link d-flex" href="<?= $url('account/settings') ?>"> 帳戶設定</a>
                     <a class="nav-link d-flex text-primary" href="<?= $url('logout') ?>"> 登出</a>
                 </div>
             </div>
         </div>
-        <div class="bg-white rounded shadow-sm col-lg-9 col-md-8">
-            <div class="py-3">
+        <div class="col-lg-9 col-md-8">
+            <div class="account-main-card account-main-padding">
                 <div class="mb-4">
                     <h4 class="mb-4">訂單記錄</h4>
                     <p class="page-subtitle">查看您的所有交易歷史和支付狀態</p>
@@ -33,7 +33,7 @@ $url = $url ?? fn($p = '') => $p;
                     </div>
                     <div class="col-xl-3 col-md-6">
                         <div class="stat-card bg-primary bg-opacity-10 border border-primary border-opacity-25">
-                            <div class="stat-card-value text-primary" id="totalAmount">HK$0</div>
+                            <div class="stat-card-value text-primary" id="totalAmount">0</div>
                             <div class="stat-card-label">總交易金額</div>
                         </div>
                     </div>
@@ -103,6 +103,23 @@ $url = $url ?? fn($p = '') => $p;
 <script>
 (function() {
     const base = window.APP_BASE || '';
+    const formatMoney = (typeof window.formatMoney === 'function')
+        ? window.formatMoney
+        : function(v) {
+            const cfg = window.APP_CURRENCY || {};
+            const amount = Number(v || 0);
+            try {
+                if (cfg.code) {
+                    return new Intl.NumberFormat(cfg.locale || 'zh-HK', {
+                        style: 'currency',
+                        currency: cfg.code,
+                        minimumFractionDigits: Number.isInteger(cfg.decimals) ? cfg.decimals : 2,
+                        maximumFractionDigits: Number.isInteger(cfg.decimals) ? cfg.decimals : 2
+                    }).format(amount);
+                }
+            } catch (e) {}
+            return (cfg.symbol || '') + amount.toFixed(Number.isInteger(cfg.decimals) ? cfg.decimals : 2);
+        };
     const statusClass = { pending: 'text-warning', paid: 'text-info', shipped: 'text-primary', completed: 'text-success', cancelled: 'text-danger' };
     const statusText = { pending: '待處理', paid: '已付款', shipped: '已發貨', completed: '已完成', cancelled: '已取消' };
     const initialOrders = <?= json_encode($orders ?? []) ?>;
@@ -133,8 +150,8 @@ $url = $url ?? fn($p = '') => $p;
                 allOrders = initialOrders;
             } else {
                 const response = await fetch(base + 'api/orders');
-                const orders = await response.json();
-                allOrders = Array.isArray(orders) ? orders : [];
+                const result = await response.json();
+                allOrders = (result && result.success && Array.isArray(result.orders)) ? result.orders : [];
             }
             const tbody = document.getElementById('transactionTableBody');
             const emptyState = document.getElementById('emptyState');
@@ -144,7 +161,7 @@ $url = $url ?? fn($p = '') => $p;
                 tbody.style.display = 'none';
                 emptyState.style.display = 'block';
                 document.getElementById('totalTransactions').textContent = '0';
-                document.getElementById('totalAmount').textContent = 'HK$0';
+                document.getElementById('totalAmount').textContent = formatMoney(0);
                 document.getElementById('successCount').textContent = '0';
                 document.getElementById('pendingCount').textContent = '0';
                 return;
@@ -163,12 +180,12 @@ $url = $url ?? fn($p = '') => $p;
                 const st = statusText[order.status] || order.status;
                 const row = document.createElement('tr');
                 row.setAttribute('data-order-id', order.id);
-                row.innerHTML = '<td>' + (order.order_number || '') + '</td><td>' + (order.created_at ? new Date(order.created_at).toLocaleDateString() : '') + '</td><td>' + (order.item_count || 0) + ' 件商品</td><td class="fw-bold">HK$' + (parseFloat(order.total_amount) || 0).toFixed(2) + '</td><td><span class="' + sc + '">' + st + '</span></td><td><a href="' + base + 'account/order/' + order.id + '" class="btn btn-sm btn-outline-info">查看詳情</a></td>';
+                row.innerHTML = '<td>' + (order.order_number || '') + '</td><td>' + (order.created_at ? new Date(order.created_at).toLocaleDateString() : '') + '</td><td>' + (order.item_count || 0) + ' 件商品</td><td class="fw-bold">' + formatMoney(parseFloat(order.total_amount) || 0) + '</td><td><span class="' + sc + '">' + st + '</span></td><td><a href="' + base + 'account/order/' + order.id + '" class="btn btn-sm btn-outline-info">查看詳情</a></td>';
                 tbody.appendChild(row);
             });
 
             document.getElementById('totalTransactions').textContent = allOrders.length;
-            document.getElementById('totalAmount').textContent = 'HK$' + totalAmount.toFixed(2);
+            document.getElementById('totalAmount').textContent = formatMoney(totalAmount);
             document.getElementById('successCount').textContent = successCount;
             document.getElementById('pendingCount').textContent = pendingCount;
             window.filterTransactions = filterTransactions;

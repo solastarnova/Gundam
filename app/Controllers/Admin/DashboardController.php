@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Admin;
 
+use App\Core\Config;
 use App\Models\OrderModel;
 use App\Models\UserModel;
 use App\Models\Product;
@@ -20,12 +21,8 @@ class DashboardController extends BaseController
         $this->productModel = new Product();
     }
     
-    /**
-     * 仪表盘首页
-     */
     public function index()
     {
-        // 获取统计数据
         $stats = [
             'total_orders' => $this->getTotalOrders(),
             'total_users' => $this->getTotalUsers(),
@@ -40,9 +37,6 @@ class DashboardController extends BaseController
         ]);
     }
     
-    /**
-     * 获取订单总数
-     */
     private function getTotalOrders(): int
     {
         return $this->orderModel->getTotalCount();
@@ -60,11 +54,14 @@ class DashboardController extends BaseController
 
     private function getRecentOrders(): array
     {
-        return $this->orderModel->getRecentOrders(5);
+        $limit = (int) Config::get('admin.dashboard_recent_orders', 5);
+        return $this->orderModel->getRecentOrders($limit);
     }
 
     private function getLowStockProducts(): array
     {
-        return $this->productModel->getLowStock(10, 5);
+        $threshold = (int) Config::get('admin.low_stock_threshold', 10);
+        $limit = (int) Config::get('admin.low_stock_limit', 5);
+        return $this->productModel->getLowStock($threshold, $limit);
     }
 }

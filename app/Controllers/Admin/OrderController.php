@@ -2,7 +2,10 @@
 
 namespace App\Controllers\Admin;
 
+use App\Core\Config;
 use App\Models\OrderModel;
+use App\Services\OrderStatusService;
+use App\Services\WalletService;
 
 class OrderController extends BaseController
 {
@@ -14,61 +17,29 @@ class OrderController extends BaseController
         $this->orderModel = new OrderModel();
     }
     
-    /**
-     * 订单列表
-     */
     public function index()
     {
-        $page = max(1, (int)($_GET['page'] ?? 1));
-        $limit = 15;
-        $offset = ($page - 1) * $limit;
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $limit = (int) Config::get('admin.list_per_page', 15);
         $status = $_GET['status'] ?? '';
-        
-        // 构建查询
-        $sql = "SELECT o.*, u.name as user_name FROM orders o LEFT JOIN users u ON o.user_id = u.id";
-        $countSql = "SELECT COUNT(*) FROM orders";
-        $params = [];
-        
-        if (!empty($status)) {
-            $sql .= " WHERE o.status = ?";
-            $countSql .= " WHERE status = ?";
-            $params[] = $status;
-        }
-        
-        $sql .= " ORDER BY o.created_at DESC LIMIT ? OFFSET ?";
-        $params[] = $limit;
-        $params[] = $offset;
-        
-        // 获取订单列表
-        $stmt = $this->orderModel->getPdo()->prepare($sql);
-        $stmt->execute($params);
-        $orders = $stmt->fetchAll();
-        
-        // 获取总数
-        $stmt = $this->orderModel->getPdo()->prepare($countSql);
-        $stmt->execute($status ? [$status] : []);
-        $total = (int)$stmt->fetchColumn();
-        
-        // 获取各状态订单数量
-        $stats = $this->orderModel->getUserOrderStats(0); // 0表示所有用户
-        
+
+        $result = $this->orderModel->getListForAdmin(['status' => $status], $page, $limit);
+        $stats = $this->orderModel->getAllOrderStats();
+
         $this->render('orders/index', [
-            'title' => '订单管理',
-            'orders' => $orders,
+            'title' => '訂單管理',
+            'orders' => $result['rows'],
             'page' => $page,
-            'total' => $total,
+            'total' => $result['total'],
             'limit' => $limit,
             'status' => $status,
-            'stats' => $stats
+            'stats' => $stats,
         ]);
     }
-    
-    /**
-     * 订单详情
-     */
+
     public function detail(int $id)
     {
-        // 获取订单信息
+        $id = (int) $id;
         $stmt = $this->orderModel->getPdo()->prepare(
             "SELECT o.*, u.name as user_name, u.email 
              FROM orders o 
@@ -79,12 +50,10 @@ class OrderController extends BaseController
         $order = $stmt->fetch();
         
         if (!$order) {
-            $this->setError('订单不存在');
+            $this->setError(Config::get('messages.admin.order_not_found'));
             $this->redirect('/admin/orders');
             return;
         }
-        
-        // 获取订单商品
         $stmt = $this->orderModel->getPdo()->prepare(
             "SELECT * FROM order_items WHERE order_id = ?"
         );
@@ -92,38 +61,89 @@ class OrderController extends BaseController
         $items = $stmt->fetchAll();
         
         $this->render('orders/detail', [
-            'title' => '订单详情 #' . $order['order_number'],
+            'title' => '訂單詳情 #' . $order['order_number'],
             'order' => $order,
             'items' => $items
         ]);
     }
     
-    /**
-     * 更新订单状态
-     */
     public function updateStatus(int $id)
     {
-        $status = $_POST['status'] ?? '';
-        $allowedStatus = ['pending', 'paid', 'shipped', 'completed', 'cancelled'];
-        
-        if (!in_array($status, $allowedStatus)) {
-            $this->setError('无效的订单状态');
+        $id = (int) $id;
+        $status = trim((string) ($_POST['status'] ?? ''));
+
+        if ($status === '') {
+            $this->setError(Config::get('messages.admin.order_status_required'));
             $this->redirect("/admin/orders/{$id}");
             return;
         }
-        
-        try {
-            $stmt = $this->orderModel->getPdo()->prepare(
-                "UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?"
-            );
-            $stmt->execute([$status, $id]);
-            
-            $this->setSuccess('订单状态已更新');
-        } catch (\PDOException $e) {
-            error_log('Order status update error: ' . $e->getMessage());
-            $this->setError('更新失败，请稍后重试');
+
+        $stmt = $this->orderModel->getPdo()->prepare("SELECT * FROM orders WHERE id = ?");
+        $stmt->execute([$id]);
+        $order = $stmt->fetch();
+        if (!$order) {
+            $this->setError(Config::get('messages.admin.order_not_found'));
+            $this->redirect('/admin/orders');
+            return;
         }
-        
+
+        $currentStatus = (string) ($order['status'] ?? '');
+        $shouldReplenishStock = $status === 'cancelled' && $currentStatus !== 'cancelled';
+        $shouldRefundWallet = $currentStatus === 'paid' && $status === 'cancelled';
+
+        if (!OrderStatusService::canTransition($currentStatus, $status)) {
+            $this->setError(Config::get('messages.admin.order_status_invalid'));
+            $this->redirect("/admin/orders/{$id}");
+            return;
+        }
+
+        $userId = (int) ($order['user_id'] ?? 0);
+        $amount = (float) ($order['total_amount'] ?? 0);
+        $desc = sprintf(
+            '訂單 #%s 取消退款入錢包',
+            $order['order_number'] ?? (string) $order['id']
+        );
+
+        $pdo = $this->orderModel->getPdo();
+        $pdo->beginTransaction();
+        try {
+            if (!$this->orderModel->updateStatusByAdmin($id, $status)) {
+                throw new \RuntimeException('order_update_failed');
+            }
+
+            if ($shouldReplenishStock) {
+                $this->orderModel->replenishStockForOrder($id);
+            }
+
+            if ($shouldRefundWallet && $userId > 0) {
+                WalletService::addCreditWithinTransaction(
+                    $pdo,
+                    $userId,
+                    $amount,
+                    'refund',
+                    (int) $order['id'],
+                    $desc
+                );
+            }
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            if ($e instanceof \RuntimeException && $e->getMessage() === 'order_update_failed') {
+                $this->setError(Config::get('messages.admin.order_status_invalid'));
+            } elseif ($shouldRefundWallet) {
+                $this->setError(Config::get('messages.admin.order_wallet_refund_failed'));
+            } else {
+                $this->setError(Config::get('messages.admin.order_stock_refund_failed'));
+            }
+            $this->redirect("/admin/orders/{$id}");
+            return;
+        }
+
+        $this->setSuccess(Config::get('messages.admin.order_status_updated'));
         $this->redirect("/admin/orders/{$id}");
     }
 }

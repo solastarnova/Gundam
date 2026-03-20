@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Core\Config;
 use App\Core\Controller;
 use App\Models\Product;
 use App\Models\Review;
@@ -20,10 +21,9 @@ class HomeController extends Controller
 
     public function index(): void
     {
-        $config = $this->getConfig();
-        $featuredLimit = (int) ($config['home_featured_limit'] ?? 8);
-        $reviewsLimit = (int) ($config['home_reviews_limit'] ?? 6);
-        $placeholder = (string) ($config['placeholder_image'] ?? 'images/placeholder.jpg');
+        $featuredLimit = (int) Config::get('home_featured_limit', 8);
+        $reviewsLimit = (int) Config::get('home_reviews_limit', 6);
+        $placeholder = (string) Config::get('placeholder_image', 'images/placeholder.jpg');
 
         $dbProducts = $this->productModel->getFeatured($featuredLimit);
         $dbReviews = $this->reviewModel->getFeaturedReviews($reviewsLimit);

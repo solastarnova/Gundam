@@ -16,8 +16,10 @@ body {
     color: var(--theme-dark);
 }
 
+/* 為 fixed-top 的 navbar 預留空間，避免內容被遮擋 */
 .main-content {
     flex: 1 0 auto;
+    padding-top: 72px;
     padding-bottom: 3rem;
 }
 
@@ -48,6 +50,27 @@ body {
 
 .navbar-search-form {
     max-width: 500px;
+}
+
+/* 漢堡選單展開時：搜尋欄全長，導覽右對齊（斷點 sm 以下） */
+@media (max-width: 575.98px) {
+    .navbar-collapse-mobile-right {
+        align-items: flex-end !important;
+    }
+    .navbar-collapse-mobile-right .navbar-nav {
+        align-items: flex-end;
+    }
+    .navbar-collapse-mobile-right .js-search-form {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+    .navbar-collapse-mobile-right .js-search-form .input-group {
+        width: 100%;
+    }
+    .navbar-collapse-mobile-right .js-search-form .form-control {
+        flex: 1;
+        min-width: 0;
+    }
 }
 
 .navbar-search-form .form-control:focus {
@@ -198,6 +221,14 @@ body {
     padding-right: 20%;
 }
 
+/* 登入／註冊等按鈕：全長的 40% 並置中 */
+.auth-btn-center {
+    text-align: center;
+}
+.auth-btn-center .btn {
+    width: 40%;
+}
+
 .auth-border-dashed {
     max-width: 100%;
 }
@@ -257,6 +288,35 @@ body {
     padding-top: 2rem;
 }
 
+.account-page {
+    max-width: 1200px;
+}
+
+.account-layout {
+    align-items: stretch;
+}
+
+.account-sidebar {
+    height: 100%;
+}
+
+.account-main-card {
+    background: #fff;
+    border-radius: 0.75rem;
+    box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.08);
+    min-height: calc(100vh - 220px);
+}
+
+.account-main-padding {
+    padding: 1.5rem;
+}
+
+@media (min-width: 768px) {
+    .account-main-padding {
+        padding: 2rem;
+    }
+}
+
 .sidebar .nav-link {
     color: #495057;
     padding: 0.8rem 1.5rem;
@@ -285,6 +345,10 @@ body {
         min-height: auto;
         border-right: none;
         border-bottom: 1px solid #dee2e6;
+    }
+    .account-main-card {
+        min-height: auto;
+        margin-top: 1rem;
     }
 }
 

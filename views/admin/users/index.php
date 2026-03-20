@@ -10,17 +10,16 @@ $totalPages = ceil($total / $limit);
 
 <div class="content-card">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="mb-0">用户管理</h4>
+        <h4 class="mb-0">用戶管理</h4>
     </div>
     
-    <!-- 搜索框 -->
     <div class="row mb-4">
         <div class="col-md-6">
             <form method="GET" action="<?= $url('admin/users') ?>" class="d-flex">
                 <input type="text" 
                        name="search" 
-                       class="form-control me-2" 
-                       placeholder="搜索用户名或邮箱..."
+                       class="form-control me-2"
+                       placeholder="搜尋用戶名或電郵..."
                        value="<?= htmlspecialchars($search) ?>">
                 <button type="submit" class="btn btn-outline-primary">
                     <i class="bi bi-search"></i>
@@ -32,10 +31,10 @@ $totalPages = ceil($total / $limit);
     <?php if (empty($users)): ?>
         <div class="text-center py-5">
             <i class="bi bi-people" style="font-size: 48px; color: #ccc;"></i>
-            <h5 class="mt-3 text-muted">暂无用户</h5>
+            <h5 class="mt-3 text-muted">暫無用戶</h5>
             <?php if (!empty($search)): ?>
-                <p class="text-muted">没有找到与"<?= htmlspecialchars($search) ?>"相关的用户</p>
-                <a href="<?= $url('admin/users') ?>" class="btn btn-outline-secondary mt-2">清除搜索</a>
+                <p class="text-muted">沒有找到與 "<?= htmlspecialchars($search) ?>" 相關的用戶</p>
+                <a href="<?= $url('admin/users') ?>" class="btn btn-outline-secondary mt-2">清除搜尋</a>
             <?php endif; ?>
         </div>
     <?php else: ?>
@@ -44,39 +43,43 @@ $totalPages = ceil($total / $limit);
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>用户名</th>
-                        <th>邮箱</th>
-                        <th>注册时间</th>
-                        <th>订单数</th>
+                        <th>用戶名</th>
+                        <th>電郵</th>
+                        <th>狀態</th>
+                        <th>註冊時間</th>
+                        <th>訂單數</th>
                         <th>操作</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($users as $user): ?>
+                    <?php $status = $user['status'] ?? 'active'; ?>
                     <tr>
                         <td>#<?= $user['id'] ?></td>
                         <td>
                             <strong><?= htmlspecialchars($user['name']) ?></strong>
                         </td>
                         <td><?= htmlspecialchars($user['email']) ?></td>
+                        <td>
+                            <?php if ($status === 'active'): ?>
+                                <span class="badge bg-success">啟用</span>
+                            <?php else: ?>
+                                <span class="badge bg-secondary">禁用</span>
+                            <?php endif; ?>
+                        </td>
                         <td><?= date('Y-m-d H:i', strtotime($user['created_at'] ?? 'now')) ?></td>
                         <td>
-                            <?php
-                            // 获取用户订单数
-                            $stmt = $pdo ?? null;
-                            $orderCount = 0;
-                            if (isset($GLOBALS['pdo'])) {
-                                $stmt = $GLOBALS['pdo']->prepare("SELECT COUNT(*) FROM orders WHERE user_id = ?");
-                                $stmt->execute([$user['id']]);
-                                $orderCount = $stmt->fetchColumn();
-                            }
-                            ?>
-                            <span class="badge bg-info"><?= $orderCount ?></span>
+                            <span class="badge bg-info"><?= (int) ($user['order_count'] ?? 0) ?></span>
                         </td>
                         <td>
+                            <form method="POST" action="<?= $url('admin/users/' . $user['id'] . '/toggle-status') ?>" class="d-inline me-1">
+                                <button type="submit" class="btn btn-sm <?= $status === 'active' ? 'btn-warning' : 'btn-success' ?>" title="<?= $status === 'active' ? '禁用' : '啟用' ?>">
+                                    <?= $status === 'active' ? '禁用' : '啟用' ?>
+                                </button>
+                            </form>
                             <a href="<?= $url('admin/users/' . $user['id']) ?>" 
                                class="btn btn-sm btn-info text-white">
-                                <i class="bi bi-eye"></i> 详情
+                                <i class="bi bi-eye"></i> 詳情
                             </a>
                         </td>
                     </tr>
@@ -85,7 +88,6 @@ $totalPages = ceil($total / $limit);
             </table>
         </div>
         
-        <!-- 分页 -->
         <?php if ($totalPages > 1): ?>
         <nav>
             <ul class="pagination">
@@ -117,7 +119,7 @@ $totalPages = ceil($total / $limit);
         <?php endif; ?>
         
         <div class="text-muted text-center mt-2">
-            共 <?= $total ?> 个用户，当前显示第 <?= ($page-1)*$limit+1 ?> - <?= min($page*$limit, $total) ?> 个
+            共 <?= $total ?> 個用戶，當前顯示第 <?= ($page-1)*$limit+1 ?> - <?= min($page*$limit, $total) ?> 個
         </div>
     <?php endif; ?>
 </div>

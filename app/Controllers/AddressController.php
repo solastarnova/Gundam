@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Core\Config;
 use App\Core\Controller;
 use App\Models\AddressModel;
 
@@ -50,12 +51,12 @@ class AddressController extends Controller
         $userId = (int) $_SESSION['user_id'];
         $addressId = (int) ($_GET['id'] ?? 0);
         if ($addressId <= 0) {
-            $this->json(['error' => '無效的地址 ID'], 400);
+            $this->json(['success' => false, 'error' => Config::get('messages.address.invalid_id'), 'message' => Config::get('messages.address.invalid_id')], 400);
             return;
         }
         $address = $this->addressModel->getAddressById($addressId, $userId);
         if (!$address) {
-            $this->json(['error' => '地址不存在'], 404);
+            $this->json(['success' => false, 'error' => Config::get('messages.address.not_found'), 'message' => Config::get('messages.address.not_found')], 404);
             return;
         }
         $this->json(['success' => true, 'address' => $address]);
@@ -72,12 +73,12 @@ class AddressController extends Controller
         $data = json_decode(file_get_contents('php://input'), true) ?: $_POST;
         try {
             $addressId = $this->addressModel->createAddress($userId, $data);
-            $this->json(['success' => true, 'message' => '地址新增成功', 'address_id' => $addressId]);
+            $this->json(['success' => true, 'message' => Config::get('messages.address.create_success'), 'address_id' => $addressId]);
         } catch (\InvalidArgumentException $e) {
-            $this->json(['error' => $e->getMessage()], 400);
+            $this->json(['success' => false, 'error' => $e->getMessage(), 'message' => $e->getMessage()], 400);
         } catch (\Exception $e) {
             error_log('Address create: ' . $e->getMessage());
-            $this->json(['error' => '新增地址失敗'], 500);
+            $this->json(['success' => false, 'error' => Config::get('messages.address.create_failed'), 'message' => Config::get('messages.address.create_failed')], 500);
         }
     }
 
@@ -92,22 +93,22 @@ class AddressController extends Controller
         $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
         $addressId = (int) ($input['id'] ?? 0);
         if ($addressId <= 0) {
-            $this->json(['error' => '無效的地址 ID'], 400);
+            $this->json(['success' => false, 'error' => Config::get('messages.address.invalid_id'), 'message' => Config::get('messages.address.invalid_id')], 400);
             return;
         }
         unset($input['id']);
         try {
             $success = $this->addressModel->updateAddress($addressId, $userId, $input);
             if ($success) {
-                $this->json(['success' => true, 'message' => '地址更新成功']);
+                $this->json(['success' => true, 'message' => Config::get('messages.address.update_success')]);
             } else {
-                $this->json(['error' => '地址不存在或無權限'], 404);
+                $this->json(['success' => false, 'error' => Config::get('messages.address.not_found_or_forbidden'), 'message' => Config::get('messages.address.not_found_or_forbidden')], 404);
             }
         } catch (\InvalidArgumentException $e) {
-            $this->json(['error' => $e->getMessage()], 400);
+            $this->json(['success' => false, 'error' => $e->getMessage(), 'message' => $e->getMessage()], 400);
         } catch (\Exception $e) {
             error_log('Address update: ' . $e->getMessage());
-            $this->json(['error' => '更新地址失敗'], 500);
+            $this->json(['success' => false, 'error' => Config::get('messages.address.update_failed'), 'message' => Config::get('messages.address.update_failed')], 500);
         }
     }
 
@@ -122,18 +123,18 @@ class AddressController extends Controller
         $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
         $addressId = (int) ($input['id'] ?? 0);
         if ($addressId <= 0) {
-            $this->json(['error' => '無效的地址 ID'], 400);
+            $this->json(['success' => false, 'error' => Config::get('messages.address.invalid_id'), 'message' => Config::get('messages.address.invalid_id')], 400);
             return;
         }
         try {
             $success = $this->addressModel->deleteAddress($addressId, $userId);
             if ($success) {
-                $this->json(['success' => true, 'message' => '地址已刪除']);
+                $this->json(['success' => true, 'message' => Config::get('messages.address.delete_success')]);
             } else {
-                $this->json(['error' => '地址不存在或無權限'], 404);
+                $this->json(['success' => false, 'error' => Config::get('messages.address.not_found_or_forbidden'), 'message' => Config::get('messages.address.not_found_or_forbidden')], 404);
             }
         } catch (\Exception $e) {
-            $this->json(['error' => '刪除地址失敗'], 500);
+            $this->json(['success' => false, 'error' => Config::get('messages.address.delete_failed'), 'message' => Config::get('messages.address.delete_failed')], 500);
         }
     }
 
@@ -148,18 +149,18 @@ class AddressController extends Controller
         $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
         $addressId = (int) ($input['id'] ?? 0);
         if ($addressId <= 0) {
-            $this->json(['error' => '無效的地址 ID'], 400);
+            $this->json(['success' => false, 'error' => Config::get('messages.address.invalid_id'), 'message' => Config::get('messages.address.invalid_id')], 400);
             return;
         }
         try {
             $success = $this->addressModel->setDefaultAddress($addressId, $userId);
             if ($success) {
-                $this->json(['success' => true, 'message' => '預設地址已更新']);
+                $this->json(['success' => true, 'message' => Config::get('messages.address.default_updated')]);
             } else {
-                $this->json(['error' => '地址不存在或無權限'], 404);
+                $this->json(['success' => false, 'error' => Config::get('messages.address.not_found_or_forbidden'), 'message' => Config::get('messages.address.not_found_or_forbidden')], 404);
             }
         } catch (\Exception $e) {
-            $this->json(['error' => '設定預設地址失敗'], 500);
+            $this->json(['success' => false, 'error' => Config::get('messages.address.set_default_failed'), 'message' => Config::get('messages.address.set_default_failed')], 500);
         }
     }
 }

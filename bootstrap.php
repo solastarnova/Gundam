@@ -1,6 +1,5 @@
 <?php
 
-// 載入 .env（$_ENV + putenv 供 getenv() 相容）
 if (file_exists(__DIR__ . '/.env')) {
     $lines = file(__DIR__ . '/.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     foreach ($lines as $line) {
@@ -14,12 +13,10 @@ if (file_exists(__DIR__ . '/.env')) {
     }
 }
 
-// Composer autoload（Stripe 等依賴）
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/vendor/autoload.php';
 }
 
-// 自動載入 App\*
 spl_autoload_register(function (string $class): void {
     $prefix = 'App\\';
     $baseDir = __DIR__ . '/app/';

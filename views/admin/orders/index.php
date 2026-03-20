@@ -11,7 +11,7 @@ $totalPages = ceil($total / $limit);
 $statusLabels = [
     'pending' => ['text' => '待付款', 'class' => 'badge-pending'],
     'paid' => ['text' => '已付款', 'class' => 'badge-paid'],
-    'shipped' => ['text' => '已发货', 'class' => 'badge-shipped'],
+    'shipped' => ['text' => '已發貨', 'class' => 'badge-shipped'],
     'completed' => ['text' => '已完成', 'class' => 'badge-completed'],
     'cancelled' => ['text' => '已取消', 'class' => 'badge-cancelled']
 ];
@@ -19,10 +19,9 @@ $statusLabels = [
 
 <div class="content-card">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="mb-0">订单管理</h4>
+        <h4 class="mb-0">訂單管理</h4>
     </div>
     
-    <!-- 状态统计 -->
     <div class="row mb-4">
         <div class="col-md-2 col-6 mb-2">
             <div class="card text-center p-2 <?= $status === '' ? 'border-primary' : '' ?>">
@@ -49,19 +48,19 @@ $statusLabels = [
     <?php if (empty($orders)): ?>
         <div class="text-center py-5">
             <i class="bi bi-cart-x" style="font-size: 48px; color: #ccc;"></i>
-            <h5 class="mt-3 text-muted">暂无订单</h5>
+            <h5 class="mt-3 text-muted">暫無訂單</h5>
         </div>
     <?php else: ?>
         <div class="table-responsive">
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th>订单号</th>
-                        <th>用户</th>
-                        <th>金额</th>
+                        <th>訂單號</th>
+                        <th>用戶</th>
+                        <th>金額</th>
                         <th>支付方式</th>
-                        <th>状态</th>
-                        <th>下单时间</th>
+                        <th>狀態</th>
+                        <th>下單時間</th>
                         <th>操作</th>
                     </tr>
                 </thead>
@@ -73,7 +72,7 @@ $statusLabels = [
                         </td>
                         <td><?= htmlspecialchars($order['user_name'] ?? '未知') ?></td>
                         <td>
-                            <strong class="text-danger">HK$ <?= number_format($order['total_amount'], 2) ?></strong>
+                            <strong class="text-danger"><?= htmlspecialchars($money((float) $order['total_amount']), ENT_QUOTES, 'UTF-8') ?></strong>
                         </td>
                         <td>
                             <?php
@@ -95,9 +94,9 @@ $statusLabels = [
                         </td>
                         <td><?= date('Y-m-d H:i', strtotime($order['created_at'])) ?></td>
                         <td>
-                            <a href="<?= $url('admin/orders/' . $order['id']) ?>" 
+                            <a href="<?= $url('admin/orders/' . $order['id']) ?>"
                                class="btn btn-sm btn-info text-white">
-                                <i class="bi bi-eye"></i> 详情
+                                <i class="bi bi-eye"></i> 詳情
                             </a>
                         </td>
                     </tr>
@@ -106,7 +105,6 @@ $statusLabels = [
             </table>
         </div>
         
-        <!-- 分页 -->
         <?php if ($totalPages > 1): ?>
         <nav>
             <ul class="pagination">

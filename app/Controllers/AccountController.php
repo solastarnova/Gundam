@@ -2,9 +2,12 @@
 
 namespace App\Controllers;
 
+use App\Core\Config;
 use App\Core\Controller;
 use App\Models\UserModel;
 use App\Models\OrderModel;
+use App\Models\Review;
+use App\Services\WalletService;
 
 class AccountController extends Controller
 {
@@ -45,41 +48,106 @@ class AccountController extends Controller
         ]);
     }
 
-    public function orderDetail(string $id): void
+    public function orderDetail(int $id): void
     {
+        $id = (int) $id;
         $user = $this->requireUser();
         $userId = (int) $_SESSION['user_id'];
-        $orderId = (int) $id;
-        if ($orderId <= 0) {
+        if ($id <= 0) {
             $this->redirect($this->view->url('account/orders'));
             return;
         }
-        $order = $this->orderModel->getOrderById($orderId, $userId);
+        $order = $this->orderModel->getOrderById($id, $userId);
         if (!$order) {
             $this->redirect($this->view->url('account/orders'));
             return;
         }
-        $orderItems = $this->orderModel->getOrderItems($orderId);
+        $orderItems = $this->orderModel->getOrderItems($id);
+        $reviewModel = new Review();
+        $canReviewItems = [];
+        foreach ($orderItems as $item) {
+            $itemId = (int) ($item['item_id'] ?? 0);
+            if ($itemId > 0) {
+                $canReviewItems[$itemId] = $reviewModel->hasUnreviewedPurchase($userId, $itemId);
+            }
+        }
         $this->render('account/order_detail', [
             'title' => '訂單詳情 - ' . $this->getSiteName(),
             'head_extra_css' => [],
             'order' => $order,
             'orderItems' => $orderItems,
+            'canReviewItems' => $canReviewItems,
+            'reviewSuccess' => $this->consumeFlash('review_success'),
+            'reviewError' => $this->consumeFlash('review_error'),
         ]);
+    }
+
+    public function submitReview(): void
+    {
+        $this->requireUser();
+        $userId = (int) $_SESSION['user_id'];
+        $itemId = (int) ($_POST['item_id'] ?? 0);
+        $orderId = (int) ($_POST['order_id'] ?? 0);
+        $title = trim((string) ($_POST['review_title'] ?? ''));
+        $content = trim((string) ($_POST['review_content'] ?? ''));
+        $rating = (int) ($_POST['review_rating'] ?? 0);
+
+        if ($itemId <= 0) {
+            $this->flash('review_error', '無效的商品');
+            $this->redirect($orderId > 0 ? $this->view->url('account/order/' . $orderId) : $this->view->url('account/orders'));
+            return;
+        }
+
+        $reviewModel = new Review();
+        if (!$reviewModel->hasUnreviewedPurchase($userId, $itemId)) {
+            $this->flash('review_error', '您尚未購買此商品或已評價過');
+            $this->redirect($orderId > 0 ? $this->view->url('account/order/' . $orderId) : $this->view->url('account/orders'));
+            return;
+        }
+
+        if ($title === '') {
+            $title = '用戶評價';
+        }
+        if ($rating < 1 || $rating > 5) {
+            $rating = 5;
+        }
+
+        $reviewModel->addReview($userId, $itemId, $title, $content, $rating);
+        $this->flash('review_success', '感謝您的評價！');
+        $this->redirect($orderId > 0 ? $this->view->url('account/order/' . $orderId) : $this->view->url('account/orders'));
     }
 
     public function settings(): void
     {
-        $this->requireUser();
+        $user = $this->requireUser();
+        $userId = (int) $_SESSION['user_id'];
+        $profile = $this->userModel->findById($userId);
         $this->render('account/settings', [
-            'title' => '修改密碼 - ' . $this->getSiteName(),
+            'title' => '帳戶設定 - ' . $this->getSiteName(),
+            'profile' => $profile,
             'passwordErrors' => $this->consumeFlash('account_password_errors', []),
             'passwordSuccess' => $this->consumeFlash('account_password_success'),
+            'emailErrors' => $this->consumeFlash('account_email_errors', []),
+            'emailSuccess' => $this->consumeFlash('account_email_success'),
+            'phoneErrors' => $this->consumeFlash('account_phone_errors', []),
+            'phoneSuccess' => $this->consumeFlash('account_phone_success'),
             'head_extra_css' => [],
         ]);
     }
 
-    /** Change password: current_password / new_password / confirm_password; length from config; new must differ from current. */
+    public function payment(): void
+    {
+        $this->requireUser();
+        $userId = (int) $_SESSION['user_id'];
+        $walletBalance = (new WalletService())->getBalance($userId);
+
+        $this->render('account/payment', [
+            'title' => '付款方式 - ' . $this->getSiteName(),
+            'wallet_balance' => $walletBalance,
+            'head_extra_css' => [],
+        ]);
+    }
+
     public function updatePassword(): void
     {
         $this->requireUser();
@@ -94,7 +162,7 @@ class AccountController extends Controller
             $errors['current_password'] = '請輸入目前密碼';
         }
 
-        $minLen = (int) ($this->getConfig()['min_password_length'] ?? 8);
+        $minLen = (int) Config::get('min_password_length', 8);
         if ($newPassword === '') {
             $errors['new_password'] = '請輸入新密碼';
         } elseif (strlen($newPassword) < $minLen) {
@@ -137,16 +205,65 @@ class AccountController extends Controller
         $this->redirect($this->view->url('account/settings'));
     }
 
+    public function updateEmail(): void
+    {
+        $this->requireUser();
+        $userId = (int) $_SESSION['user_id'];
+        $newEmail = trim((string) ($_POST['email'] ?? ''));
+        $currentPassword = (string) ($_POST['current_password'] ?? '');
+
+        $profile = $this->userModel->findById($userId);
+        $currentEmail = $profile['email'] ?? '';
+        $errors = [];
+        if ($newEmail === '') {
+            $errors['email'] = '請輸入新電郵';
+        } elseif (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+            $errors['email'] = '請輸入有效的電郵地址';
+        } elseif ($newEmail !== $currentEmail && $this->userModel->emailExists($newEmail)) {
+            $errors['email'] = '此電郵已被其他帳號使用';
+        }
+        if ($currentPassword === '') {
+            $errors['current_password'] = '請輸入目前密碼以確認身份';
+        } elseif (!$this->userModel->verifyPasswordForUser($userId, $currentPassword)) {
+            $errors['current_password'] = '目前密碼不正確';
+        }
+
+        if (!empty($errors)) {
+            $this->flash('account_email_errors', $errors);
+            $this->redirect($this->view->url('account/settings'));
+            return;
+        }
+
+        if ($this->userModel->updateEmail($userId, $newEmail)) {
+            $_SESSION['email'] = $newEmail;
+            $this->flash('account_email_success', '電郵已更新');
+        } else {
+            $this->flash('account_email_errors', ['email' => '更新失敗，此電郵可能已被使用']);
+        }
+        $this->redirect($this->view->url('account/settings'));
+    }
+
+    public function updatePhone(): void
+    {
+        $this->requireUser();
+        $userId = (int) $_SESSION['user_id'];
+        $phone = trim((string) ($_POST['phone'] ?? ''));
+
+        $this->userModel->updatePhone($userId, $phone);
+        $this->flash('account_phone_success', '手機號碼已更新');
+        $this->redirect($this->view->url('account/settings'));
+    }
+
     public function getOrders(): void
     {
         $this->setupJsonApi();
 
         if (!isset($_SESSION['user_id'])) {
-            $this->json([]);
+            $this->json(['success' => false, 'error' => '未登入', 'message' => '未登入', 'orders' => []], 401);
             return;
         }
         $userId = (int) $_SESSION['user_id'];
         $orders = $this->orderModel->getUserOrders($userId);
-        $this->json($orders);
+        $this->json(['success' => true, 'orders' => $orders]);
     }
 }

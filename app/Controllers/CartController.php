@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Core\Config;
 use App\Core\Controller;
 use App\Models\CartModel;
 
@@ -15,7 +16,6 @@ class CartController extends Controller
         $this->cartModel = new CartModel();
     }
 
-    /** Cart page (guest allowed, login prompted). */
     public function index(): void
     {
         $isLoggedIn = isset($_SESSION['user_id']);
@@ -26,18 +26,17 @@ class CartController extends Controller
         ]);
     }
 
-    /** Get cart item count. */
     public function getCount(): void
     {
         $this->setupJsonApi();
 
         if (!isset($_SESSION['user_id'])) {
-            $this->json(['count' => 0, 'isLoggedIn' => false]);
+            $this->json(['success' => true, 'count' => 0, 'isLoggedIn' => false]);
             return;
         }
         $userId = (int) $_SESSION['user_id'];
         $count = $this->cartModel->getCartItemsCount($userId);
-        $this->json(['count' => $count, 'isLoggedIn' => true]);
+        $this->json(['success' => true, 'count' => $count, 'isLoggedIn' => true]);
     }
 
     public function getItems(): void
@@ -64,15 +63,18 @@ class CartController extends Controller
         $productId = (int) ($_POST['product_id'] ?? $_GET['product_id'] ?? 0);
         $quantity = (int) ($_POST['quantity'] ?? $_GET['quantity'] ?? 1);
         if ($productId <= 0) {
-            $this->json(['success' => false, 'message' => '無效的商品ID'], 400);
+            $msg = Config::get('messages.cart.invalid_product_id');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
-        if ($quantity < 1 || $quantity > $this->cartModel->getMaxQuantity()) {
-            $this->json(['success' => false, 'message' => '數量必須在 1-' . $this->cartModel->getMaxQuantity() . ' 之間'], 400);
+        $maxQty = $this->cartModel->getMaxQuantity();
+        if ($quantity < 1 || $quantity > $maxQty) {
+            $msg = sprintf(Config::get('messages.cart.quantity_range'), $maxQty);
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
         $this->cartModel->addToCart($userId, $productId, $quantity);
-        $this->json(['success' => true, 'message' => '已加入購物車']);
+        $this->json(['success' => true, 'message' => Config::get('messages.cart.added')]);
     }
 
     public function update(): void
@@ -86,17 +88,21 @@ class CartController extends Controller
         $cartItemId = (int) ($_POST['cart_item_id'] ?? $_GET['cart_item_id'] ?? 0);
         $quantity = (int) ($_POST['quantity'] ?? $_GET['quantity'] ?? 1);
         if ($cartItemId <= 0) {
-            $this->json(['success' => false, 'message' => '無效的購物車項目'], 400);
+            $msg = Config::get('messages.cart.invalid_item');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
-        if ($quantity < 1 || $quantity > $this->cartModel->getMaxQuantity()) {
-            $this->json(['success' => false, 'message' => '數量必須在 1-' . $this->cartModel->getMaxQuantity() . ' 之間'], 400);
+        $maxQty = $this->cartModel->getMaxQuantity();
+        if ($quantity < 1 || $quantity > $maxQty) {
+            $msg = sprintf(Config::get('messages.cart.quantity_range'), $maxQty);
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
         if ($this->cartModel->updateCartItemQuantity($userId, $cartItemId, $quantity)) {
-            $this->json(['success' => true, 'message' => '已更新數量']);
+            $this->json(['success' => true, 'message' => Config::get('messages.cart.quantity_updated')]);
         } else {
-            $this->json(['success' => false, 'message' => '操作失敗'], 400);
+            $msg = Config::get('messages.cart.operation_failed');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
         }
     }
 
@@ -110,13 +116,15 @@ class CartController extends Controller
         $userId = (int) $_SESSION['user_id'];
         $cartItemId = (int) ($_POST['cart_item_id'] ?? $_GET['cart_item_id'] ?? 0);
         if ($cartItemId <= 0) {
-            $this->json(['success' => false, 'message' => '無效的購物車項目'], 400);
+            $msg = Config::get('messages.cart.invalid_item');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
         if ($this->cartModel->removeFromCart($userId, $cartItemId)) {
-            $this->json(['success' => true, 'message' => '已移除商品']);
+            $this->json(['success' => true, 'message' => Config::get('messages.cart.item_removed')]);
         } else {
-            $this->json(['success' => false, 'message' => '操作失敗'], 400);
+            $msg = Config::get('messages.cart.operation_failed');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
         }
     }
 }

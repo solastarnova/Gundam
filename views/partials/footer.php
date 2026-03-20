@@ -6,7 +6,6 @@ $asset = $asset ?? fn($p) => $p;
     <div class="footer-pattern"></div>
     <div class="footer-inner py-5">
       <div class="row g-4">
-        <!-- 左欄：品牌 + 聯絡 -->
         <div class="col-lg-4 col-md-6">
           <a href="<?= $url('') ?>" class="footer-brand d-inline-flex align-items-center mb-3">
             <img src="<?= $asset('images/logo.png') ?>" alt="Logo" width="40" height="34" class="me-2">
@@ -17,7 +16,6 @@ $asset = $asset ?? fn($p) => $p;
           <p class="mb-4 text-secondary">WhatsApp: +852 8000 5000</p>
           <p class="footer-legal small text-secondary mb-0">Daito, Gilded City, IOI-Resistance Zone</p>
         </div>
-        <!-- 企業 -->
         <div class="col-lg-2 col-md-6">
           <h6 class="footer-heading text-uppercase text-secondary mb-3">企業</h6>
           <ul class="list-unstyled footer-links mb-0">
@@ -26,7 +24,6 @@ $asset = $asset ?? fn($p) => $p;
             <li><a href="<?= $url('faq') ?>#contact">聯絡我們</a></li>
           </ul>
         </div>
-        <!-- 探索 -->
         <div class="col-lg-2 col-md-6">
           <h6 class="footer-heading text-uppercase text-secondary mb-3">探索</h6>
           <ul class="list-unstyled footer-links mb-0">
@@ -35,7 +32,6 @@ $asset = $asset ?? fn($p) => $p;
             <li><a href="<?= $url('faq') ?>">FAQ</a></li>
           </ul>
         </div>
-        <!-- 更多資訊 -->
         <div class="col-lg-2 col-md-6">
           <h6 class="footer-heading text-uppercase text-secondary mb-3">更多資訊</h6>
           <ul class="list-unstyled footer-links mb-0">

@@ -4,11 +4,11 @@ $asset = $asset ?? fn($p) => $p;
 $error = $error ?? '';
 ?>
 <!DOCTYPE html>
-<html lang="zh-HK">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>后台登录 - Gundam商城</title>
+    <title>後台登入 - Gundam商城</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="<?= $asset('css/style.css') ?>">
@@ -24,8 +24,8 @@ $error = $error ?? '';
                         <div class="logo">
                             <i class="bi bi-cpu"></i>
                         </div>
-                        <h1 class="auth-title">Gundam 后台管理</h1>
-                        <p class="auth-subtitle">请输入您的管理员账号登录</p>
+                        <h1 class="auth-title">Gundam 後台管理</h1>
+                        <p class="auth-subtitle">請輸入您的管理員帳號登入</p>
                     </div>
 
                     <?php if (!empty($error)): ?>
@@ -36,29 +36,30 @@ $error = $error ?? '';
                     <?php endif; ?>
 
                     <form method="POST" action="<?= $url('admin/login') ?>">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token ?? '') ?>">
                         <div class="mb-3">
-                            <label class="form-label" for="admin-username">用户名</label>
+                            <label class="form-label" for="admin-username">用戶名</label>
                             <input type="text"
                                    class="form-control"
                                    id="admin-username"
                                    name="username"
-                                   placeholder="请输入用户名"
+                                   placeholder="請輸入用戶名"
                                    required
                                    autofocus>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label" for="admin-password">密码</label>
+                            <label class="form-label" for="admin-password">密碼</label>
                             <input type="password"
                                    class="form-control"
                                    id="admin-password"
                                    name="password"
-                                   placeholder="请输入密码"
+                                   placeholder="請輸入密碼"
                                    required>
                         </div>
 
                         <button type="submit" class="btn btn-outline-success btn-login">
-                            登录
+                            登入
                         </button>
                     </form>
 

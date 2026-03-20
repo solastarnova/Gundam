@@ -2,6 +2,8 @@
 
 namespace App\Core;
 
+use App\Core\Config;
+
 class View
 {
     private string $basePath;
@@ -10,7 +12,7 @@ class View
     public function __construct()
     {
         $this->basePath = __DIR__ . '/../../views';
-        $config = require __DIR__ . '/../../config/app.php';
+        $config = Config::all();
         $base = rtrim($config['base_url'] ?? '', '/');
         if ($base === '' && isset($_SERVER['SCRIPT_NAME'])) {
             $base = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');

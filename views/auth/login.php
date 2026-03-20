@@ -3,39 +3,71 @@ $url = $url ?? fn($p = '') => $p;
 $redirect = $redirect ?? '';
 $errors = $errors ?? [];
 $old = $old ?? [];
+$message = $message ?? null;
 ?>
-<div class="container mx-auto mt-5 py-4">
-    <div class="alert alert-primary text-center m-0" role="alert">登入高達賬戶</div>
-    <div class="min-vh-50 bg-light">
-        <?php if (!empty($errors['general'])): ?>
-            <div class="alert alert-danger" role="alert"><?= htmlspecialchars($errors['general']) ?></div>
-        <?php endif; ?>
-        <form action="<?= $url('login') ?>" method="POST">
-            <?php if ($redirect !== ''): ?><input type="hidden" name="redirect" value="<?= htmlspecialchars($redirect) ?>"><?php endif; ?>
-            <div class="col-12 auth-form-col">
-                <label for="inputEmail4" class="form-label">電郵</label>
-                <input type="email" class="form-control <?= isset($errors['email']) ? 'is-invalid' : '' ?>" id="inputEmail4" name="e-mail" value="<?= htmlspecialchars($old['email'] ?? '') ?>">
-                <?php if (isset($errors['email'])): ?><div class="invalid-feedback d-block"><?= htmlspecialchars($errors['email']) ?></div><?php endif; ?>
-            </div>
-            <div class="col-12 auth-form-col">
-                <label for="inputPassword4" class="form-label">密碼</label>
-                <input type="password" class="form-control <?= isset($errors['password']) ? 'is-invalid' : '' ?>" title="密碼須至少 8 個字元" minlength="8" id="inputPassword4" name="password">
-                <?php if (isset($errors['password'])): ?><div class="invalid-feedback d-block"><?= htmlspecialchars($errors['password']) ?></div><?php endif; ?>
-            </div>
-            <div class="text-center">
-                <button class="btn btn-outline-success mt-2 mb-3" type="submit">登入</button>
-            </div>
-        </form>
-        <div class="text-center mb-1">
-            <a href="<?= $url('resetpw') ?>" class="text-decoration-none">忘記密碼？</a>
-        </div>
-        <div class="border-top border-dashed mx-auto auth-border-dashed">
-            <p class="mt-2 mb-2 text-dark text-center">沒有帳號？</p>
-            <a href="<?= $url('register') ?>">
-                <div class="text-center">
-                    <button class="btn btn-outline-success mt-2 mb-3" type="button">點擊註冊</button>
+
+<div class="container d-flex justify-content-center align-items-center my-5">
+    <div class="card shadow-sm" style="max-width: 420px; width: 100%;">
+        <div class="card-body p-4">
+            <h3 class="text-center mb-3">登入賬戶</h3>
+
+            <?php if ($message): ?>
+                <div class="alert alert-success" role="alert"><?= htmlspecialchars($message) ?></div>
+            <?php endif; ?>
+            <?php if (!empty($errors['general'])): ?>
+                <div class="alert alert-danger" role="alert"><?= htmlspecialchars($errors['general']) ?></div>
+            <?php endif; ?>
+
+            <form action="<?= $url('login') ?>" method="POST" class="mb-3">
+                <?php if ($redirect !== ''): ?>
+                    <input type="hidden" name="redirect" value="<?= htmlspecialchars($redirect) ?>">
+                <?php endif; ?>
+                <div class="mb-3">
+                    <label for="inputEmail" class="form-label fw-semibold">電子郵箱</label>
+                    <input
+                        type="email"
+                        class="form-control <?= isset($errors['email']) ? 'is-invalid' : '' ?>"
+                        id="inputEmail"
+                        name="e-mail"
+                        placeholder="Email address"
+                        value="<?= htmlspecialchars($old['email'] ?? '') ?>"
+                        required
+                    >
+                    <?php if (isset($errors['email'])): ?>
+                        <div class="invalid-feedback d-block"><?= htmlspecialchars($errors['email']) ?></div>
+                    <?php endif; ?>
                 </div>
-            </a>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label for="inputPassword" class="form-label fw-semibold mb-0">密碼</label>
+                        <a href="<?= $url('forgot') ?>" class="text-decoration-none small">忘記密碼？</a>
+                    </div>
+                    <input
+                        type="password"
+                        class="form-control <?= isset($errors['password']) ? 'is-invalid' : '' ?>"
+                        id="inputPassword"
+                        name="password"
+                        placeholder="Password"
+                        minlength="8"
+                        required
+                    >
+                    <?php if (isset($errors['password'])): ?>
+                        <div class="invalid-feedback d-block"><?= htmlspecialchars($errors['password']) ?></div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="auth-btn-center mb-3">
+                <button class="btn btn-dark" type="submit">登入</button>
+            </div>
+            </form>
+
+            <hr class="my-3">
+            <div class="text-center">
+                <p class="mb-2 text-muted small">還沒有帳戶？</p>
+                <div class="auth-btn-center">
+                    <a href="<?= $url('register') ?>" class="btn btn-outline-dark">建立新帳戶</a>
+                </div>
+            </div>
         </div>
     </div>
 </div>

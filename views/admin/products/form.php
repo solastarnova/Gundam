@@ -4,6 +4,8 @@ $asset = $asset ?? fn($p) => $p;
 $product = $product ?? null;
 $title = $title ?? '商品表单';
 $isEdit = !is_null($product);
+$currencyCode = strtoupper((string) (($currency['code'] ?? '')));
+$currencyCode = $currencyCode !== '' ? $currencyCode : 'N/A';
 ?>
 
 <div class="content-card">
@@ -21,7 +23,6 @@ $isEdit = !is_null($product);
         
         <div class="row">
             <div class="col-md-8">
-                <!-- 基本信息 -->
                 <div class="card mb-4">
                     <div class="card-header">
                         <h6 class="mb-0">基本信息</h6>
@@ -38,7 +39,7 @@ $isEdit = !is_null($product);
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">价格 (HKD) <span class="text-danger">*</span></label>
+                                <label class="form-label">价格 (<?= htmlspecialchars($currencyCode, ENT_QUOTES, 'UTF-8') ?>) <span class="text-danger">*</span></label>
                                 <input type="number" 
                                        name="price" 
                                        class="form-control" 
@@ -77,7 +78,6 @@ $isEdit = !is_null($product);
             </div>
             
             <div class="col-md-4">
-                <!-- 商品图片 -->
                 <div class="card mb-4">
                     <div class="card-header">
                         <h6 class="mb-0">商品图片</h6>
@@ -105,11 +105,10 @@ $isEdit = !is_null($product);
                     </div>
                 </div>
                 
-                <!-- 提交按钮 -->
                 <div class="card">
                     <div class="card-body">
                         <button type="submit" class="btn btn-primary w-100 mb-2">
-                            <i class="bi bi-check-circle me-2"></i><?= $isEdit ? '更新商品' : '发布商品' ?>
+                            <i class="bi bi-check-circle me-2"></i><?= $isEdit ? '更新商品' : '發佈商品' ?>
                         </button>
                         <a href="<?= $url('admin/products') ?>" class="btn btn-outline-secondary w-100">
                             取消

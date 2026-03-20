@@ -2,22 +2,25 @@
 
 namespace App\Models;
 
+use App\Core\Config;
 use App\Core\Model;
+use App\Services\OrderStatusService;
 
 class Order extends Model
 {
-    private const ORDER_STATUS_PENDING = 'pending';
-
     /**
-     * Create order and order items (single transaction; optional external order number and status).
+     * Create order and order items (single transaction).
+     * Order number must be provided (OrderService::generateOrderNumber()).
      *
-     * @param int $userId User ID
-     * @param array{total: float, items: array<array{id: int, name: string, qty: int, price: float}>} $cart Cart data
-     * @param string $paymentMethod Payment method
-     * @param string $shippingAddress Shipping address
-     * @param string|null $orderNumber Order number (null to auto-generate)
-     * @param string $status Order status (default pending)
-     * @param bool $inTransaction Caller manages transaction (true = no commit/rollBack)
+     * @param int    $userId
+     * @param array  $cart
+     * @param string $paymentMethod
+     * @param string $shippingAddress
+     * @param string $orderNumber
+     * @param string|null $status
+     * @param bool   $inTransaction
+     * @param string|null $paymentProvider
+     * @param string|null $paymentReference
      * @return int Order ID
      */
     public function create(
@@ -25,9 +28,11 @@ class Order extends Model
         array $cart,
         string $paymentMethod,
         string $shippingAddress,
-        ?string $orderNumber = null,
-        string $status = self::ORDER_STATUS_PENDING,
-        bool $inTransaction = false
+        string $orderNumber,
+        ?string $status = null,
+        bool $inTransaction = false,
+        ?string $paymentProvider = null,
+        ?string $paymentReference = null
     ): int {
         $items = $cart['items'] ?? [];
         $total = isset($cart['total']) ? (float) $cart['total'] : 0.0;
@@ -37,64 +42,110 @@ class Order extends Model
         if ($total < 0) {
             throw new \InvalidArgumentException('訂單金額不可為負');
         }
-
-        $allowedStatus = ['pending', 'paid', 'shipped', 'completed', 'cancelled'];
-        if (!in_array($status, $allowedStatus, true)) {
-            $status = self::ORDER_STATUS_PENDING;
+        if ($orderNumber === '') {
+            throw new \InvalidArgumentException('訂單編號不可為空，請使用 OrderService::generateOrderNumber() 產生');
         }
 
-        $maxAttempts = ($orderNumber !== null && $orderNumber !== '') ? 1 : 3;
+        $defaultStatus = OrderStatusService::default();
+        if ($status === null || !OrderStatusService::isAllowed($status)) {
+            $status = $defaultStatus;
+        }
+
         $doCommit = !$inTransaction;
-
-        for ($attempt = 1; $attempt <= $maxAttempts; $attempt++) {
-            if ($doCommit) {
-                $this->pdo->beginTransaction();
-            }
-            try {
-                $num = $orderNumber;
-                if ($num === null || $num === '') {
-                    $config = require __DIR__ . '/../../config/app.php';
-                    $prefix = (string) ($config['order_number_prefix'] ?? 'ORD');
-                    $num = $prefix . date('YmdHis') . substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(6))), 0, 8);
-                }
-                $stmt = $this->pdo->prepare(
-                    "INSERT INTO orders (user_id, order_number, total_amount, payment_method, shipping_address, status)
-                     VALUES (?, ?, ?, ?, ?, ?)"
-                );
-                $stmt->execute([$userId, $num, $total, $paymentMethod, $shippingAddress, $status]);
-                $orderId = intval($this->pdo->lastInsertId());
-
-                $stmt2 = $this->pdo->prepare(
-                    "INSERT INTO order_items (order_id, item_id, product_name, quantity, price) VALUES (?, ?, ?, ?, ?)"
-                );
-                foreach ($items as $item) {
-                    $stmt2->execute([
-                        $orderId,
-                        intval($item['id']),
-                        (string) $item['name'],
-                        intval($item['qty']),
-                        floatval($item['price']),
-                    ]);
-                }
-                if ($doCommit) {
-                    $this->pdo->commit();
-                }
-                return $orderId;
-            } catch (\PDOException $e) {
-                if ($doCommit) {
-                    $this->pdo->rollBack();
-                }
-                if (($e->getCode() === '23000' || $e->getCode() === 23000) && $attempt < $maxAttempts) {
+        if ($doCommit) {
+            $this->pdo->beginTransaction();
+        }
+        try {
+            // 彙總購買數量並檢查庫存
+            $required = [];
+            foreach ($items as $item) {
+                $itemId = (int) ($item['id'] ?? 0);
+                $qty = (int) ($item['qty'] ?? 0);
+                if ($itemId <= 0 || $qty <= 0) {
                     continue;
                 }
-                throw $e;
-            } catch (\Throwable $e) {
-                if ($doCommit) {
-                    $this->pdo->rollBack();
+                if (!isset($required[$itemId])) {
+                    $required[$itemId] = 0;
                 }
-                throw $e;
+                $required[$itemId] += $qty;
             }
+            if ($required) {
+                $placeholders = implode(',', array_fill(0, count($required), '?'));
+                $stmtStock = $this->pdo->prepare(
+                    "SELECT id, stock_quantity FROM items WHERE id IN ($placeholders) FOR UPDATE"
+                );
+                $stmtStock->execute(array_keys($required));
+                $stockById = [];
+                while ($row = $stmtStock->fetch(\PDO::FETCH_ASSOC)) {
+                    $stockById[(int) $row['id']] = (int) $row['stock_quantity'];
+                }
+                foreach ($required as $itemId => $qtyNeeded) {
+                    $currentStock = $stockById[$itemId] ?? 0;
+                    if ($currentStock < $qtyNeeded) {
+                        $message = (string) Config::get('messages.order.insufficient_stock', '購買的貨品庫存不足');
+                        throw new \InvalidArgumentException($message);
+                    }
+                }
+                // 扣減庫存
+                $stmtUpdateStock = $this->pdo->prepare(
+                    "UPDATE items SET stock_quantity = stock_quantity - ? WHERE id = ?"
+                );
+                foreach ($required as $itemId => $qtyNeeded) {
+                    $stmtUpdateStock->execute([$qtyNeeded, $itemId]);
+                }
+            }
+
+            $stmt = $this->pdo->prepare(
+                "INSERT INTO orders (user_id, order_number, total_amount, payment_method, payment_provider, payment_reference, shipping_address, status)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+            );
+            $stmt->execute([
+                $userId,
+                $orderNumber,
+                $total,
+                $paymentMethod,
+                $paymentProvider,
+                $paymentReference,
+                $shippingAddress,
+                $status,
+            ]);
+            $orderId = intval($this->pdo->lastInsertId());
+
+            $stmt2 = $this->pdo->prepare(
+                "INSERT INTO order_items (order_id, item_id, product_name, quantity, price) VALUES (?, ?, ?, ?, ?)"
+            );
+            $stmtUserItem = $this->pdo->prepare(
+                "INSERT INTO user_item (user_id, item_id, quantity, status, date_time) VALUES (?, ?, ?, ?, NOW())"
+            );
+            foreach ($items as $item) {
+                $itemId = intval($item['id']);
+                $qty = intval($item['qty']);
+                $stmt2->execute([
+                    $orderId,
+                    $itemId,
+                    (string) $item['name'],
+                    $qty,
+                    floatval($item['price']),
+                ]);
+                $itemStatus = Review::STATUS_CONFIRMED;
+                for ($i = 0; $i < $qty; $i++) {
+                    $stmtUserItem->execute([$userId, $itemId, 1, $itemStatus]);
+                }
+            }
+            if ($doCommit) {
+                $this->pdo->commit();
+            }
+            return $orderId;
+        } catch (\PDOException $e) {
+            if ($doCommit) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
+        } catch (\Throwable $e) {
+            if ($doCommit) {
+                $this->pdo->rollBack();
+            }
+            throw $e;
         }
-        throw new \RuntimeException('無法產生唯一訂單編號，請稍後再試');
     }
 }

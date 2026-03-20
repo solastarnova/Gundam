@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Core\Config;
 use App\Core\Controller;
 use App\Models\FavoriteModel;
 
@@ -24,7 +25,6 @@ class WishlistController extends Controller
         ]);
     }
 
-    /** Check if product is in wishlist; returns { isFavorite, isLoggedIn }. */
     public function check(): void
     {
         $this->setupJsonApi();
@@ -38,7 +38,7 @@ class WishlistController extends Controller
                 $isFavorite = $this->favoriteModel->isFavorite($userId, $productId);
             }
         }
-        $this->json(['isFavorite' => $isFavorite, 'isLoggedIn' => $isLoggedIn]);
+        $this->json(['success' => true, 'isFavorite' => $isFavorite, 'isLoggedIn' => $isLoggedIn]);
     }
 
     public function getItems(): void
@@ -46,12 +46,12 @@ class WishlistController extends Controller
         $this->setupJsonApi();
 
         if (!isset($_SESSION['user_id'])) {
-            $this->json(['items' => []]);
+            $this->json(['success' => true, 'items' => []]);
             return;
         }
         $userId = (int) $_SESSION['user_id'];
         $items = $this->favoriteModel->getUserFavorites($userId);
-        $this->json(['items' => $items]);
+        $this->json(['success' => true, 'items' => $items]);
     }
 
     public function toggle(): void
@@ -64,7 +64,8 @@ class WishlistController extends Controller
         $userId = (int) $_SESSION['user_id'];
         $productId = (int) ($_POST['product_id'] ?? $_GET['product_id'] ?? 0);
         if ($productId <= 0) {
-            $this->json(['success' => false, 'isFavorite' => false, 'message' => '無效的商品ID'], 400);
+            $msg = Config::get('messages.wishlist.invalid_product_id');
+            $this->json(['success' => false, 'isFavorite' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
         $isFavorite = $this->favoriteModel->isFavorite($userId, $productId);
@@ -72,7 +73,7 @@ class WishlistController extends Controller
             $success = $this->favoriteModel->removeFavorite($userId, $productId);
             $this->json([
                 'success' => $success,
-                'message' => '已取消收藏',
+                'message' => Config::get('messages.wishlist.unfavorited'),
                 'action' => 'removed',
                 'isFavorite' => false,
             ]);
@@ -80,7 +81,7 @@ class WishlistController extends Controller
             $this->favoriteModel->addFavorite($userId, $productId);
             $this->json([
                 'success' => true,
-                'message' => '已加入收藏',
+                'message' => Config::get('messages.wishlist.favorited'),
                 'action' => 'added',
                 'isFavorite' => true,
             ]);
@@ -97,13 +98,15 @@ class WishlistController extends Controller
         $userId = (int) $_SESSION['user_id'];
         $productId = (int) ($_POST['product_id'] ?? $_GET['product_id'] ?? 0);
         if ($productId <= 0) {
-            $this->json(['success' => false, 'message' => '無效的商品 ID'], 400);
+            $msg = Config::get('messages.wishlist.invalid_product_id');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
         if ($this->favoriteModel->removeFavorite($userId, $productId)) {
-            $this->json(['success' => true, 'message' => '已移除']);
+            $this->json(['success' => true, 'message' => Config::get('messages.wishlist.removed')]);
         } else {
-            $this->json(['success' => false, 'message' => '操作失敗'], 400);
+            $msg = Config::get('messages.wishlist.operation_failed');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
         }
     }
 }

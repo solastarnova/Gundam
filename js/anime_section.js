@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                // 动画标题
+                // 標題動畫
                 const titles = entry.target.querySelectorAll('.anime-section-title, .anime-section-subtitle');
                 titles.forEach(title => {
                     title.classList.add('show');
@@ -16,11 +16,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const isMobile = window.innerWidth <= 768;
                 
-                // 动画轮播卡片
+                // 輪播卡片動畫
                 if (!isMobile) {
                     const carousel = entry.target.querySelector('#animeProductsCarousel');
                     if (carousel) {
-                        // 初始化时为第一个幻灯片应用动画
+                        // 首個卡片組初始化
                         const activeSlide = carousel.querySelector('.carousel-item.active');
                         if (activeSlide) {
                             activeSlide.querySelectorAll('.col').forEach(col => {
@@ -29,18 +29,18 @@ document.addEventListener('DOMContentLoaded', function() {
                             });
                         }
                         
-                        // 监听轮播切换事件
+                        // 監聽輪播切換
                         carousel.addEventListener('slid.bs.carousel', function(event) {
                             const activeSlide = event.relatedTarget;
                             const cards = activeSlide.querySelectorAll('.col');
                             
-                            // 重置状态
+                            // 重設狀態
                             cards.forEach(card => {
                                 card.style.opacity = '0';
                                 card.style.transform = 'translateY(30px)';
                             });
                             
-                            // 应用动画
+                            // 套用動畫
                             setTimeout(() => {
                                 cards.forEach((card, index) => {
                                     setTimeout(() => {
@@ -64,16 +64,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }, observerOptions);
     
-    // 开始观察模型专区
+    // 開始觀察模型專區
     const animeSection = document.getElementById('anime-section');
     if (animeSection) {
         observer.observe(animeSection);
     }
     
-    // 轮播初始化
+    // 初始化輪播
     const animeProductsCarousel = document.getElementById('animeProductsCarousel');
     if (animeProductsCarousel) {
-        // 初始化Bootstrap轮播
+        // 建立 Bootstrap 輪播
         const carousel = new bootstrap.Carousel(animeProductsCarousel, {
             interval: false,
             wrap: true

@@ -50,15 +50,12 @@ class Router
         $uri = parse_url($uri, PHP_URL_PATH);
         $uri = rtrim($uri, '/') ?: '/';
 
-        // Remove SCRIPT_NAME
         $basePath = dirname($_SERVER['SCRIPT_NAME']);
         if ($basePath !== '/' && $basePath !== '' && strpos($uri, $basePath) === 0) {
             $uri = substr($uri, strlen($basePath));
         }
 
-        // Remove base_url
-        $config = require __DIR__ . '/../../config/app.php';
-        $baseUrl = rtrim($config['base_url'] ?? '', '/');
+        $baseUrl = rtrim(\App\Core\Config::get('base_url', ''), '/');
         if ($baseUrl !== '' && strpos($uri, $baseUrl) === 0) {
             $uri = substr($uri, strlen($baseUrl));
         }

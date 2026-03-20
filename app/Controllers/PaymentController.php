@@ -2,26 +2,25 @@
 
 namespace App\Controllers;
 
+use App\Core\Config;
 use App\Core\Controller;
-use App\Core\Database;
 use App\Models\CartModel;
-use App\Models\Order;
-use App\Models\OrderModel;
 use App\Services\PaymentService;
+use App\Services\OrderService;
 use App\Services\ShippingService;
+use App\Services\WalletService;
 
 class PaymentController extends Controller
 {
-    private PaymentService $paymentService;
+    private ?PaymentService $paymentService = null;
     private CartModel $cartModel;
-    private OrderModel $orderModel;
+    private OrderService $orderService;
 
     public function __construct()
     {
         parent::__construct();
-        $this->paymentService = new PaymentService();
         $this->cartModel = new CartModel();
-        $this->orderModel = new OrderModel();
+        $this->orderService = new OrderService();
     }
 
     public function getPublishableKey(): void
@@ -30,7 +29,8 @@ class PaymentController extends Controller
 
         $key = getenv('STRIPE_PUBLISHABLE_KEY') ?: '';
         if ($key === '') {
-            $this->json(['success' => false, 'message' => 'Stripe 配置錯誤'], 500);
+            $msg = Config::get('messages.payment.stripe_config_error');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 500);
             return;
         }
         $this->json(['success' => true, 'publishable_key' => $key]);
@@ -47,34 +47,56 @@ class PaymentController extends Controller
         $userId = (int) $_SESSION['user_id'];
         $cartItems = $this->cartModel->getCartItems($userId);
         if (empty($cartItems)) {
-            $this->json(['success' => false, 'message' => '購物車是空的'], 400);
+            $msg = Config::get('messages.payment.cart_empty');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
 
         $subtotal = $this->cartModel->calculateSubtotal($cartItems);
         $shippingMethod = $_POST['shipping_method'] ?? 'standard';
         $totalAmount = ShippingService::calculateTotal($subtotal, $shippingMethod);
-        $amountInCents = PaymentService::convertToCents($totalAmount);
+        $useWallet = $this->toBool($_POST['use_wallet'] ?? '1');
+
+        $walletService = new WalletService();
+        $walletBalance = $walletService->getBalance($userId);
+        $walletToUse = $useWallet ? max(0.0, min($walletBalance, $totalAmount)) : 0.0;
+        $_SESSION['wallet_use_checkout'] = $walletToUse;
+
+        $payableAmount = $totalAmount - $walletToUse;
+        $amountInCents = PaymentService::convertToCents($payableAmount);
         if ($amountInCents <= 0) {
-            $this->json(['success' => false, 'message' => '訂單金額無效'], 400);
+            $msg = Config::get('messages.payment.order_amount_invalid');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
+            return;
+        }
+
+        $paymentService = $this->getStripePaymentService();
+        if ($paymentService === null) {
+            $msg = Config::get('messages.payment.stripe_config_error');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 500);
             return;
         }
 
         try {
-            $result = $this->paymentService->createPaymentIntent($amountInCents, 'hkd', [
+            $orderNumber = $this->orderService->generateOrderNumber();
+            $result = $paymentService->createPaymentIntent($amountInCents, $this->getStripeCurrencyCode(), [
                 'user_id' => (string) $userId,
                 'cart_items_count' => (string) count($cartItems),
                 'shipping_method' => $shippingMethod,
+                'wallet_used' => (string) $walletToUse,
             ]);
             $this->json([
                 'success' => true,
                 'client_secret' => $result['client_secret'],
                 'payment_intent_id' => $result['payment_intent_id'],
+                'order_number' => $orderNumber,
                 'amount' => $result['amount'],
                 'currency' => $result['currency'],
+                'wallet_used' => $walletToUse,
+                'total_amount' => $totalAmount,
             ]);
         } catch (\Throwable $e) {
-            $this->json(['success' => false, 'message' => $e->getMessage()], 500);
+            $this->json(['success' => false, 'error' => $e->getMessage(), 'message' => $e->getMessage()], 500);
         }
     }
 
@@ -89,7 +111,8 @@ class PaymentController extends Controller
         $userId = (int) $_SESSION['user_id'];
         $cartItems = $this->cartModel->getCartItems($userId);
         if (empty($cartItems)) {
-            $this->json(['success' => false, 'message' => '購物車是空的'], 400);
+            $msg = Config::get('messages.payment.cart_empty');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
 
@@ -97,20 +120,34 @@ class PaymentController extends Controller
         $shippingMethod = $_POST['shipping_method'] ?? 'standard';
         $shippingFee = ShippingService::calculateShippingFee($subtotal, $shippingMethod);
         $totalAmount = ShippingService::calculateTotal($subtotal, $shippingMethod);
+        $useWallet = $this->toBool($_POST['use_wallet'] ?? '1');
+
+        $walletService = new WalletService();
+        $walletBalance = $walletService->getBalance($userId);
+        $walletToUse = $useWallet ? max(0.0, min($walletBalance, $totalAmount)) : 0.0;
+        $_SESSION['wallet_use_checkout'] = $walletToUse;
+
+        $payableAmount = $totalAmount - $walletToUse;
+        if ($payableAmount < 0) {
+            $payableAmount = 0;
+        }
         if ($totalAmount <= 0) {
-            $this->json(['success' => false, 'message' => '訂單金額無效'], 400);
+            $msg = Config::get('messages.payment.order_amount_invalid');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
 
-        $orderNumber = $this->generateOrderNumber();
+        $orderNumber = $this->orderService->generateOrderNumber();
         $this->json([
             'success' => true,
             'order_number' => $orderNumber,
-            'amount' => number_format($totalAmount, 2, '.', ''),
-            'currency' => 'HKD',
+            'amount' => number_format($payableAmount, 2, '.', ''),
+            'currency' => $this->getCurrencyCode(),
             'items' => $cartItems,
             'shipping_method' => $shippingMethod,
             'shipping_fee' => $shippingFee,
+            'wallet_used' => $walletToUse,
+            'total_amount' => $totalAmount,
         ]);
     }
 
@@ -124,43 +161,63 @@ class PaymentController extends Controller
 
         $userId = (int) $_SESSION['user_id'];
         $paymentIntentId = trim($_POST['payment_intent_id'] ?? $_POST['paypal_order_id'] ?? '');
+        $orderNumber = trim($_POST['order_number'] ?? '');
         $shippingAddress = trim($_POST['shipping_address'] ?? '');
         $paymentMethod = trim($_POST['payment_method'] ?? 'credit_card');
         $shippingMethod = trim($_POST['shipping_method'] ?? 'standard');
+        $useWallet = $this->toBool($_POST['use_wallet'] ?? '1');
 
         if ($paymentIntentId === '') {
-            $this->json(['success' => false, 'message' => '缺少支付資訊'], 400);
+            $msg = Config::get('messages.payment.missing_info');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
         if ($shippingAddress === '') {
-            $this->json(['success' => false, 'message' => '請填寫配送地址'], 400);
+            $msg = Config::get('messages.payment.shipping_required');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
 
         $paymentStatus = 'succeeded';
         if ($paymentMethod !== 'paypal') {
+            $paymentService = $this->getStripePaymentService();
+            if ($paymentService === null) {
+                $msg = Config::get('messages.payment.stripe_config_error');
+                $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 500);
+                return;
+            }
             try {
-                $intent = $this->paymentService->getPaymentIntent($paymentIntentId);
+                $intent = $paymentService->getPaymentIntent($paymentIntentId);
                 $paymentStatus = $intent['status'];
             } catch (\Throwable $e) {
-                $this->json(['success' => false, 'message' => '無法驗證支付'], 400);
+                $msg = Config::get('messages.payment.verify_failed');
+                $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
                 return;
             }
         }
 
         if ($paymentStatus !== 'succeeded') {
-            $this->json(['success' => false, 'message' => '支付尚未完成', 'status' => $paymentStatus], 400);
+            $msg = Config::get('messages.payment.not_completed');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg, 'status' => $paymentStatus], 400);
             return;
         }
 
         $cartItems = $this->cartModel->getCartItems($userId);
         if (empty($cartItems)) {
-            $this->json(['success' => false, 'message' => '購物車是空的'], 400);
+            $msg = Config::get('messages.payment.cart_empty');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
 
         $subtotal = $this->cartModel->calculateSubtotal($cartItems);
         $totalAmount = ShippingService::calculateTotal($subtotal, $shippingMethod);
+        $walletUsed = $useWallet && isset($_SESSION['wallet_use_checkout']) ? (float) $_SESSION['wallet_use_checkout'] : 0.0;
+        if ($walletUsed < 0) {
+            $walletUsed = 0.0;
+        }
+        if ($walletUsed > $totalAmount) {
+            $walletUsed = $totalAmount;
+        }
         $itemsForOrder = [];
         foreach ($cartItems as $row) {
             $itemsForOrder[] = [
@@ -171,52 +228,79 @@ class PaymentController extends Controller
             ];
         }
 
+        if ($orderNumber === '') {
+            $orderNumber = $this->orderService->generateOrderNumber();
+        }
+
         try {
-            $orderNumber = $this->generateOrderNumber();
-            $pdo = Database::getConnection();
-            $pdo->beginTransaction();
-            try {
-                $order = new Order();
-                $orderId = $order->create(
-                    $userId,
-                    ['total' => $totalAmount, 'items' => $itemsForOrder],
-                    $paymentMethod === 'paypal' ? 'paypal' : 'credit',
-                    $shippingAddress,
-                    $orderNumber,
-                    'paid',
-                    true
-                );
-                $this->cartModel->clearCart($userId);
-                $pdo->commit();
-            } catch (\Throwable $e) {
-                $pdo->rollBack();
-                throw $e;
-            }
+            $result = $this->orderService->createOrderFromCart(
+                $userId,
+                $itemsForOrder,
+                $totalAmount,
+                $paymentMethod === 'paypal' ? 'paypal' : 'credit',
+                $shippingAddress,
+                'paid',
+                $orderNumber,
+                true,
+                $paymentMethod === 'paypal' ? 'paypal' : 'stripe',
+                $paymentIntentId,
+                $walletUsed
+            );
+
+            unset($_SESSION['wallet_use_checkout']);
 
             $this->json([
                 'success' => true,
-                'message' => '訂單已確認',
-                'order_number' => $orderNumber,
-                'order_id' => $orderId,
+                'message' => Config::get('messages.order.confirmed'),
+                'order_number' => $result['order_number'],
+                'order_id' => $result['order_id'],
             ]);
+        } catch (\InvalidArgumentException $e) {
+            $msg = Config::get('messages.order.insufficient_stock');
+            $this->json([
+                'success' => false,
+                'error' => $msg,
+                'message' => $msg,
+            ], 400);
         } catch (\Throwable $e) {
-            $this->json(['success' => false, 'message' => '建立訂單失敗，請稍後再試'], 500);
+            $msg = Config::get('messages.payment.confirm_failed');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 500);
         }
     }
 
-    private function generateOrderNumber(): string
+    private function toBool($value): bool
     {
-        $config = $this->getConfig();
-        $prefix = (string) ($config['order_number_prefix'] ?? 'ORD');
-        $date = date('Ymd');
-        $maxAttempts = 10;
-        for ($i = 0; $i < $maxAttempts; $i++) {
-            $random = str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
-            $orderNumber = $prefix . $date . $random;
-            if (!$this->orderModel->orderNumberExists($orderNumber)) {
-                return $orderNumber;
-            }
+        $normalized = strtolower(trim((string) $value));
+        return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+    }
+
+    private function getStripePaymentService(): ?PaymentService
+    {
+        if ($this->paymentService !== null) {
+            return $this->paymentService;
         }
-        return $prefix . $date . substr(bin2hex(random_bytes(4)), 0, 8);
+
+        try {
+            $this->paymentService = new PaymentService();
+            return $this->paymentService;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function getCurrencyCode(): string
+    {
+        $currency = Config::get('currency', []);
+        if (!is_array($currency)) {
+            return 'HKD';
+        }
+
+        $code = strtoupper(trim((string) ($currency['code'] ?? 'HKD')));
+        return $code !== '' ? $code : 'HKD';
+    }
+
+    private function getStripeCurrencyCode(): string
+    {
+        return strtolower($this->getCurrencyCode());
     }
 }

@@ -1,7 +1,3 @@
-/**
- * 購物車邏輯（參考 Reference）：僅使用 DB（API），不讀寫 localStorage。
- * 未登入不可使用購物車，須先登入。
- */
 const Cart = {
     async getCountFromServer() {
         const base = window.APP_BASE || '';
@@ -25,9 +21,6 @@ const Cart = {
             badge.textContent = '0';
             badge.style.display = 'none';
         }
-    },
-
-    showNotification(title, message) {
     }
 };
 
@@ -46,7 +39,6 @@ async function addToCart(id, name, price, img, qty = 1) {
         const res = await fetch(base + 'api/cart/add', { method: 'POST', body: fd });
         const data = await res.json();
         if (data && data.success) {
-            Cart.showNotification('已加入購物車', name);
             await Cart.updateBadge();
         } else {
             alert((data && data.message) ? data.message : '加入購物車失敗');

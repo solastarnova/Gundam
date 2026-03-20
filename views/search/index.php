@@ -29,7 +29,7 @@ function view_highlight_keyword($text, $keyword) {
                                 <img src="<?= $asset('images/' . ($product['image_path'] ?? 'placeholder.jpg')) ?>" class="card-img-top search-card-img" alt="<?= htmlspecialchars($product['name']) ?>" onerror="this.src='<?= $asset('images/placeholder.jpg') ?>'">
                                 <div class="card-body">
                                     <h6 class="card-title"><?= view_highlight_keyword($product['name'], $keyword) ?></h6>
-                                    <p class="card-text text-primary fw-bold">HK$ <?= number_format((float)($product['price'] ?? 0), 2) ?></p>
+                                    <p class="card-text text-primary fw-bold"><?= htmlspecialchars($money((float)($product['price'] ?? 0)), ENT_QUOTES, 'UTF-8') ?></p>
                                     <a href="<?= $url('product/' . (int)($product['id'] ?? 0)) ?>" class="btn btn-outline-primary btn-sm">查看詳情</a>
                                 </div>
                             </div>

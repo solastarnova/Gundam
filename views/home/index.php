@@ -100,9 +100,9 @@ $dbReviews = $dbReviews ?? $db_reviews ?? [];
                                 <h5 class="card-title mb-2 fs-6"><?= htmlspecialchars($product['name']) ?></h5>
                                 <div class="mt-auto">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="final-price fw-bold text-danger">HK$ <?= number_format($product['price']) ?></span>
+                                        <span class="final-price fw-bold text-danger"><?= htmlspecialchars($money((float) $product['price']), ENT_QUOTES, 'UTF-8') ?></span>
                                         <?php if (!empty($product['original_price']) && $product['original_price'] > $product['price']): ?>
-                                            <small class="original-price text-muted text-decoration-line-through">HK$ <?= number_format($product['original_price']) ?></small>
+                                            <small class="original-price text-muted text-decoration-line-through"><?= htmlspecialchars($money((float) $product['original_price']), ENT_QUOTES, 'UTF-8') ?></small>
                                         <?php endif; ?>
                                     </div>
                                 </div>
@@ -176,7 +176,6 @@ $dbReviews = $dbReviews ?? $db_reviews ?? [];
     </div>
 </div>
 
-<!-- 模型專區（與 www1 一致：左文右輪播） -->
 <section class="container-fluid anime-section" id="anime-section">
     <div class="container">
         <div class="row align-items-center mb-5">
@@ -223,9 +222,9 @@ $dbReviews = $dbReviews ?? $db_reviews ?? [];
                                             <h6 class="card-title mb-2 text-truncate"><?= htmlspecialchars($product['name']) ?></h6>
                                             <div class="mt-auto">
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                                    <span class="final-price fw-bold text-danger">HK$ <?= number_format($product['price']) ?></span>
+                                                    <span class="final-price fw-bold text-danger"><?= htmlspecialchars($money((float) $product['price']), ENT_QUOTES, 'UTF-8') ?></span>
                                                     <?php if (!empty($product['original_price']) && $product['original_price'] > $product['price']): ?>
-                                                        <small class="original-price text-muted text-decoration-line-through">HK$ <?= number_format($product['original_price']) ?></small>
+                                                        <small class="original-price text-muted text-decoration-line-through"><?= htmlspecialchars($money((float) $product['original_price']), ENT_QUOTES, 'UTF-8') ?></small>
                                                     <?php endif; ?>
                                                 </div>
                                             </div>

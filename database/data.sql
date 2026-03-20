@@ -21,7 +21,7 @@ INSERT INTO `items` (`id`, `name`, `description`, `category`, `price`, `stock_qu
     (6, 'BANDAI 高達模型 RG 144 wing gundam ew', 'BANDAI RG 144 wing gundam ew飛翼高達模型，EW版特殊設計', 'RG', 191, 50, 'bandai-rg144-wing.jpg');
 
 INSERT INTO `users` (`id`, `name`, `email`, `password`) VALUES
-    (1, 'abandon', 'abandon@gmail.com', '5214c805888ac0d11f6ba9852f681754');
+    (1, 'abandon', 'abandon@gmail.com', '$2y$10$cO1OpdbcI03CBlmMa0MMPeI6egWQVTMNnHQ68LYn8HNhfduT2yRua');
 
 INSERT INTO `user_item` (`id`, `user_id`, `item_id`, `quantity`, `status`, `review_title`, `review_content`, `review_rating`, `review_date`, `is_reviewed`, `date_time`) VALUES
     (1, 1, 1, 1, 'Completed', '分色與塗裝效果無敵！', '這款高達模型的分色設計簡直是業界標竿！板件預先分色完善，無需塗裝就能重現劇中標誌性的色彩搭配。細節處的獨立分件讓整體層次感更加豐富，完成後幾乎能達到官圖宣傳的完美效果。對於喜愛展示原創配色又不想費神塗裝的玩家來說，這絕對是最佳選擇！', 5, '2026-02-13 16:13:28', 1, '2026-02-13 16:13:28'),

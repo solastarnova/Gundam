@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-HK">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,6 +15,26 @@
 <script>
 window.APP_BASE = <?= json_encode(isset($baseUrl) && $baseUrl !== '' ? rtrim($baseUrl, '/') . '/' : '/') ?>;
 window.isLoggedIn = <?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>;
+window.APP_CURRENCY = <?= json_encode($currency ?? [], JSON_UNESCAPED_UNICODE) ?>;
+window.formatMoney = function(amount) {
+    var cfg = window.APP_CURRENCY || {};
+    var code = cfg.code || '';
+    var locale = cfg.locale || 'zh-HK';
+    var decimals = Number.isFinite(cfg.decimals) ? cfg.decimals : 2;
+    var value = Number(amount || 0);
+    try {
+        if (!code) throw new Error('currency code missing');
+        return new Intl.NumberFormat(locale, {
+            style: 'currency',
+            currency: code,
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+        }).format(value);
+    } catch (e) {
+        var symbol = cfg.symbol || '';
+        return symbol + value.toFixed(decimals);
+    }
+};
 </script>
 <?php include __DIR__ . '/../partials/header.php'; ?>
 

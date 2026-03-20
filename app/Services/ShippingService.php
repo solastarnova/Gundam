@@ -7,6 +7,31 @@ namespace App\Services;
  */
 class ShippingService
 {
+    private const DEFAULT_CONFIG = [
+        'express_fee' => 80.0,
+        'standard_fee' => 50.0,
+        'free_threshold' => 500.0,
+    ];
+
+    /**
+     * Read and normalize shipping config from a single source.
+     *
+     * @return array{express_fee: float, standard_fee: float, free_threshold: float}
+     */
+    public static function getConfig(): array
+    {
+        $raw = \App\Core\Config::get('shipping', []);
+        if (!is_array($raw)) {
+            $raw = [];
+        }
+
+        return [
+            'express_fee' => (float) ($raw['express_fee'] ?? self::DEFAULT_CONFIG['express_fee']),
+            'standard_fee' => (float) ($raw['standard_fee'] ?? self::DEFAULT_CONFIG['standard_fee']),
+            'free_threshold' => (float) ($raw['free_threshold'] ?? self::DEFAULT_CONFIG['free_threshold']),
+        ];
+    }
+
     /**
      * Calculate shipping fee
      *
@@ -16,12 +41,10 @@ class ShippingService
      */
     public static function calculateShippingFee(float $subtotal, string $shippingMethod = 'standard'): float
     {
-        $config = require __DIR__ . '/../../config/app.php';
-        $shippingConfig = $config['shipping'] ?? [];
-
-        $expressFee = (float) ($shippingConfig['express_fee'] ?? 80);
-        $standardFee = (float) ($shippingConfig['standard_fee'] ?? 50);
-        $freeThreshold = (float) ($shippingConfig['free_threshold'] ?? 500);
+        $shippingConfig = self::getConfig();
+        $expressFee = $shippingConfig['express_fee'];
+        $standardFee = $shippingConfig['standard_fee'];
+        $freeThreshold = $shippingConfig['free_threshold'];
 
         if ($shippingMethod === 'express') {
             return $expressFee;

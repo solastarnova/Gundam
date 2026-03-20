@@ -10,28 +10,16 @@ use RuntimeException;
 class PaymentService
 {
     private string $secretKey;
-    private string $publishableKey;
 
     public function __construct()
     {
         $this->secretKey = getenv('STRIPE_SECRET_KEY') ?: '';
-        $this->publishableKey = getenv('STRIPE_PUBLISHABLE_KEY') ?: '';
 
         if (empty($this->secretKey)) {
             throw new RuntimeException('Stripe secret key is not configured. Please set STRIPE_SECRET_KEY in .env file.');
         }
 
         Stripe::setApiKey($this->secretKey);
-    }
-
-    /**
-     * Get publishable key
-     *
-     * @return string
-     */
-    public function getPublishableKey(): string
-    {
-        return $this->publishableKey;
     }
 
     /**
@@ -46,9 +34,13 @@ class PaymentService
     public function createPaymentIntent(int $amount, string $currency = 'hkd', array $metadata = []): array
     {
         try {
+            $normalizedCurrency = strtolower(trim($currency));
+            if ($normalizedCurrency === '') {
+                $normalizedCurrency = 'hkd';
+            }
             $paymentIntent = PaymentIntent::create([
                 'amount' => $amount,
-                'currency' => strtolower($currency),
+                'currency' => $normalizedCurrency,
                 'payment_method_types' => ['card'],
                 'metadata' => $metadata,
             ]);
@@ -102,4 +94,5 @@ class PaymentService
     {
         return (int) round($amount * 100);
     }
+
 }

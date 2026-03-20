@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Core\Model;
+use App\Core\Config;
 
 class CartModel extends Model
 {
@@ -15,9 +16,8 @@ class CartModel extends Model
     public function __construct($pdo = null)
     {
         parent::__construct($pdo);
-        $config = require __DIR__ . '/../../config/app.php';
-        $this->maxQuantity = (int) ($config['cart_max_quantity'] ?? 99);
-        $fullPath = (string) ($config['placeholder_image'] ?? 'images/placeholder.jpg');
+        $this->maxQuantity = (int) Config::get('cart_max_quantity', 99);
+        $fullPath = (string) Config::get('placeholder_image', 'images/placeholder.jpg');
         $this->placeholderImage = basename($fullPath) ?: 'placeholder.jpg';
     }
 
@@ -55,7 +55,6 @@ class CartModel extends Model
         return $items;
     }
 
-    /** Get total cart item count. */
     public function getCartItemsCount(int $userId): int
     {
         $stmt = $this->pdo->prepare("
@@ -67,7 +66,6 @@ class CartModel extends Model
         return (int) ($row['total'] ?? 0);
     }
 
-    /** Add to cart (merge quantity if item exists). */
     public function addToCart(int $userId, int $productId, int $quantity = 1): bool
     {
         $quantity = max(1, min($quantity, $this->maxQuantity));
@@ -85,7 +83,6 @@ class CartModel extends Model
         return true;
     }
 
-    /** Update cart item quantity. */
     public function updateCartItemQuantity(int $userId, int $cartItemId, int $quantity): bool
     {
         if ($quantity < 1) {
@@ -97,7 +94,6 @@ class CartModel extends Model
         return $stmt->rowCount() > 0;
     }
 
-    /** Remove item from cart. */
     public function removeFromCart(int $userId, int $cartItemId): bool
     {
         $stmt = $this->pdo->prepare("DELETE FROM user_item WHERE id = ? AND user_id = ? AND status = ?");
@@ -105,7 +101,6 @@ class CartModel extends Model
         return $stmt->rowCount() > 0;
     }
 
-    /** Clear cart (e.g. after checkout). */
     public function clearCart(int $userId): bool
     {
         $stmt = $this->pdo->prepare("DELETE FROM user_item WHERE user_id = ? AND status = ?");
@@ -113,7 +108,6 @@ class CartModel extends Model
         return true;
     }
 
-    /** Calculate cart subtotal. */
     public function calculateSubtotal(array $cartItems): float
     {
         $subtotal = 0.0;

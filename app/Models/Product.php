@@ -62,18 +62,12 @@ class Product extends Model
         return $stmt->fetchAll() ?: [];
     }
 
-    /**
-     * 获取商品总数
-     */
     public function getTotalCount(): int
     {
         $stmt = $this->pdo->query("SELECT COUNT(*) FROM items");
         return (int)$stmt->fetchColumn();
     }
 
-    /**
-     * 获取低库存商品
-     */
     public function getLowStock(int $threshold = 10, int $limit = 5): array
     {
         $stmt = $this->pdo->prepare(
@@ -83,5 +77,44 @@ class Product extends Model
         $stmt->bindValue(2, $limit, \PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll() ?: [];
+    }
+
+    /**
+     * Get paginated product list for admin (optional search).
+     *
+     * @param array $filters
+     * @param int   $page
+     * @param int   $perPage
+     * @return array{total: int, rows: list<array<string, mixed>>}
+     */
+    public function getListForAdmin(array $filters, int $page, int $perPage): array
+    {
+        $search = isset($filters['search']) ? trim((string) $filters['search']) : '';
+        $offset = (max(1, $page) - 1) * $perPage;
+
+        $where = '';
+        $params = [];
+        if ($search !== '') {
+            $where = ' WHERE name LIKE ? OR category LIKE ?';
+            $params = ["%{$search}%", "%{$search}%"];
+        }
+
+        $countSql = "SELECT COUNT(*) FROM items" . $where;
+        $stmt = $this->pdo->prepare($countSql);
+        $stmt->execute($params);
+        $total = (int) $stmt->fetchColumn();
+
+        $sql = "SELECT * FROM items" . $where . " ORDER BY id DESC LIMIT ? OFFSET ?";
+        $stmt = $this->pdo->prepare($sql);
+        $idx = 1;
+        foreach ($params as $v) {
+            $stmt->bindValue($idx++, $v);
+        }
+        $stmt->bindValue($idx++, $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue($idx++, $offset, \PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        return ['total' => $total, 'rows' => $rows];
     }
 }

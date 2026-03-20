@@ -2,12 +2,13 @@
 
 namespace App\Controllers;
 
+use App\Core\Config;
 use App\Core\Controller;
 use App\Models\Product;
+use App\Services\MoneyFormatter;
 
 class ProductController extends Controller
 {
-    /** Default display value when product has no rating on list page. */
     private const DEFAULT_DISPLAY_RATING = 5;
 
     private Product $productModel;
@@ -20,7 +21,7 @@ class ProductController extends Controller
 
     public function list(): void
     {
-        $limit = (int) ($this->getConfig()['product_list_limit'] ?? 50);
+        $limit = (int) Config::get('product_list_limit', 50);
         $rows = $this->productModel->getFeatured($limit);
         $featuredProducts = [];
         foreach ($rows as $row) {
@@ -38,7 +39,7 @@ class ProductController extends Controller
                 'stock_quantity' => $stockQty,
                 'final_price' => '¥' . (string) (int) round($price),
                 'original_price' => '¥' . (string) (int) round($price),
-                'hkd_price' => 'HKD ' . number_format($price, 2, '.', ''),
+                'formatted_price' => MoneyFormatter::format($price),
                 'rating' => self::DEFAULT_DISPLAY_RATING,
             ];
         }
@@ -53,10 +54,10 @@ class ProductController extends Controller
         ]);
     }
 
-    public function detail(string $id): void
+    public function detail(int $id): void
     {
-        $productId = (int) $id;
-        $item = $this->productModel->find($productId);
+        $id = (int) $id;
+        $item = $this->productModel->find($id);
 
         if (!$item) {
             http_response_code(404);
@@ -72,7 +73,7 @@ class ProductController extends Controller
             ? round((1 - $finalPrice / $discount) * 100)
             : 0;
 
-        $siteNameEn = (string) ($this->getConfig()['site_name_en'] ?? 'Gundam Shop');
+        $siteNameEn = (string) Config::get('site_name_en', 'Gundam Shop');
         $this->render('product/detail', [
             'item'            => $item,
             'finalPrice'      => $finalPrice,

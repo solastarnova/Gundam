@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Core\Model;
+use App\Core\Config;
 
 /**
  * Wishlist model: user_favorites + items (item_id), for API and validation.
@@ -16,8 +17,7 @@ class FavoriteModel extends Model
      */
     public function getUserFavorites(int $userId, ?int $limit = null): array
     {
-        $config = require __DIR__ . '/../../config/app.php';
-        $placeholder = (string) ($config['placeholder_image'] ?? 'images/placeholder.jpg');
+        $placeholder = (string) Config::get('placeholder_image', 'images/placeholder.jpg');
 
         $sql = "SELECT i.id, i.name, i.price, i.image_path
                 FROM user_favorites uf
