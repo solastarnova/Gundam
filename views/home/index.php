@@ -154,7 +154,7 @@ $dbReviews = $dbReviews ?? $db_reviews ?? [];
                         </div>
                         <h5 class="intro-title fw-bold"><?= htmlspecialchars($review['review_title'] ?? '用戶評價') ?></h5>
                         <p class="intro_content"><?= htmlspecialchars($review['review_content'] ?? '') ?></p>
-                        <div class="more">閱讀更多</div>
+                        <a href="<?= $url('product/' . (int)$review['item_id']) ?>" class="more d-inline-block" target="_blank" rel="noopener noreferrer">查看商品</a>
                         <div class="mt-2">
                             <span class="badge bg-info bg-opacity-10 text-info">
                                 <i class="bi bi-patch-check"></i> 已驗證購買

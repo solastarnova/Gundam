@@ -56,7 +56,10 @@
         return (window.DEFAULT_SHIPPING_ADDRESS || '香港').trim();
     }
 
-    function loadAddresses() {
+    /**
+     * @param {string|number} [selectAfterId] 重新載入後要選取的地址 id（例如剛新增的地址）
+     */
+    function loadAddresses(selectAfterId) {
         var loadingEl = document.getElementById('addressLoading');
         var containerEl = document.getElementById('addressCardsContainer');
         var noMsgEl = document.getElementById('noAddressMessage');
@@ -74,14 +77,28 @@
                 noMsgEl.style.display = 'none';
                 containerEl.style.display = 'flex';
                 containerEl.innerHTML = '';
+                var targetId = selectAfterId;
+                if (targetId == null || targetId === '') {
+                    var i;
+                    for (i = 0; i < list.length; i++) {
+                        if (list[i].is_default === 1 || list[i].is_default === true) {
+                            targetId = list[i].id;
+                            break;
+                        }
+                    }
+                    if (targetId == null || targetId === '') {
+                        targetId = list[0] ? list[0].id : '';
+                    }
+                }
                 list.forEach(function(addr, index) {
                     var oneLine = formatAddressOneLine(addr);
                     var id = 'addr-' + (addr.id || index);
                     var isDefault = addr.is_default === 1 || addr.is_default === true;
+                    var shouldCheck = String(addr.id) === String(targetId);
                     var card = document.createElement('div');
                     card.className = 'col-12';
                     card.innerHTML = '<div class="form-check border rounded p-3 checkout-address-card">' +
-                        '<input class="form-check-input" type="radio" name="checkout_address" id="' + id + '" value="' + (addr.id || '') + '" data-address-one-line="' + (oneLine.replace(/"/g, '&quot;')) + '"' + (index === 0 || isDefault ? ' checked' : '') + '>' +
+                        '<input class="form-check-input" type="radio" name="checkout_address" id="' + id + '" value="' + (addr.id || '') + '" data-address-one-line="' + (oneLine.replace(/"/g, '&quot;')) + '"' + (shouldCheck ? ' checked' : '') + '>' +
                         '<label class="form-check-label w-100 ms-2" for="' + id + '">' +
                         (isDefault ? '<span class="badge bg-danger me-2">預設</span>' : '') +
                         (addr.address_label ? '<strong>' + String(addr.address_label).replace(/</g, '&lt;') + '</strong><br>' : '') +
@@ -97,6 +114,67 @@
                 containerEl.style.display = 'none';
             });
     }
+
+    window.openAddAddressModal = function() {
+        var modal = document.getElementById('addressModal');
+        var modalLabel = document.getElementById('addressModalLabel');
+        var form = document.getElementById('addressForm');
+        if (!modal || !form) return;
+        if (modalLabel) modalLabel.textContent = '新增地址';
+        form.reset();
+        var aid = document.getElementById('addressId');
+        if (aid) aid.value = '';
+        var isDef = document.getElementById('isDefault');
+        if (isDef) isDef.checked = false;
+        form.querySelectorAll('.is-invalid').forEach(function(el) { el.classList.remove('is-invalid'); });
+        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+            var bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        }
+    };
+
+    window.saveCheckoutAddress = async function() {
+        var form = document.getElementById('addressForm');
+        if (!form) return;
+        var formData = new FormData(form);
+        var addressId = formData.get('id');
+        var data = Object.fromEntries(formData.entries());
+        if (!data.recipient_name || !data.phone || !data.region || !data.district || !data.building || !data.unit) {
+            alert('請填寫所有必填欄位');
+            return;
+        }
+        if (!data.village_estate && !data.street) {
+            alert('請填寫屋邨/屋苑名稱或街道地址');
+            return;
+        }
+        data.is_default = document.getElementById('isDefault') && document.getElementById('isDefault').checked ? 1 : 0;
+        var payload = addressId ? Object.assign({}, data, { id: addressId }) : data;
+        if (!addressId) {
+            delete payload.id;
+        }
+        var path = addressId ? 'api/address/update' : 'api/address/create';
+        try {
+            var response = await fetch(baseUrl + path, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            var result = await response.json();
+            if (!result.success) {
+                throw new Error(result.message || result.error || '儲存失敗');
+            }
+            var modalEl = document.getElementById('addressModal');
+            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                var inst = bootstrap.Modal.getInstance(modalEl);
+                if (inst) inst.hide();
+            }
+            var newId = result.address_id || addressId;
+            loadAddresses(newId);
+        } catch (err) {
+            console.error('saveCheckoutAddress:', err);
+            alert(err.message || '儲存地址失敗，請稍後再試');
+        }
+    };
 
     function getShippingMethod() {
         const el = document.getElementById('shipping');
@@ -554,6 +632,32 @@
             loadAddresses();
             togglePaymentUI();
             bindCheckoutItemEvents();
+
+            var useNewAddressBtn = document.getElementById('useNewAddress');
+            if (useNewAddressBtn) {
+                useNewAddressBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (typeof window.openAddAddressModal === 'function') {
+                        window.openAddAddressModal();
+                    }
+                });
+            }
+            var openEmptyBtn = document.getElementById('openAddAddressFromEmpty');
+            if (openEmptyBtn) {
+                openEmptyBtn.addEventListener('click', function() {
+                    if (typeof window.openAddAddressModal === 'function') {
+                        window.openAddAddressModal();
+                    }
+                });
+            }
+            var saveAddrBtn = document.getElementById('saveCheckoutAddressBtn');
+            if (saveAddrBtn) {
+                saveAddrBtn.addEventListener('click', function() {
+                    if (typeof window.saveCheckoutAddress === 'function') {
+                        window.saveCheckoutAddress();
+                    }
+                });
+            }
         }
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function() {
