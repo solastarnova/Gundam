@@ -19,7 +19,7 @@ DROP TABLE IF EXISTS `users`;
 DROP TABLE IF EXISTS `items`;
 
 CREATE TABLE `items` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `description` text DEFAULT NULL,
   `category` varchar(100) DEFAULT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE `user_item` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `user_favorites` (
-  `user_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL AUTO_INCREMENT,
   `item_id` int(11) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`user_id`, `item_id`),
