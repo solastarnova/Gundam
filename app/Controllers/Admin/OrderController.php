@@ -27,7 +27,7 @@ class OrderController extends BaseController
         $stats = $this->orderModel->getAllOrderStats();
 
         $this->render('orders/index', [
-            'title' => '訂單管理',
+            'title' => Config::get('messages.titles.admin_orders'),
             'orders' => $result['rows'],
             'page' => $page,
             'total' => $result['total'],
@@ -61,7 +61,10 @@ class OrderController extends BaseController
         $items = $stmt->fetchAll();
         
         $this->render('orders/detail', [
-            'title' => '訂單詳情 #' . $order['order_number'],
+            'title' => sprintf(
+                (string) Config::get('messages.titles.admin_order_detail'),
+                $order['order_number'] ?? ''
+            ),
             'order' => $order,
             'items' => $items
         ]);
@@ -70,6 +73,12 @@ class OrderController extends BaseController
     public function updateStatus(int $id)
     {
         $id = (int) $id;
+
+        if (!$this->requireAdminCsrf()) {
+            $this->setError(Config::get('messages.admin_login.csrf_invalid'));
+            $this->redirect("/admin/orders/{$id}");
+            return;
+        }
         $status = trim((string) ($_POST['status'] ?? ''));
 
         if ($status === '') {

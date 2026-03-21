@@ -18,6 +18,7 @@ $status = $status ?? null;
             <?php endif; ?>
 
             <form action="<?= $url('register') ?>" method="POST" id="registerForm" class="mb-3">
+                <input type="hidden" name="redirect" value="<?= htmlspecialchars((string) ($old['redirect'] ?? $redirect ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                 <div class="mb-3">
                     <label for="inputName" class="form-label fw-semibold">暱稱</label>
                     <input
@@ -112,7 +113,7 @@ $status = $status ?? null;
             <div class="text-center">
                 <p class="mb-2 text-muted small">已經有帳戶？</p>
                 <div class="auth-btn-center">
-                    <a href="<?= $url('login') ?>" class="btn btn-outline-dark">前往登入</a>
+                    <a href="<?= $url('login') ?>?redirect=<?= urlencode($_SERVER['REQUEST_URI'] ?? '/') ?>" class="btn btn-outline-dark">前往登入</a>
                 </div>
             </div>
         </div>
@@ -147,6 +148,14 @@ $status = $status ?? null;
             n.value = name;
             n.type = 'hidden';
             sendForm.appendChild(n);
+            var redirectInput = form.querySelector('input[name="redirect"]');
+            if (redirectInput) {
+                var r = document.createElement('input');
+                r.name = 'redirect';
+                r.value = redirectInput.value || '';
+                r.type = 'hidden';
+                sendForm.appendChild(r);
+            }
             document.body.appendChild(sendForm);
             sendForm.submit();
         });

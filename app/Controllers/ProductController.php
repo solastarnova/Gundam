@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Config;
 use App\Core\Controller;
 use App\Models\Product;
+use App\Models\Review;
 use App\Services\MoneyFormatter;
 
 class ProductController extends Controller
@@ -49,7 +50,7 @@ class ProductController extends Controller
         $this->render('product/list', [
             'featuredProducts' => $featuredProducts,
             'categories' => $categories,
-            'title' => '模型專區 - ' . $this->getSiteName(),
+            'title' => $this->titleWithSite('products_list'),
             'head_extra_css' => ['css/item.css'],
         ]);
     }
@@ -62,7 +63,7 @@ class ProductController extends Controller
         if (!$item) {
             http_response_code(404);
             $this->render('errors/404', [
-                'title' => '商品不存在 - ' . $this->getSiteName(),
+                'title' => $this->titleWithSite('product_not_found'),
             ]);
             return;
         }
@@ -74,11 +75,18 @@ class ProductController extends Controller
             : 0;
 
         $siteNameEn = (string) Config::get('site_name_en', 'Gundam Shop');
+
+        $reviewModel = new Review();
+        $itemReviews = $reviewModel->getReviewsForItem($id, 50);
+        $itemReviewCount = $reviewModel->countReviewsForItem($id);
+
         $this->render('product/detail', [
             'item'            => $item,
             'finalPrice'      => $finalPrice,
             'discount'        => $discount,
             'discountPercent' => $discountPercent,
+            'itemReviews'     => $itemReviews,
+            'itemReviewCount' => $itemReviewCount,
             'title'           => ($item['name'] ?? '') . ' - ' . $siteNameEn,
             'head_extra_css'  => ['css/item.css'],
             'foot_extra_js'  => ['js/cart.js', 'js/wishlist.js'],

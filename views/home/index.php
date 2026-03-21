@@ -123,7 +123,7 @@ $dbReviews = $dbReviews ?? $db_reviews ?? [];
 
 <div class="container mt-1">
     <div class="alert alert-primary mb-1 alert-reviews">
-        產品評價 <span class="badge bg-primary ms-2">真實買家評價</span>
+        產品評價
     </div>
 
     <div class="d-flex flex-nowrap overflow-x-auto pb-4">
@@ -167,8 +167,7 @@ $dbReviews = $dbReviews ?? $db_reviews ?? [];
                 <div class="w-100 text-center py-5">
                     <div class="empty-state">
                         <i class="bi bi-chat-square-text empty-state-icon"></i>
-                        <h5 class="mt-3 text-muted">暫無買家評價</h5>
-                        <p class="text-muted small">成為第一個留下評價的買家吧！</p>
+                        <h5 class="mt-3 text-muted">暫無評價</h5>
                     </div>
                 </div>
             <?php endif; ?>

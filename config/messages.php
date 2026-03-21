@@ -1,12 +1,85 @@
 <?php
 
-/**
- * 集中錯誤／成功／提示文案，供 Controller、MailService 依 key 讀取，利於維護與 i18n。
- * 使用：Config::get('messages.admin.user_not_found')
- */
+/** @see docs/CONFIG_AND_MESSAGES.md */
 return [
-    'admin' => [
+    'common' => [
         'not_logged_in' => '未登入',
+        'cart_empty' => '購物車是空的',
+    ],
+
+    'titles' => [
+        'home' => '%s',
+        'account_home' => '個人資料 - %s',
+        'account_orders' => '訂單記錄 - %s',
+        'account_order_detail' => '訂單詳情 - %s',
+        'account_settings' => '帳戶設定 - %s',
+        'account_payment' => '付款方式 - %s',
+        'checkout' => '結帳付款 - %s',
+        'search' => '搜尋 - %s',
+        'search_with_keyword' => '搜尋：%s - %s',
+        'auth_login' => '登入 - %s',
+        'auth_register' => '註冊 - %s',
+        'products_list' => '模型專區 - %s',
+        'product_not_found' => '商品不存在 - %s',
+        'wishlist' => '喜愛清單 - %s',
+        'cart' => '購物車 - %s',
+        'address_default' => '預設地址 - %s',
+        'forgot_password' => '忘記密碼 - %s',
+        'reset_password' => '設定新密碼 - %s',
+        'static_faq' => 'FAQ - %s',
+        'static_about' => '關於我們 - %s',
+        'static_privacy' => '隱私條款 - %s',
+        'static_terms' => '服務條款 - %s',
+        'admin_products' => '商品管理',
+        'admin_product_create' => '新增商品',
+        'admin_product_edit' => '編輯商品',
+        'admin_dashboard' => '儀表板',
+        'admin_orders' => '訂單管理',
+        'admin_order_detail' => '訂單詳情 #%s',
+        'admin_users' => '用戶管理',
+        'admin_user_detail' => '用戶詳情 - %s',
+        'admin_login' => '後台登入',
+    ],
+
+    'account' => [
+        'review_invalid_product' => '無效的商品',
+        'review_not_eligible' => '您尚未購買此商品或已評價過',
+        'review_default_title' => '用戶評價',
+        'review_thanks' => '感謝您的評價！',
+        'password_current_required' => '請輸入目前密碼',
+        'password_new_required' => '請輸入新密碼',
+        'password_new_min' => '新密碼至少 %d 個字元',
+        'password_same_as_current' => '新密碼不可與目前密碼相同',
+        'password_new_confirm_required' => '請再次輸入新密碼',
+        'user_not_found' => '用戶不存在',
+        'profile_not_found' => '找不到帳戶資料，請重新登入後再試。',
+        'password_update_error' => '更新密碼時發生錯誤，請稍後再試。',
+        'password_update_success' => '密碼已成功更新',
+        'email_new_required' => '請輸入新電郵',
+        'email_taken_other' => '此電郵已被其他帳號使用',
+        'password_current_for_email' => '請輸入目前密碼以確認身份',
+        'password_current_wrong' => '目前密碼不正確',
+        'email_update_success' => '電郵已更新',
+        'email_update_failed' => '更新失敗，此電郵可能已被使用',
+        'phone_update_success' => '手機號碼已更新',
+    ],
+
+    'password_reset' => [
+        'email_not_registered' => '此電郵尚未註冊',
+        'code_generate_failed' => '無法生成驗證碼，請稍後再試。',
+        'need_request_code_first' => '請先申請驗證碼。',
+        'verify_code_first' => '請先驗證驗證碼。',
+        'session_expired' => '驗證已過期，請重新申請。',
+        'success_login' => '密碼已重設，請使用新密碼登入。',
+        'code_sent_body' => '我們已寄送驗證碼至您的電郵，請檢查並輸入驗證碼。',
+        'verify_code_wrong_expired' => '驗證碼錯誤或已過期，請重新申請。',
+    ],
+
+    'search' => [
+        'keyword_too_short' => '請輸入至少 %d 個字元進行搜尋',
+    ],
+
+    'admin' => [
         'user_not_found' => '用戶不存在',
         'update_failed' => '更新失敗，請稍後重試',
         'user_enabled' => '已啟用該用戶',
@@ -33,7 +106,13 @@ return [
         'username_password_required' => '用戶名稱和密碼不能為空',
         'username_password_wrong' => '用戶名稱或密碼錯誤',
     ],
+
     'auth' => [
+        'email_required' => '請輸入電郵地址',
+        'email_invalid' => '請輸入有效的電郵地址',
+        'password_confirm_required' => '請再次輸入密碼',
+        'verification_code_required' => '請輸入驗證碼',
+        'verification_code_digits' => '驗證碼應為 %d 位數字',
         'password_required' => '請輸入密碼',
         'email_password_wrong' => '電郵或密碼不正確',
         'account_disabled' => '此帳號已被禁用，請聯繫管理員。',
@@ -46,16 +125,17 @@ return [
         'verification_expired' => '驗證碼錯誤或已過期，請重新申請。',
         'verification_wrong' => '驗證碼錯誤，請重新輸入。',
         'register_sent' => '我們已寄送驗證碼至您的電郵，請檢查並輸入驗證碼後完成註冊。',
+        'register_success' => '註冊成功，歡迎成為高達模型商城會員！',
+        'register_failed' => '註冊失敗，請稍後再試。',
     ],
+
     'order' => [
         'login_required' => '請先登入',
-        'cart_empty' => '購物車是空的',
         'create_failed' => '建立訂單失敗，請稍後再試',
         'confirmed' => '訂單已確認',
         'insufficient_stock' => '購買的貨品庫存不足',
     ],
     'payment' => [
-        'cart_empty' => '購物車是空的',
         'order_amount_invalid' => '訂單金額無效',
         'stripe_config_error' => 'Stripe 配置錯誤',
         'missing_info' => '缺少支付資訊',
@@ -63,6 +143,11 @@ return [
         'verify_failed' => '無法驗證支付',
         'not_completed' => '支付尚未完成',
         'confirm_failed' => '建立訂單失敗，請稍後再試',
+        'intent_create_failed' => '無法建立支付，請稍後再試',
+        'wallet_checkout_requires_wallet' => '全額錢包結帳請勾選「使用錢包餘額」。',
+        'wallet_insufficient_for_total' => '錢包餘額不足以支付整筆訂單金額。',
+        'wallet_checkout_not_zero' => '此筆訂單仍需線上支付，請使用信用卡或 PayPal。',
+        'payable_zero_use_wallet_button' => '應付金額為 0，請直接按「確認訂單」以錢包全額支付，無需刷卡或 PayPal。',
     ],
     'address' => [
         'invalid_id' => '無效的地址 ID',
@@ -76,6 +161,7 @@ return [
         'delete_failed' => '刪除地址失敗',
         'default_updated' => '預設地址已更新',
         'set_default_failed' => '設定預設地址失敗',
+        'validation_error' => '請檢查輸入資料是否正確。',
     ],
     'cart' => [
         'invalid_product_id' => '無效的商品ID',
@@ -93,6 +179,7 @@ return [
         'removed' => '已移除',
         'operation_failed' => '操作失敗',
     ],
+
     'mail' => [
         'config_incomplete' => '郵件配置不完整。請在 .env 檔案中設定：MAIL_HOST, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM_ADDRESS',
         'from_name' => '高達模型商城',

@@ -22,15 +22,6 @@ class PaymentService
         Stripe::setApiKey($this->secretKey);
     }
 
-    /**
-     * Create payment intent
-     *
-     * @param int $amount Amount in cents
-     * @param string $currency Currency code
-     * @param array $metadata Metadata
-     * @return array Payment intent data
-     * @throws RuntimeException
-     */
     public function createPaymentIntent(int $amount, string $currency = 'hkd', array $metadata = []): array
     {
         try {
@@ -54,17 +45,10 @@ class PaymentService
             ];
         } catch (ApiErrorException $e) {
             error_log('Stripe PaymentIntent creation failed: ' . $e->getMessage());
-            throw new RuntimeException('支付處理失敗: ' . $e->getMessage(), 0, $e);
+            throw new RuntimeException('Stripe PaymentIntent creation failed', 0, $e);
         }
     }
 
-    /**
-     * Get payment intent
-     *
-     * @param string $paymentIntentId Payment intent ID
-     * @return array Payment intent data
-     * @throws RuntimeException
-     */
     public function getPaymentIntent(string $paymentIntentId): array
     {
         try {
@@ -80,16 +64,10 @@ class PaymentService
             ];
         } catch (ApiErrorException $e) {
             error_log('Stripe PaymentIntent retrieval failed: ' . $e->getMessage());
-            throw new RuntimeException('無法取得支付資訊: ' . $e->getMessage(), 0, $e);
+            throw new RuntimeException('Stripe PaymentIntent retrieval failed', 0, $e);
         }
     }
 
-    /**
-     * Convert HKD to cents
-     *
-     * @param float $amount Amount in HKD
-     * @return int Amount in cents
-     */
     public static function convertToCents(float $amount): int
     {
         return (int) round($amount * 100);

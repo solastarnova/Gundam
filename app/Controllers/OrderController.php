@@ -23,11 +23,12 @@ class OrderController extends Controller
         $isLoggedIn = isset($_SESSION['user_id']);
         $userId = $isLoggedIn ? (int) $_SESSION['user_id'] : 0;
         $shippingConfig = ShippingService::getConfig();
+        $defaultShippingAddress = (string) Config::get('default_shipping_region', '香港');
         if ($isLoggedIn) {
             $defaultAddr = $this->addressModel->getDefaultAddress($userId);
-            $defaultShippingAddress = $defaultAddr ? AddressModel::formatAddressAsOneLine($defaultAddr) : (string) Config::get('default_shipping_region', '香港');
-        } else {
-            $defaultShippingAddress = (string) Config::get('default_shipping_region', '香港');
+            if ($defaultAddr) {
+                $defaultShippingAddress = AddressModel::formatAddressAsOneLine($defaultAddr);
+            }
         }
         $stripePublishableKey = getenv('STRIPE_PUBLISHABLE_KEY') ?: '';
         $paypalClientId = getenv('PAYPAL_CLIENT_ID') ?: '';
@@ -36,7 +37,7 @@ class OrderController extends Controller
             $walletBalance = (new WalletService())->getBalance($userId);
         }
         $this->render('order/checkout', [
-            'title' => '結帳付款 - ' . $this->getSiteName(),
+            'title' => $this->titleWithSite('checkout'),
             'head_extra_css' => [],
             'isLoggedIn' => $isLoggedIn,
             'loginUrl' => $this->view->url('login') . '?redirect=' . urlencode($_SERVER['REQUEST_URI'] ?? '/checkout'),

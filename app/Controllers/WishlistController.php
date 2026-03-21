@@ -20,7 +20,7 @@ class WishlistController extends Controller
     {
         $this->requireUser();
         $this->render('wishlist/index', [
-            'title' => '喜愛清單 - ' . $this->getSiteName(),
+            'title' => $this->titleWithSite('wishlist'),
             'head_extra_css' => [],
         ]);
     }

@@ -1,6 +1,8 @@
 <?php
 $asset = $asset ?? fn($p) => $p;
 $imgPath = $asset('images/' . (trim($item['image_path'] ?? '') ?: 'placeholder.jpg'));
+$itemReviews = $itemReviews ?? [];
+$itemReviewCount = (int) ($itemReviewCount ?? 0);
 ?>
 
 <script>
@@ -18,8 +20,11 @@ window.isLoggedIn = <?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>;
         <h1><?= htmlspecialchars($item['name']) ?></h1>
 
         <p class="review">
-            多人評價「很有質感」
-            <span><?= number_format($item['review_count'] ?? rand(800, 1500)) ?> 人加購</span>
+            <?php if ($itemReviewCount > 0): ?>
+                買家評價 <strong><?= (int) $itemReviewCount ?></strong> 則
+            <?php else: ?>
+                尚無買家評價，購買後可於訂單頁撰寫
+            <?php endif; ?>
         </p>
 
         <?php if ($discountPercent > 0): ?>
@@ -79,6 +84,32 @@ window.isLoggedIn = <?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>;
             <h5 class="fw-bold"><i class="bi bi-info-circle"></i> 商品描述</h5>
             <p class="mb-0"><?= nl2br(htmlspecialchars($item['description'] ?? '暫無描述')) ?></p>
         </div>
+
+        <?php if (!empty($itemReviews)): ?>
+        <div class="product-reviews mt-4 p-3 border rounded">
+            <h5 class="fw-bold mb-3"><i class="bi bi-chat-square-text"></i> 買家評價</h5>
+            <div class="d-flex flex-column gap-3">
+                <?php foreach ($itemReviews as $rev): ?>
+                <div class="border-bottom pb-3 mb-0">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                        <strong class="small"><?= htmlspecialchars($rev['user_name'] ?? '用戶') ?></strong>
+                        <span class="text-muted small"><?= !empty($rev['review_date']) ? date('Y-m-d', strtotime((string) $rev['review_date'])) : '' ?></span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary"><?= (int) ($rev['review_rating'] ?? 0) ?> / 5</span>
+                    </div>
+                    <div class="mb-1">
+                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                            <span class="text-warning"><?= $i <= (int)($rev['review_rating'] ?? 0) ? '★' : '☆' ?></span>
+                        <?php endfor; ?>
+                    </div>
+                    <?php if (!empty($rev['review_title'])): ?>
+                        <div class="fw-semibold small mb-1"><?= htmlspecialchars((string) $rev['review_title']) ?></div>
+                    <?php endif; ?>
+                    <p class="mb-0 small text-body-secondary"><?= nl2br(htmlspecialchars((string) ($rev['review_content'] ?? ''))) ?></p>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 

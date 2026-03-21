@@ -28,23 +28,16 @@ class AuthController extends Controller
     public function showLogin(): void
     {
         if (isset($_SESSION['email'])) {
-            $this->redirect($this->view->url(''));
+            $this->redirect($this->getRedirectAfterAuth($_GET['redirect'] ?? null));
             return;
-        }
-
-        $redirect = isset($_GET['redirect']) ? (string) $_GET['redirect'] : '';
-        $redirect = $this->sanitizeRedirect($redirect) ?? '';
-        $path = parse_url($redirect, PHP_URL_PATH) ?? $redirect;
-        if ($path !== '' && (preg_match('#/login/?$#', (string) $path) || preg_match('#/register/?$#', (string) $path))) {
-            $redirect = '';
         }
 
         $errors = $this->consumeFlash('login_errors', []);
         $old = $this->consumeFlash('login_old', []);
         $message = $this->consumeFlash('login_message', null);
         $this->render('auth/login', [
-            'title' => '登入 - ' . $this->getSiteName(),
-            'redirect' => $redirect,
+            'title' => $this->titleWithSite('auth_login'),
+            'redirect' => $this->getRedirectTarget(),
             'errors' => $errors,
             'old' => $old,
             'message' => $message,
@@ -56,10 +49,9 @@ class AuthController extends Controller
     {
         $email = trim($_POST['e-mail'] ?? '');
         $password = $_POST['password'] ?? '';
-        $redirect = trim((string) ($_POST['redirect'] ?? $_GET['redirect'] ?? ''));
 
         if (isset($_SESSION['email'])) {
-            $this->redirect($redirect !== '' ? $redirect : $this->view->url(''));
+            $this->redirect($this->getRedirectAfterAuth($_POST['redirect'] ?? null));
             return;
         }
 
@@ -98,30 +90,25 @@ class AuthController extends Controller
         $_SESSION['user_id'] = (int) $user['id'];
         $_SESSION['user_name'] = $user['name'];
 
-        $redirect = $redirect !== '' ? (string) ($this->sanitizeRedirect($redirect) ?? '') : '';
-        $path = parse_url($redirect, PHP_URL_PATH) ?? $redirect;
-        if ($path !== '' && (preg_match('#/login/?$#', (string) $path) || preg_match('#/register/?$#', (string) $path))) {
-            $redirect = '';
-        }
-        $target = $redirect !== '' ? $redirect : $this->view->url('');
-
-        $this->redirect($target);
+        $this->redirect($this->getRedirectAfterAuth($_POST['redirect'] ?? null));
     }
 
     public function showRegister(): void
     {
         if (isset($_SESSION['email'])) {
-            $this->redirect($this->view->url(''));
+            $this->redirect($this->getRedirectAfterAuth($_GET['redirect'] ?? null));
             return;
         }
         $errors = $this->consumeFlash('register_errors', []);
         $old = $this->consumeFlash('register_old', []);
         $status = $this->consumeFlash('register_status', null);
+
         $this->render('auth/register', [
-            'title' => '註冊 - ' . $this->getSiteName(),
+            'title' => $this->titleWithSite('auth_register'),
             'errors' => $errors,
             'old' => $old,
             'status' => $status,
+            'redirect' => $this->getRedirectTarget(),
             'head_extra_css' => [],
         ]);
     }
@@ -129,7 +116,7 @@ class AuthController extends Controller
     public function sendRegistrationCode(): void
     {
         if (isset($_SESSION['email'])) {
-            $this->redirect($this->view->url(''));
+            $this->redirect($this->getRedirectAfterAuth(null));
             return;
         }
         if ($this->mail === null) {
@@ -140,9 +127,10 @@ class AuthController extends Controller
 
         $name = trim($_POST['name'] ?? '');
         $email = trim($_POST['e-mail'] ?? '');
+        $redirect = trim((string) ($_POST['redirect'] ?? ''));
 
         $errors = [];
-        $oldInput = ['name' => $name, 'email' => $email];
+        $oldInput = ['name' => $name, 'email' => $email, 'redirect' => $redirect];
         if ($name === '') {
             $errors['name'] = Config::get('messages.auth.name_required');
         }
@@ -182,7 +170,7 @@ class AuthController extends Controller
     public function register(): void
     {
         if (isset($_SESSION['email'])) {
-            $this->redirect($this->view->url(''));
+            $this->redirect($this->getRedirectAfterAuth($_POST['redirect'] ?? null));
             return;
         }
 
@@ -191,9 +179,10 @@ class AuthController extends Controller
         $password = $_POST['password'] ?? '';
         $passwordConfirm = $_POST['password_confirm'] ?? '';
         $code = trim($_POST['verification_code'] ?? '');
+        $redirect = trim((string) ($_POST['redirect'] ?? ''));
 
         $errors = [];
-        $oldInput = ['name' => $name, 'email' => $email];
+        $oldInput = ['name' => $name, 'email' => $email, 'redirect' => $redirect];
 
         if ($name === '') {
             $errors['name'] = Config::get('messages.auth.name_required');
@@ -231,7 +220,19 @@ class AuthController extends Controller
 
         $this->handleValidationErrors($errors, $oldInput, 'register_errors', 'register_old', $this->view->url('register'));
 
-        $userId = $this->userModel->create($name, $email, $password);
+        try {
+            $userId = (int) $this->userModel->create($name, $email, $password);
+        } catch (\Throwable $e) {
+            $userId = 0;
+        }
+
+        if ($userId <= 0) {
+            $this->flash('register_errors', ['general' => Config::get('messages.auth.register_failed')]);
+            $this->flash('register_old', $oldInput);
+            $this->redirect($this->view->url('register'));
+            return;
+        }
+
         unset($_SESSION['register_verification_code'], $_SESSION['register_verification_email'], $_SESSION['register_verification_expires']);
 
         if (session_status() === PHP_SESSION_ACTIVE) {
@@ -240,15 +241,88 @@ class AuthController extends Controller
         $_SESSION['email'] = $email;
         $_SESSION['user_id'] = $userId;
         $_SESSION['user_name'] = $name;
-        $this->redirect($this->view->url(''));
+
+        $this->flash('login_message', Config::get('messages.auth.register_success'));
+        $this->redirect($this->getRedirectAfterAuth($_POST['redirect'] ?? null));
     }
 
     public function logout(): void
     {
+        $redirect = $this->sanitizeRedirect($_GET['redirect'] ?? null)
+            ?? $this->sanitizeRedirect($_SERVER['HTTP_REFERER'] ?? null)
+            ?? null;
+
         unset($_SESSION['user_id'], $_SESSION['email'], $_SESSION['user_name']);
+        unset($_SESSION['auth_redirect']);
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_regenerate_id(true);
         }
-        $this->redirect($this->view->url(''));
+
+        $target = ($redirect !== null && $redirect !== '') ? $redirect : $this->view->url('');
+        if ($this->isAuthPath($target)) {
+            $target = $this->view->url('');
+        }
+
+        $this->redirect($target);
+    }
+
+    private function getRedirectTarget(): string
+    {
+        $candidate = $this->sanitizeRedirect($_GET['redirect'] ?? null);
+
+        if (!$candidate) {
+            $candidate = $_SESSION['auth_redirect'] ?? null;
+        }
+
+        if (!$candidate) {
+            $candidate = $this->sanitizeRedirect($_SERVER['HTTP_REFERER'] ?? null);
+        }
+
+        $candidate = $candidate ?: $this->view->url('');
+
+        if ($this->isAuthPath($candidate)) {
+            $candidate = $this->view->url('');
+        }
+
+        $_SESSION['auth_redirect'] = $candidate;
+
+        return $candidate;
+    }
+
+    private function getRedirectAfterAuth(?string $requested): string
+    {
+        $redirect = $this->sanitizeRedirect($requested) ?? ($_SESSION['auth_redirect'] ?? null) ?? null;
+
+        if ($redirect === null || $redirect === '') {
+            $redirect = $this->view->url('');
+        }
+
+        if ($this->isAuthPath($redirect)) {
+            $redirect = $this->view->url('');
+        }
+
+        unset($_SESSION['auth_redirect']);
+
+        return $redirect !== '' ? $redirect : $this->view->url('');
+    }
+
+    private function isAuthPath(string $url): bool
+    {
+        $path = parse_url($url, PHP_URL_PATH) ?? $url;
+
+        if ($this->baseUrl !== '' && strpos($path, $this->baseUrl) === 0) {
+            $path = substr($path, strlen($this->baseUrl)) ?: '/';
+        }
+
+        if ($path === '' || $path[0] !== '/') {
+            $path = '/' . ltrim($path, '/');
+        }
+
+        $norm = rtrim($path, '/') ?: '/';
+        if (in_array($norm, ['/login', '/register'], true)) {
+            return true;
+        }
+
+        return preg_match('#^/forgot#', $norm) === 1;
     }
 }

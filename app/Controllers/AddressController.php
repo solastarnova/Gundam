@@ -22,7 +22,7 @@ class AddressController extends Controller
         $userId = (int) $user['id'];
         $addresses = $this->addressModel->getUserAddresses($userId);
         $this->render('account/addresses', [
-            'title' => '預設地址 - ' . $this->getSiteName(),
+            'title' => $this->titleWithSite('address_default'),
             'addresses' => $addresses,
             'head_extra_css' => [],
             'foot_extra_js' => ['js/addresses.js'],
@@ -75,7 +75,9 @@ class AddressController extends Controller
             $addressId = $this->addressModel->createAddress($userId, $data);
             $this->json(['success' => true, 'message' => Config::get('messages.address.create_success'), 'address_id' => $addressId]);
         } catch (\InvalidArgumentException $e) {
-            $this->json(['success' => false, 'error' => $e->getMessage(), 'message' => $e->getMessage()], 400);
+            error_log('Address create validation: ' . $e->getMessage());
+            $msg = Config::get('messages.address.validation_error');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
         } catch (\Exception $e) {
             error_log('Address create: ' . $e->getMessage());
             $this->json(['success' => false, 'error' => Config::get('messages.address.create_failed'), 'message' => Config::get('messages.address.create_failed')], 500);
@@ -105,7 +107,9 @@ class AddressController extends Controller
                 $this->json(['success' => false, 'error' => Config::get('messages.address.not_found_or_forbidden'), 'message' => Config::get('messages.address.not_found_or_forbidden')], 404);
             }
         } catch (\InvalidArgumentException $e) {
-            $this->json(['success' => false, 'error' => $e->getMessage(), 'message' => $e->getMessage()], 400);
+            error_log('Address update validation: ' . $e->getMessage());
+            $msg = Config::get('messages.address.validation_error');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
         } catch (\Exception $e) {
             error_log('Address update: ' . $e->getMessage());
             $this->json(['success' => false, 'error' => Config::get('messages.address.update_failed'), 'message' => Config::get('messages.address.update_failed')], 500);

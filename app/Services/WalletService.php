@@ -20,9 +20,6 @@ class WalletService
         }
     }
 
-    /**
-     * 扣除錢包餘額並寫入流水（需在交易中調用）
-     */
     public static function deductWithinTransaction(
         \PDO $pdo,
         int $userId,
@@ -34,7 +31,6 @@ class WalletService
         if ($amount <= 0) {
             return;
         }
-        // 防止餘額變成負數
         $stmt = $pdo->prepare('UPDATE user_wallets SET balance = balance - ? WHERE user_id = ? AND balance >= ?');
         $stmt->execute([$amount, $userId, $amount]);
         if ($stmt->rowCount() === 0) {
@@ -53,9 +49,6 @@ class WalletService
         ]);
     }
 
-    /**
-     * 增加錢包餘額並寫入流水（需在交易中調用）
-     */
     public static function addCreditWithinTransaction(
         \PDO $pdo,
         int $userId,

@@ -7,13 +7,6 @@ use App\Services\OrderStatusService;
 
 class OrderModel extends Model
 {
-    /**
-     * Get user order list (with item_count).
-     *
-     * @param int $userId User ID
-     * @param int|null $limit Max count, null for no limit
-     * @return list<array<string, mixed>>
-     */
     public function getUserOrders(int $userId, ?int $limit = null): array
     {
         $sql = "SELECT o.*,
@@ -37,27 +30,19 @@ class OrderModel extends Model
         return $row ?: null;
     }
 
-    /**
-     * Get order items by order ID.
-     *
-     * @param int $orderId
-     * @return array
-     */
     public function getOrderItems(int $orderId): array
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM order_items WHERE order_id = ? ORDER BY id");
+        $stmt = $this->pdo->prepare(
+            "SELECT oi.*, i.image_path AS item_image_path
+             FROM order_items oi
+             LEFT JOIN items i ON i.id = oi.item_id
+             WHERE oi.order_id = ?
+             ORDER BY oi.id"
+        );
         $stmt->execute([$orderId]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
     }
 
-    /**
-     * Update order status (own orders only).
-     *
-     * @param int $orderId Order ID
-     * @param int $userId User ID
-     * @param string $status Status
-     * @return bool
-     */
     public function updateStatus(int $orderId, int $userId, string $status): bool
     {
         if (!OrderStatusService::isAllowed($status)) {
@@ -68,13 +53,6 @@ class OrderModel extends Model
         return $stmt->rowCount() > 0;
     }
 
-    /**
-     * Update order status (admin; no user_id check; status must be in config order_status.allowed).
-     *
-     * @param int    $orderId
-     * @param string $status
-     * @return bool
-     */
     public function updateStatusByAdmin(int $orderId, string $status): bool
     {
         if (!OrderStatusService::isAllowed($status)) {
@@ -92,12 +70,22 @@ class OrderModel extends Model
         return $stmt->fetch() !== false;
     }
 
-    /**
-     * Get order count per user ID (for admin user list).
-     *
-     * @param array $userIds
-     * @return array<int, int> [user_id => count]
-     */
+    public function findByUserIdAndPaymentReference(int $userId, string $paymentProvider, string $paymentReference): ?array
+    {
+        $paymentProvider = trim($paymentProvider);
+        $paymentReference = trim($paymentReference);
+        if ($userId <= 0 || $paymentProvider === '' || $paymentReference === '') {
+            return null;
+        }
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM orders WHERE user_id = ? AND payment_provider = ? AND payment_reference = ? LIMIT 1'
+        );
+        $stmt->execute([$userId, $paymentProvider, $paymentReference]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
     public function getOrderCountByUserIds(array $userIds): array
     {
         if ($userIds === []) {
@@ -115,14 +103,6 @@ class OrderModel extends Model
         return $result;
     }
 
-    /**
-     * Get paginated order list for admin (optional status filter).
-     *
-     * @param array $filters
-     * @param int   $page
-     * @param int   $perPage
-     * @return array{total: int, rows: list<array<string, mixed>>}
-     */
     public function getListForAdmin(array $filters, int $page, int $perPage): array
     {
         $status = isset($filters['status']) ? trim((string) $filters['status']) : '';
@@ -154,11 +134,6 @@ class OrderModel extends Model
         return ['total' => $total, 'rows' => $rows];
     }
 
-    /**
-     * Get order count by status (all orders; for admin).
-     *
-     * @return array<string, int>
-     */
     public function getAllOrderStats(): array
     {
         $stmt = $this->pdo->query("SELECT status, COUNT(*) AS cnt FROM orders GROUP BY status");
@@ -173,12 +148,6 @@ class OrderModel extends Model
         return $stats;
     }
 
-    /**
-     * Get order count by status for one user.
-     *
-     * @param int $userId
-     * @return array<string, int>
-     */
     public function getUserOrderStats(int $userId): array
     {
         $stmt = $this->pdo->prepare("SELECT status, COUNT(*) AS cnt FROM orders WHERE user_id = ? GROUP BY status");
@@ -200,12 +169,6 @@ class OrderModel extends Model
         return (int) $stmt->fetchColumn();
     }
 
-    /**
-     * Get recent orders for admin dashboard.
-     *
-     * @param int $limit
-     * @return list<array<string, mixed>>
-     */
     public function getRecentOrders(int $limit = 5): array
     {
         $stmt = $this->pdo->prepare(
@@ -220,15 +183,6 @@ class OrderModel extends Model
         return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
     }
 
-    /**
-     * Replenish inventory for an order that was returned/cancelled.
-     *
-     * Stock is deducted during order creation; when admin sets status to
-     * `cancelled`, we reverse the deduction by adding back order_items.quantity.
-     *
-     * This method assumes caller controls when to call it (e.g. only on
-     * transition into `cancelled`).
-     */
     public function replenishStockForOrder(int $orderId): void
     {
         $stmt = $this->pdo->prepare(

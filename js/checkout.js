@@ -144,6 +144,42 @@
         if (walletUsedEl) walletUsedEl.textContent = '-' + formatMoney(walletUsed);
         if (totalEl) totalEl.textContent = formatMoney(payable);
         if (typeof updateCartBadge === 'function') updateCartBadge();
+        updateZeroPayUi();
+    }
+
+    function getPayableInfo() {
+        var t = calculateTotals();
+        var walletUsed = isUseWalletEnabled() ? Math.max(0, Math.min(walletBalance, t.total)) : 0;
+        var payable = Math.max(0, t.total - walletUsed);
+        return { total: t.total, walletUsed: walletUsed, payable: payable };
+    }
+
+    function isWalletOnlyCheckout() {
+        var p = getPayableInfo();
+        if (p.total <= 0) return false;
+        if (!isUseWalletEnabled()) return false;
+        if (p.payable > 0.00001) return false;
+        return walletBalance + 0.00001 >= p.total;
+    }
+
+    function updateZeroPayUi() {
+        var only = isWalletOnlyCheckout();
+        var stripeForm = document.getElementById('stripe-payment-form');
+        var paypalRadio = document.querySelector('input[name="paymentMethod"][value="paypal"]');
+        var stripeRadio = document.querySelector('input[name="paymentMethod"][value="stripe"]');
+        var hintEl = document.getElementById('walletZeroCheckoutHint');
+        if (only) {
+            if (stripeForm) stripeForm.style.display = 'none';
+            if (paypalRadio) {
+                paypalRadio.disabled = true;
+                if (paypalRadio.checked && stripeRadio) stripeRadio.checked = true;
+            }
+            if (hintEl) hintEl.style.display = 'block';
+        } else {
+            if (paypalRadio) paypalRadio.disabled = false;
+            if (hintEl) hintEl.style.display = 'none';
+            togglePaymentUI();
+        }
     }
 
     function renderOrderItems() {
@@ -369,6 +405,31 @@
         });
     }
 
+    function handleWalletOnlyCheckout() {
+        setConfirmLoading(true);
+        showError('');
+        var fd = new URLSearchParams();
+        fd.append('shipping_method', getShippingMethod());
+        fd.append('shipping_address', getSelectedShippingAddress());
+        fd.append('use_wallet', '1');
+        fetch(baseUrl + 'api/payment/wallet-checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: fd
+        }).then(function(r) { return r.json(); }).then(function(data) {
+            setConfirmLoading(false);
+            if (data.success) {
+                alert('訂單已確認，訂單編號：' + (data.order_number || data.order_id));
+                window.location.href = baseUrl + 'account/orders';
+            } else {
+                showError(data.message || '結帳失敗');
+            }
+        }).catch(function() {
+            setConfirmLoading(false);
+            showError('結帳失敗，請稍後再試');
+        });
+    }
+
     function handleConfirmClick() {
         var method = document.querySelector('input[name="paymentMethod"]:checked');
         var value = method ? method.value : 'stripe';
@@ -379,6 +440,11 @@
             setTimeout(function() {
                 if (!cartItems.length) alert('購物車是空的');
             }, 500);
+            return;
+        }
+
+        if (isWalletOnlyCheckout()) {
+            handleWalletOnlyCheckout();
             return;
         }
 

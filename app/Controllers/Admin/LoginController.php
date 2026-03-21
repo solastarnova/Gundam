@@ -27,7 +27,7 @@ class LoginController extends Controller
         $csrfToken = bin2hex(random_bytes(32));
         $_SESSION['admin_csrf_token'] = $csrfToken;
         $data = [
-            'title' => '後台登入',
+            'title' => Config::get('messages.titles.admin_login'),
             'error' => $error,
             'csrf_token' => $csrfToken,
             'asset' => fn (string $path) => $this->view->asset($path),

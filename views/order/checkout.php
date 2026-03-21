@@ -86,6 +86,10 @@ $checkoutJsVersion = is_file($checkoutJsPath) ? (string) filemtime($checkoutJsPa
                         <div id="paypal-button-container" class="ms-4 mt-2" style="display: none;"></div>
                     </div>
 
+                    <p id="walletZeroCheckoutHint" class="small text-success mb-2" style="display: none;">
+                        應付金額為 0，將以錢包全額支付；請按下方「確認訂單」，無需輸入卡號或 PayPal。
+                    </p>
+
                     <button type="button" class="btn btn-primary btn-lg w-100 mt-3" id="confirmOrderBtn">確認訂單</button>
                     <a href="<?= $url('cart') ?>" class="btn btn-outline-secondary w-100 mt-2">返回購物車</a>
                 </div>

@@ -102,6 +102,7 @@ $methodMap = [
                 </div>
                 <div class="card-body">
                     <form method="POST" action="<?= $url('admin/orders/' . $order['id'] . '/status') ?>">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8') ?>">
                         <select name="status" class="form-select mb-3">
                             <option value="pending" <?= $order['status'] == 'pending' ? 'selected' : '' ?>>待付款</option>
                             <option value="paid" <?= $order['status'] == 'paid' ? 'selected' : '' ?>>已付款</option>

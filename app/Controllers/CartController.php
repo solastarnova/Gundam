@@ -20,7 +20,7 @@ class CartController extends Controller
     {
         $isLoggedIn = isset($_SESSION['user_id']);
         $this->render('cart/index', [
-            'title' => '購物車 - ' . $this->getSiteName(),
+            'title' => $this->titleWithSite('cart'),
             'isLoggedIn' => $isLoggedIn,
             'head_extra_css' => [],
         ]);

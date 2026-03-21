@@ -35,7 +35,7 @@ class UserController extends BaseController
         unset($user);
 
         $this->render('users/index', [
-            'title' => '用戶管理',
+            'title' => Config::get('messages.titles.admin_users'),
             'users' => $users,
             'page' => $page,
             'total' => $result['total'],
@@ -46,6 +46,12 @@ class UserController extends BaseController
     
     public function toggleStatus(int $id)
     {
+        if (!$this->requireAdminCsrf()) {
+            $this->setError(Config::get('messages.admin_login.csrf_invalid'));
+            $this->redirect('/admin/users');
+            return;
+        }
+
         $id = (int) $id;
         $user = $this->userModel->findById($id);
         if (!$user) {
@@ -87,7 +93,10 @@ class UserController extends BaseController
         $orders = $stmt->fetchAll();
         
         $this->render('users/show', [
-            'title' => '用戶詳情 - ' . $user['name'],
+            'title' => sprintf(
+                (string) Config::get('messages.titles.admin_user_detail'),
+                $user['name'] ?? ''
+            ),
             'user' => $user,
             'orders' => $orders
         ]);

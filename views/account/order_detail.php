@@ -40,8 +40,16 @@ $reviewError = $reviewError ?? null;
                                             ?>
                                             <div class="list-group-item">
                                                 <div class="d-flex align-items-center gap-3">
+                                                    <?php
+                                                    $rawImg = trim((string) ($item['item_image_path'] ?? ''));
+                                                    if ($rawImg !== '' && str_starts_with($rawImg, 'images/')) {
+                                                        $rawImg = substr($rawImg, 7);
+                                                    }
+                                                    $thumbFile = $rawImg !== '' ? $rawImg : 'placeholder.jpg';
+                                                    $thumbSrc = $asset('images/' . $thumbFile);
+                                                    ?>
                                                     <a href="<?= $detailUrl ?>" class="text-decoration-none">
-                                                        <img src="<?= $asset('images/placeholder.jpg') ?>" alt="" class="rounded" style="width: 64px; height: 64px; object-fit: cover;">
+                                                        <img src="<?= htmlspecialchars($thumbSrc, ENT_QUOTES, 'UTF-8') ?>" alt="" class="rounded" style="width: 64px; height: 64px; object-fit: cover;" onerror="this.onerror=null;this.src='<?= htmlspecialchars($asset('images/placeholder.jpg'), ENT_QUOTES, 'UTF-8') ?>';">
                                                     </a>
                                                     <div class="flex-grow-1">
                                                         <h6 class="mb-1">

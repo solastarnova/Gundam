@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Core\Config;
 use App\Core\Controller;
 use App\Models\UserModel;
 use App\Services\MailService;
@@ -35,7 +36,7 @@ class ForgotPasswordController extends Controller
         $hasEmail = isset($_SESSION['forgot_password_email']);
 
         $this->render('auth/forgot_password', [
-            'title' => '忘記密碼 - ' . $this->getSiteName(),
+            'title' => $this->titleWithSite('forgot_password'),
             'errors' => $errors,
             'old' => $old,
             'status' => $status,
@@ -51,7 +52,7 @@ class ForgotPasswordController extends Controller
             return;
         }
         if ($this->mail === null) {
-            $this->flash('resetpw_errors', ['general' => '郵件服務未配置，請聯絡管理員。']);
+            $this->flash('resetpw_errors', ['general' => Config::get('messages.auth.mail_not_configured')]);
             $this->redirect($this->view->url('forgot'));
             return;
         }
@@ -67,7 +68,7 @@ class ForgotPasswordController extends Controller
         } else {
             $targetUser = $this->userModel->findByEmail($email);
             if (!$targetUser) {
-                $errors['email'] = '此電郵尚未註冊';
+                $errors['email'] = Config::get('messages.password_reset.email_not_registered');
             }
         }
 
@@ -81,7 +82,7 @@ class ForgotPasswordController extends Controller
 
         $code = $this->createVerificationCodeForUser((int) $targetUser['id']);
         if ($code === null) {
-            $this->flash('resetpw_errors', ['general' => '無法生成驗證碼，請稍後再試。']);
+            $this->flash('resetpw_errors', ['general' => Config::get('messages.password_reset.code_generate_failed')]);
             $this->flash('resetpw_old', $oldInput);
             $this->redirect($this->view->url('forgot'));
             return;
@@ -94,7 +95,7 @@ class ForgotPasswordController extends Controller
         );
 
         if (!$mailSent) {
-            $this->flash('resetpw_errors', ['general' => '郵件發送失敗，請稍後再試。']);
+            $this->flash('resetpw_errors', ['general' => Config::get('messages.auth.mail_send_failed')]);
             $this->flash('resetpw_old', $oldInput);
             $this->redirect($this->view->url('forgot'));
             return;
@@ -103,7 +104,7 @@ class ForgotPasswordController extends Controller
         $this->clearForgotPasswordSession();
         $_SESSION['forgot_password_email'] = $email;
 
-        $message = '我們已寄送驗證碼至您的電郵，請檢查並輸入驗證碼。';
+        $message = Config::get('messages.password_reset.code_sent_body');
         if ($this->isLocalEnvironment()) {
             $message .= ' [測試] 驗證碼：' . $code;
         }
@@ -124,7 +125,7 @@ class ForgotPasswordController extends Controller
         $code = trim($_POST['code'] ?? '');
 
         if ($email === '') {
-            $this->flash('resetpw_errors', ['general' => '請先申請驗證碼。']);
+            $this->flash('resetpw_errors', ['general' => Config::get('messages.password_reset.need_request_code_first')]);
             $this->redirect($this->view->url('forgot'));
             return;
         }
@@ -139,7 +140,7 @@ class ForgotPasswordController extends Controller
 
         $user = $this->findUserByVerificationCode($email, $code);
         if (!$user) {
-            $this->flash('resetpw_errors', ['code' => '驗證碼錯誤或已過期，請重新申請。']);
+            $this->flash('resetpw_errors', ['code' => Config::get('messages.password_reset.verify_code_wrong_expired')]);
             $this->flash('resetpw_old', ['email' => $email]);
             $this->redirect($this->view->url('forgot'));
             return;
@@ -157,14 +158,14 @@ class ForgotPasswordController extends Controller
             return;
         }
         if (!isset($_SESSION['forgot_password_verified']) || !$_SESSION['forgot_password_verified']) {
-            $this->flash('resetpw_errors', ['general' => '請先驗證驗證碼。']);
+            $this->flash('resetpw_errors', ['general' => Config::get('messages.password_reset.verify_code_first')]);
             $this->redirect($this->view->url('forgot'));
             return;
         }
 
         $errors = $this->consumeFlash('reset_errors', []);
         $this->render('auth/reset_password', [
-            'title' => '設定新密碼 - ' . $this->getSiteName(),
+            'title' => $this->titleWithSite('reset_password'),
             'errors' => $errors,
             'head_extra_css' => [],
         ]);
@@ -177,7 +178,7 @@ class ForgotPasswordController extends Controller
             return;
         }
         if (!isset($_SESSION['forgot_password_verified']) || !$_SESSION['forgot_password_verified']) {
-            $this->flash('reset_errors', ['general' => '請先驗證驗證碼。']);
+            $this->flash('reset_errors', ['general' => Config::get('messages.password_reset.verify_code_first')]);
             $this->redirect($this->view->url('forgot'));
             return;
         }
@@ -188,19 +189,22 @@ class ForgotPasswordController extends Controller
 
         if ($userId === null) {
             $this->clearForgotPasswordSession();
-            $this->flash('reset_errors', ['general' => '驗證已過期，請重新申請。']);
+            $this->flash('reset_errors', ['general' => Config::get('messages.password_reset.session_expired')]);
             $this->redirect($this->view->url('forgot'));
             return;
         }
 
         $errors = [];
-        $pwError = $this->validatePassword($password);
-        if ($pwError !== null) {
-            $errors['password'] = str_replace('密碼', '新密碼', $pwError);
+        $minLen = (int) Config::get('min_password_length', 8);
+        if ($password === '') {
+            $errors['password'] = Config::get('messages.account.password_new_required');
+        } elseif (strlen($password) < $minLen) {
+            $errors['password'] = sprintf(Config::get('messages.account.password_new_min'), $minLen);
         }
-        $confirmError = $this->validatePasswordConfirmation($password, $passwordConfirm);
-        if ($confirmError !== null) {
-            $errors['password_confirm'] = $confirmError;
+        if ($passwordConfirm === '') {
+            $errors['password_confirm'] = Config::get('messages.account.password_new_confirm_required');
+        } elseif ($password !== '' && $password !== $passwordConfirm) {
+            $errors['password_confirm'] = Config::get('messages.auth.password_confirm_mismatch');
         }
 
         if (!empty($errors)) {
@@ -212,7 +216,7 @@ class ForgotPasswordController extends Controller
         $this->userModel->updatePassword((int) $userId, $password);
         $this->clearVerificationCodeForUser((int) $userId);
         $this->clearForgotPasswordSession();
-        $this->flash('login_message', '密碼已重設，請使用新密碼登入。');
+        $this->flash('login_message', Config::get('messages.password_reset.success_login'));
         $this->redirect($this->view->url('login'));
     }
 

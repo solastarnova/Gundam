@@ -26,11 +26,6 @@ class CartModel extends Model
         return $this->maxQuantity;
     }
 
-    /**
-     * Get cart item list.
-     *
-     * @return list<array{cart_item_id: int, id: int, name: string, price: float, qty: int, image_path: string}>
-     */
     public function getCartItems(int $userId): array
     {
         $stmt = $this->pdo->prepare("

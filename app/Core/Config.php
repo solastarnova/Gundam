@@ -2,9 +2,7 @@
 
 namespace App\Core;
 
-/**
- * Load config/app.php and config/messages.php once; provide get() / all().
- */
+/** @see docs/CONFIG_AND_MESSAGES.md */
 class Config
 {
     /** @var array<string, mixed>|null */
@@ -13,11 +11,6 @@ class Config
     /** @var array<string, mixed>|null */
     private static ?array $messagesData = null;
 
-    /**
-     * Get full config array (loaded once).
-     *
-     * @return array<string, mixed>
-     */
     public static function all(): array
     {
         if (self::$data === null) {
@@ -26,13 +19,6 @@ class Config
         return self::$data;
     }
 
-    /**
-     * Get config by key (dot notation for nested keys).
-     *
-     * @param string $key
-     * @param mixed  $default
-     * @return mixed
-     */
     public static function get(string $key, $default = null)
     {
         if (str_starts_with($key, 'messages.')) {

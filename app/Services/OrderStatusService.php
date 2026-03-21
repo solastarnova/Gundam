@@ -6,9 +6,6 @@ use App\Core\Config;
 
 class OrderStatusService
 {
-    /**
-     * @return string[]
-     */
     public static function allowed(): array
     {
         $allowed = Config::get('order_status.allowed', []);
@@ -26,9 +23,6 @@ class OrderStatusService
         return in_array($status, self::allowed(), true);
     }
 
-    /**
-     * @return array<string, string[]>
-     */
     public static function transitions(): array
     {
         $transitions = Config::get('order_status.transitions', []);
@@ -45,4 +39,3 @@ class OrderStatusService
         return is_array($allowedNext) && in_array($to, $allowedNext, true);
     }
 }
-

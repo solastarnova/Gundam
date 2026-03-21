@@ -10,7 +10,7 @@ $url = $url ?? fn($p = '') => $p;
                     <a href="<?= $url('account') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-person me-2"></i> 個人資料</a>
                     <a href="<?= $url('account/orders') ?>" class="nav-link d-flex align-items-center active"><i class="bi bi-bag me-2"></i> 訂單記錄</a>
                     <a href="<?= $url('wishlist') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-heart me-2"></i> 喜愛清單</a>
-                    <a href="#coupons" class="nav-link d-flex align-items-center"><i class="bi bi-ticket-perforated me-2"></i> 優惠券</a>
+                    <span class="nav-link d-flex align-items-center text-muted user-select-none" style="pointer-events: none; cursor: default;" title="暫未開放"><i class="bi bi-ticket-perforated me-2"></i> 優惠券</span>
                     <a href="<?= $url('account/addresses') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-geo-alt me-2"></i> 預設地址</a>
                     <a href="<?= $url('account/payment') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-credit-card me-2"></i> 付款方式</a>
                     <a class="nav-link d-flex" href="<?= $url('account/settings') ?>"> 帳戶設定</a>

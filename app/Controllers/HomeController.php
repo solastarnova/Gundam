@@ -39,7 +39,7 @@ class HomeController extends Controller
         }
 
         $this->render('home/index', [
-            'title' => $this->getSiteName(),
+            'title' => $this->titleWithSite('home'),
             'dbProducts' => $dbProducts,
             'dbReviews' => $dbReviews,
             'images' => $images,

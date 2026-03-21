@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Config;
 use App\Core\Controller;
 use App\Models\CartModel;
+use App\Models\OrderModel;
 use App\Services\PaymentService;
 use App\Services\OrderService;
 use App\Services\ShippingService;
@@ -15,12 +16,14 @@ class PaymentController extends Controller
     private ?PaymentService $paymentService = null;
     private CartModel $cartModel;
     private OrderService $orderService;
+    private OrderModel $orderModel;
 
     public function __construct()
     {
         parent::__construct();
         $this->cartModel = new CartModel();
         $this->orderService = new OrderService();
+        $this->orderModel = new OrderModel();
     }
 
     public function getPublishableKey(): void
@@ -47,7 +50,7 @@ class PaymentController extends Controller
         $userId = (int) $_SESSION['user_id'];
         $cartItems = $this->cartModel->getCartItems($userId);
         if (empty($cartItems)) {
-            $msg = Config::get('messages.payment.cart_empty');
+            $msg = Config::get('messages.common.cart_empty');
             $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
@@ -65,8 +68,18 @@ class PaymentController extends Controller
         $payableAmount = $totalAmount - $walletToUse;
         $amountInCents = PaymentService::convertToCents($payableAmount);
         if ($amountInCents <= 0) {
-            $msg = Config::get('messages.payment.order_amount_invalid');
-            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
+            if ($totalAmount > 0 && $payableAmount <= 0.00001) {
+                $msg = Config::get('messages.payment.payable_zero_use_wallet_button');
+                $this->json([
+                    'success' => false,
+                    'error' => $msg,
+                    'message' => $msg,
+                    'wallet_checkout' => true,
+                ], 400);
+            } else {
+                $msg = Config::get('messages.payment.order_amount_invalid');
+                $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
+            }
             return;
         }
 
@@ -96,7 +109,9 @@ class PaymentController extends Controller
                 'total_amount' => $totalAmount,
             ]);
         } catch (\Throwable $e) {
-            $this->json(['success' => false, 'error' => $e->getMessage(), 'message' => $e->getMessage()], 500);
+            error_log('Payment createIntent: ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            $msg = Config::get('messages.payment.intent_create_failed');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 500);
         }
     }
 
@@ -111,7 +126,7 @@ class PaymentController extends Controller
         $userId = (int) $_SESSION['user_id'];
         $cartItems = $this->cartModel->getCartItems($userId);
         if (empty($cartItems)) {
-            $msg = Config::get('messages.payment.cart_empty');
+            $msg = Config::get('messages.common.cart_empty');
             $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
@@ -136,6 +151,16 @@ class PaymentController extends Controller
             $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
+        if ($payableAmount <= 0.00001) {
+            $msg = Config::get('messages.payment.payable_zero_use_wallet_button');
+            $this->json([
+                'success' => false,
+                'error' => $msg,
+                'message' => $msg,
+                'wallet_checkout' => true,
+            ], 400);
+            return;
+        }
 
         $orderNumber = $this->orderService->generateOrderNumber();
         $this->json([
@@ -149,6 +174,126 @@ class PaymentController extends Controller
             'wallet_used' => $walletToUse,
             'total_amount' => $totalAmount,
         ]);
+    }
+
+    public function walletCheckout(): void
+    {
+        $this->setupJsonApi();
+
+        if (!$this->requireAuthForApi()) {
+            return;
+        }
+
+        $userId = (int) $_SESSION['user_id'];
+        $shippingAddress = trim((string) ($_POST['shipping_address'] ?? ''));
+        $shippingMethod = trim((string) ($_POST['shipping_method'] ?? 'standard'));
+        $useWallet = $this->toBool($_POST['use_wallet'] ?? '0');
+
+        if ($shippingAddress === '') {
+            $msg = Config::get('messages.payment.shipping_required');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
+            return;
+        }
+
+        if (!$useWallet) {
+            $msg = Config::get('messages.payment.wallet_checkout_requires_wallet');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
+            return;
+        }
+
+        $cartItems = $this->cartModel->getCartItems($userId);
+        if (empty($cartItems)) {
+            $msg = Config::get('messages.common.cart_empty');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
+            return;
+        }
+
+        $subtotal = $this->cartModel->calculateSubtotal($cartItems);
+        $totalAmount = round(ShippingService::calculateTotal($subtotal, $shippingMethod), 2);
+
+        if ($totalAmount <= 0) {
+            $msg = Config::get('messages.payment.order_amount_invalid');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
+            return;
+        }
+
+        $walletService = new WalletService();
+        $walletBalance = round($walletService->getBalance($userId), 2);
+        $walletToUse = $totalAmount;
+
+        if ($walletBalance + 0.00001 < $walletToUse) {
+            $msg = Config::get('messages.payment.wallet_insufficient_for_total');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
+            return;
+        }
+
+        $payableAfterWallet = max(0.0, $totalAmount - $walletToUse);
+        if ($payableAfterWallet > 0.00001) {
+            $msg = Config::get('messages.payment.wallet_checkout_not_zero');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
+            return;
+        }
+
+        $itemsForOrder = [];
+        foreach ($cartItems as $row) {
+            $itemsForOrder[] = [
+                'id' => $row['id'],
+                'name' => $row['name'],
+                'qty' => $row['qty'],
+                'price' => $row['price'],
+            ];
+        }
+
+        $orderNumber = $this->orderService->generateOrderNumber();
+
+        $walletPaymentRef = 'wallet:' . $orderNumber;
+
+        try {
+            $result = $this->orderService->createOrderFromCart(
+                $userId,
+                $itemsForOrder,
+                $totalAmount,
+                'wallet',
+                $shippingAddress,
+                'paid',
+                $orderNumber,
+                true,
+                'wallet',
+                $walletPaymentRef,
+                $walletToUse
+            );
+
+            unset($_SESSION['wallet_use_checkout']);
+
+            $payload = [
+                'success' => true,
+                'message' => Config::get('messages.order.confirmed'),
+                'order_number' => $result['order_number'],
+                'order_id' => $result['order_id'],
+            ];
+            if (!empty($result['idempotent'])) {
+                $payload['idempotent'] = true;
+            }
+            $this->json($payload);
+        } catch (\InvalidArgumentException $e) {
+            $msg = Config::get('messages.order.insufficient_stock');
+            $this->json([
+                'success' => false,
+                'error' => $msg,
+                'message' => $msg,
+            ], 400);
+        } catch (\RuntimeException $e) {
+            error_log('walletCheckout RuntimeException: ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            $msg = Config::get('messages.payment.wallet_insufficient_for_total');
+            if (strpos($e->getMessage(), '餘額') === false) {
+                $msg = Config::get('messages.payment.confirm_failed');
+            }
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
+        } catch (\Throwable $e) {
+            error_log('walletCheckout: ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+            $msg = Config::get('messages.payment.confirm_failed');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 500);
+        }
     }
 
     public function confirm(): void
@@ -190,6 +335,7 @@ class PaymentController extends Controller
                 $intent = $paymentService->getPaymentIntent($paymentIntentId);
                 $paymentStatus = $intent['status'];
             } catch (\Throwable $e) {
+                error_log('Payment confirm getPaymentIntent: ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
                 $msg = Config::get('messages.payment.verify_failed');
                 $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
                 return;
@@ -202,9 +348,23 @@ class PaymentController extends Controller
             return;
         }
 
+        $paymentProvider = $paymentMethod === 'paypal' ? 'paypal' : 'stripe';
+        $existingOrder = $this->orderModel->findByUserIdAndPaymentReference($userId, $paymentProvider, $paymentIntentId);
+        if ($existingOrder !== null) {
+            unset($_SESSION['wallet_use_checkout']);
+            $this->json([
+                'success' => true,
+                'message' => Config::get('messages.order.confirmed'),
+                'order_number' => $existingOrder['order_number'],
+                'order_id' => (int) $existingOrder['id'],
+                'idempotent' => true,
+            ]);
+            return;
+        }
+
         $cartItems = $this->cartModel->getCartItems($userId);
         if (empty($cartItems)) {
-            $msg = Config::get('messages.payment.cart_empty');
+            $msg = Config::get('messages.common.cart_empty');
             $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 400);
             return;
         }
@@ -249,12 +409,16 @@ class PaymentController extends Controller
 
             unset($_SESSION['wallet_use_checkout']);
 
-            $this->json([
+            $payload = [
                 'success' => true,
                 'message' => Config::get('messages.order.confirmed'),
                 'order_number' => $result['order_number'],
                 'order_id' => $result['order_id'],
-            ]);
+            ];
+            if (!empty($result['idempotent'])) {
+                $payload['idempotent'] = true;
+            }
+            $this->json($payload);
         } catch (\InvalidArgumentException $e) {
             $msg = Config::get('messages.order.insufficient_stock');
             $this->json([
@@ -263,6 +427,7 @@ class PaymentController extends Controller
                 'message' => $msg,
             ], 400);
         } catch (\Throwable $e) {
+            error_log('Payment confirm: ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
             $msg = Config::get('messages.payment.confirm_failed');
             $this->json(['success' => false, 'error' => $msg, 'message' => $msg], 500);
         }

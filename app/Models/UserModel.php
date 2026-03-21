@@ -4,19 +4,9 @@ namespace App\Models;
 
 use App\Core\Model;
 
-/**
- * User model: password stored with password_hash (PASSWORD_DEFAULT) in users.password.
- */
 class UserModel extends Model
 {
-    /**
-     * Cache for existing users table columns.
-     *
-     * Some environments may not have run the latest migrations yet.
-     * We detect columns at runtime to avoid SQL 1054 fatal errors.
-     *
-     * @var array<string, bool>|null
-     */
+    /** @var array<string, bool>|null */
     private static ?array $usersColumns = null;
 
     private function ensureUsersColumnsLoaded(): void
@@ -34,7 +24,6 @@ class UserModel extends Model
                 }
             }
         } catch (\Throwable $e) {
-            // SHOW COLUMNS 失敗時視為欄位不存在
             self::$usersColumns = [];
         }
     }
@@ -73,13 +62,6 @@ class UserModel extends Model
         return $row ?: null;
     }
 
-    /**
-     * Update user status (admin: active / disabled).
-     *
-     * @param int    $id
-     * @param string $status
-     * @return bool
-     */
     public function updateStatus(int $id, string $status): bool
     {
         if (!$this->hasUsersColumn('status')) {
@@ -119,9 +101,6 @@ class UserModel extends Model
         return $stmt->rowCount() > 0;
     }
 
-    /**
-     * Verify user password by id (used by account settings forms).
-     */
     public function verifyPasswordForUser(int $userId, string $plainPassword): bool
     {
         $stmt = $this->pdo->prepare("SELECT password FROM users WHERE id = ? LIMIT 1");
@@ -131,9 +110,6 @@ class UserModel extends Model
         return $storedHash !== '' && $this->verifyPassword($plainPassword, $storedHash);
     }
 
-    /**
-     * Update user's email.
-     */
     public function updateEmail(int $userId, string $newEmail): bool
     {
         if ($newEmail === '') {
@@ -144,9 +120,6 @@ class UserModel extends Model
         return $stmt->rowCount() > 0;
     }
 
-    /**
-     * Update user's phone (optional field).
-     */
     public function updatePhone(int $userId, string $phone): bool
     {
         if (!$this->hasUsersColumn('phone')) {
@@ -161,18 +134,21 @@ class UserModel extends Model
     {
         $user = $this->findById($userId);
         if (!$user) {
-            return '用戶不存在';
+            return (string) \App\Core\Config::get('messages.account.user_not_found');
         }
         $stmt = $this->pdo->prepare("SELECT password FROM users WHERE id = ? LIMIT 1");
         $stmt->execute([$userId]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         $storedHash = $row['password'] ?? '';
         if (!$this->verifyPassword($oldPassword, $storedHash)) {
-            return '目前密碼不正確';
+            return (string) \App\Core\Config::get('messages.account.password_current_wrong');
         }
         $minLen = (int) \App\Core\Config::get('min_password_length', 8);
         if (strlen($newPassword) < $minLen) {
-            return "新密碼至少 {$minLen} 個字元";
+            return sprintf(
+                (string) \App\Core\Config::get('messages.account.password_new_min'),
+                $minLen
+            );
         }
         $this->updatePassword($userId, $newPassword);
         return null;
@@ -184,14 +160,6 @@ class UserModel extends Model
         return (int) $stmt->fetchColumn();
     }
 
-    /**
-     * Get paginated user list for admin (optional search).
-     *
-     * @param array $filters
-     * @param int   $page
-     * @param int   $perPage
-     * @return array{total: int, rows: list<array<string, mixed>>}
-     */
     public function getListForAdmin(array $filters, int $page, int $perPage): array
     {
         $search = isset($filters['search']) ? trim((string) $filters['search']) : '';

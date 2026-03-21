@@ -26,7 +26,7 @@ class BaseController extends Controller
                 $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
                 header('Content-Type: application/json');
                 http_response_code(401);
-                echo json_encode(['error' => Config::get('messages.admin.not_logged_in')]);
+                echo json_encode(['error' => Config::get('messages.common.not_logged_in')]);
                 exit;
             }
             $this->redirect('/admin/login');
@@ -39,6 +39,24 @@ class BaseController extends Controller
         ];
     }
 
+    protected function getAdminCsrfToken(): string
+    {
+        if (empty($_SESSION['admin_csrf_token'])) {
+            $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+        }
+
+        return $_SESSION['admin_csrf_token'];
+    }
+
+    protected function requireAdminCsrf(): bool
+    {
+        $token = $_POST['csrf_token'] ?? '';
+
+        return $token !== ''
+            && isset($_SESSION['admin_csrf_token'])
+            && hash_equals($_SESSION['admin_csrf_token'], $token);
+    }
+
     protected function render(string $view, array $data = [], string $layout = 'admin'): void
     {
         $data['admin'] = $this->adminUser;
@@ -47,7 +65,8 @@ class BaseController extends Controller
         $data['url'] = fn($path = '') => $this->view->url($path);
         $data['success'] = $this->consumeFlash('admin_success');
         $data['error'] = $this->consumeFlash('admin_error');
-        
+        $data['csrf_token'] = $this->getAdminCsrfToken();
+
         parent::render('admin/' . $view, $data, 'admin/layouts/admin');
     }
 

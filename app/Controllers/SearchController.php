@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Core\Config;
 use App\Core\Controller;
 use App\Models\Product;
 
@@ -21,16 +22,22 @@ class SearchController extends Controller
         $errorMessage = '';
         $products = [];
         $totalResults = 0;
-        if (strlen($keyword) < 2) {
+        $minSearchLen = (int) Config::get('search.min_keyword_length', 2);
+        if (strlen($keyword) < $minSearchLen) {
             if ($keyword !== '') {
-                $errorMessage = '請輸入至少 2 個字元進行搜尋';
+                $errorMessage = sprintf(
+                    (string) Config::get('messages.search.keyword_too_short'),
+                    $minSearchLen
+                );
             }
         } else {
             $products = $this->productModel->search($keyword);
             $totalResults = count($products);
         }
         $this->render('search/index', [
-            'title' => ($keyword !== '' ? '搜索：' . $keyword . ' - ' : '搜索 - ') . $this->getSiteName(),
+            'title' => ($keyword !== ''
+                ? $this->titleFormat('search_with_keyword', $keyword, $this->getSiteName())
+                : $this->titleWithSite('search')),
             'keyword' => $keyword,
             'errorMessage' => $errorMessage,
             'products' => $products,

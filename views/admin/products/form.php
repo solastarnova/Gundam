@@ -17,6 +17,7 @@ $currencyCode = $currencyCode !== '' ? $currencyCode : 'N/A';
     </div>
     
     <form method="POST" action="<?= $url('admin/products/save') ?>" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8') ?>">
         <?php if ($isEdit): ?>
             <input type="hidden" name="id" value="<?= $product['id'] ?>">
         <?php endif; ?>

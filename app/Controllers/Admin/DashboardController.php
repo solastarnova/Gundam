@@ -32,7 +32,7 @@ class DashboardController extends BaseController
         ];
         
         $this->render('dashboard', [
-            'title' => '仪表盘',
+            'title' => Config::get('messages.titles.admin_dashboard'),
             'stats' => $stats
         ]);
     }

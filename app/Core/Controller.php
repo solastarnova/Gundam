@@ -100,9 +100,10 @@ class Controller
     protected function requireAuthForApi(): bool
     {
         if (!isset($_SESSION['user_id'])) {
+            $msg = (string) Config::get('messages.common.not_logged_in');
             http_response_code(401);
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['success' => false, 'error' => '未登入', 'message' => '未登入'], JSON_UNESCAPED_UNICODE);
+            echo json_encode(['success' => false, 'error' => $msg, 'message' => $msg], JSON_UNESCAPED_UNICODE);
             return false;
         }
         return true;
@@ -158,6 +159,16 @@ class Controller
         return (string) Config::get('site_name', '高達模型商城');
     }
 
+    protected function titleWithSite(string $key): string
+    {
+        return sprintf((string) Config::get('messages.titles.' . $key), $this->getSiteName());
+    }
+
+    protected function titleFormat(string $key, ...$params): string
+    {
+        return sprintf((string) Config::get('messages.titles.' . $key), ...$params);
+    }
+
     protected function isLocalEnvironment(): bool
     {
         $env = $_ENV['APP_ENV'] ?? $_SERVER['APP_ENV'] ?? 'production';
@@ -167,10 +178,10 @@ class Controller
     protected function validateEmail(string $email): ?string
     {
         if ($email === '') {
-            return '請輸入電郵地址';
+            return Config::get('messages.auth.email_required');
         }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return '請輸入有效的電郵地址';
+            return Config::get('messages.auth.email_invalid');
         }
         return null;
     }
@@ -178,11 +189,11 @@ class Controller
     protected function validatePassword(string $password, ?int $minLength = null): ?string
     {
         if ($password === '') {
-            return '請輸入密碼';
+            return Config::get('messages.auth.password_required');
         }
         $minLength = $minLength ?? (int) Config::get('min_password_length', 8);
         if (strlen($password) < $minLength) {
-            return "密碼至少需 {$minLength} 個字元";
+            return sprintf(Config::get('messages.auth.password_min'), $minLength);
         }
         return null;
     }
@@ -190,10 +201,10 @@ class Controller
     protected function validatePasswordConfirmation(string $password, string $passwordConfirmation): ?string
     {
         if ($passwordConfirmation === '') {
-            return '請再次輸入密碼';
+            return Config::get('messages.auth.password_confirm_required');
         }
         if ($password !== $passwordConfirmation) {
-            return '兩次輸入的密碼不一致';
+            return Config::get('messages.auth.password_confirm_mismatch');
         }
         return null;
     }
@@ -201,11 +212,11 @@ class Controller
     protected function validateVerificationCodeFormat(string $code): ?string
     {
         if ($code === '') {
-            return '請輸入驗證碼';
+            return Config::get('messages.auth.verification_code_required');
         }
         $codeLength = (int) Config::get('verification_code.length', 6);
         if (!preg_match('/^\d{' . $codeLength . '}$/', $code)) {
-            return "驗證碼應為 {$codeLength} 位數字";
+            return sprintf(Config::get('messages.auth.verification_code_digits'), $codeLength);
         }
         return null;
     }

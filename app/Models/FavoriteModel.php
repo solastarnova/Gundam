@@ -5,16 +5,8 @@ namespace App\Models;
 use App\Core\Model;
 use App\Core\Config;
 
-/**
- * Wishlist model: user_favorites + items (item_id), for API and validation.
- */
 class FavoriteModel extends Model
 {
-    /**
-     * Get user wishlist.
-     *
-     * @return list<array{id: int, name: string, price: float, img: string}>
-     */
     public function getUserFavorites(int $userId, ?int $limit = null): array
     {
         $placeholder = (string) Config::get('placeholder_image', 'images/placeholder.jpg');

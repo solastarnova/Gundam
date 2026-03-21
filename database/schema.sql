@@ -97,13 +97,14 @@ CREATE TABLE `orders` (
   `total_amount` decimal(10,2) NOT NULL,
   `payment_method` varchar(50) DEFAULT NULL,
   `payment_provider` varchar(50) DEFAULT NULL,
-  `payment_reference` varchar(100) DEFAULT NULL,
+  `payment_reference` varchar(255) DEFAULT NULL COMMENT 'Stripe PI / PayPal id / wallet:訂單編號',
   `shipping_address` text NOT NULL,
   `status` enum('pending','paid','shipped','completed','cancelled') NOT NULL DEFAULT 'pending',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `unq_orders_order_number` (`order_number`),
+  UNIQUE KEY `uq_orders_user_provider_payment_ref` (`user_id`,`payment_provider`,`payment_reference`),
   KEY `idx_orders_user` (`user_id`),
   KEY `idx_orders_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

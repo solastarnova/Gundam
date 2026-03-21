@@ -27,7 +27,7 @@ class AccountController extends Controller
         $userId = (int) $_SESSION['user_id'];
         $profile = $this->userModel->findById($userId);
         $this->render('account/home', [
-            'title' => '個人資料 - ' . $this->getSiteName(),
+            'title' => $this->titleWithSite('account_home'),
             'user_name' => $profile['name'] ?? $_SESSION['user_name'] ?? '',
             'email' => $profile['email'] ?? $_SESSION['email'] ?? '',
             'head_extra_css' => [],
@@ -41,7 +41,7 @@ class AccountController extends Controller
         $orders = $this->orderModel->getUserOrders($userId);
         $stats = $this->orderModel->getUserOrderStats($userId);
         $this->render('account/orders', [
-            'title' => '訂單記錄 - ' . $this->getSiteName(),
+            'title' => $this->titleWithSite('account_orders'),
             'head_extra_css' => [],
             'orders' => $orders,
             'orderStats' => $stats,
@@ -72,7 +72,7 @@ class AccountController extends Controller
             }
         }
         $this->render('account/order_detail', [
-            'title' => '訂單詳情 - ' . $this->getSiteName(),
+            'title' => $this->titleWithSite('account_order_detail'),
             'head_extra_css' => [],
             'order' => $order,
             'orderItems' => $orderItems,
@@ -93,27 +93,27 @@ class AccountController extends Controller
         $rating = (int) ($_POST['review_rating'] ?? 0);
 
         if ($itemId <= 0) {
-            $this->flash('review_error', '無效的商品');
+            $this->flash('review_error', Config::get('messages.account.review_invalid_product'));
             $this->redirect($orderId > 0 ? $this->view->url('account/order/' . $orderId) : $this->view->url('account/orders'));
             return;
         }
 
         $reviewModel = new Review();
         if (!$reviewModel->hasUnreviewedPurchase($userId, $itemId)) {
-            $this->flash('review_error', '您尚未購買此商品或已評價過');
+            $this->flash('review_error', Config::get('messages.account.review_not_eligible'));
             $this->redirect($orderId > 0 ? $this->view->url('account/order/' . $orderId) : $this->view->url('account/orders'));
             return;
         }
 
         if ($title === '') {
-            $title = '用戶評價';
+            $title = (string) Config::get('messages.account.review_default_title');
         }
         if ($rating < 1 || $rating > 5) {
             $rating = 5;
         }
 
         $reviewModel->addReview($userId, $itemId, $title, $content, $rating);
-        $this->flash('review_success', '感謝您的評價！');
+        $this->flash('review_success', Config::get('messages.account.review_thanks'));
         $this->redirect($orderId > 0 ? $this->view->url('account/order/' . $orderId) : $this->view->url('account/orders'));
     }
 
@@ -123,7 +123,7 @@ class AccountController extends Controller
         $userId = (int) $_SESSION['user_id'];
         $profile = $this->userModel->findById($userId);
         $this->render('account/settings', [
-            'title' => '帳戶設定 - ' . $this->getSiteName(),
+            'title' => $this->titleWithSite('account_settings'),
             'profile' => $profile,
             'passwordErrors' => $this->consumeFlash('account_password_errors', []),
             'passwordSuccess' => $this->consumeFlash('account_password_success'),
@@ -142,7 +142,7 @@ class AccountController extends Controller
         $walletBalance = (new WalletService())->getBalance($userId);
 
         $this->render('account/payment', [
-            'title' => '付款方式 - ' . $this->getSiteName(),
+            'title' => $this->titleWithSite('account_payment'),
             'wallet_balance' => $walletBalance,
             'head_extra_css' => [],
         ]);
@@ -159,22 +159,22 @@ class AccountController extends Controller
         $errors = [];
 
         if ($currentPassword === '') {
-            $errors['current_password'] = '請輸入目前密碼';
+            $errors['current_password'] = Config::get('messages.account.password_current_required');
         }
 
         $minLen = (int) Config::get('min_password_length', 8);
         if ($newPassword === '') {
-            $errors['new_password'] = '請輸入新密碼';
+            $errors['new_password'] = Config::get('messages.account.password_new_required');
         } elseif (strlen($newPassword) < $minLen) {
-            $errors['new_password'] = "新密碼至少需 {$minLen} 個字元";
+            $errors['new_password'] = sprintf(Config::get('messages.account.password_new_min'), $minLen);
         } elseif ($currentPassword !== '' && hash_equals($currentPassword, $newPassword)) {
-            $errors['new_password'] = '新密碼不可與目前密碼相同';
+            $errors['new_password'] = Config::get('messages.account.password_same_as_current');
         }
 
         if ($confirmPassword === '') {
-            $errors['confirm_password'] = '請再次輸入新密碼';
+            $errors['confirm_password'] = Config::get('messages.account.password_new_confirm_required');
         } elseif ($newPassword !== '' && $newPassword !== $confirmPassword) {
-            $errors['confirm_password'] = '兩次輸入的密碼不一致';
+            $errors['confirm_password'] = Config::get('messages.auth.password_confirm_mismatch');
         }
 
         if (!empty($errors)) {
@@ -186,8 +186,8 @@ class AccountController extends Controller
         try {
             $errMsg = $this->userModel->changePassword($userId, $currentPassword, $newPassword);
             if ($errMsg !== null) {
-                if ($errMsg === '用戶不存在') {
-                    $errors['general'] = '找不到帳戶資料，請重新登入後再試。';
+                if ($errMsg === Config::get('messages.account.user_not_found')) {
+                    $errors['general'] = Config::get('messages.account.profile_not_found');
                 } else {
                     $errors['current_password'] = $errMsg;
                 }
@@ -196,12 +196,12 @@ class AccountController extends Controller
                 return;
             }
         } catch (\Throwable $e) {
-            $this->flash('account_password_errors', ['general' => '更新密碼時發生錯誤，請稍後再試。']);
+            $this->flash('account_password_errors', ['general' => Config::get('messages.account.password_update_error')]);
             $this->redirect($this->view->url('account/settings'));
             return;
         }
 
-        $this->flash('account_password_success', '密碼已成功更新');
+        $this->flash('account_password_success', Config::get('messages.account.password_update_success'));
         $this->redirect($this->view->url('account/settings'));
     }
 
@@ -216,16 +216,16 @@ class AccountController extends Controller
         $currentEmail = $profile['email'] ?? '';
         $errors = [];
         if ($newEmail === '') {
-            $errors['email'] = '請輸入新電郵';
+            $errors['email'] = Config::get('messages.account.email_new_required');
         } elseif (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
-            $errors['email'] = '請輸入有效的電郵地址';
+            $errors['email'] = Config::get('messages.auth.email_invalid');
         } elseif ($newEmail !== $currentEmail && $this->userModel->emailExists($newEmail)) {
-            $errors['email'] = '此電郵已被其他帳號使用';
+            $errors['email'] = Config::get('messages.account.email_taken_other');
         }
         if ($currentPassword === '') {
-            $errors['current_password'] = '請輸入目前密碼以確認身份';
+            $errors['current_password'] = Config::get('messages.account.password_current_for_email');
         } elseif (!$this->userModel->verifyPasswordForUser($userId, $currentPassword)) {
-            $errors['current_password'] = '目前密碼不正確';
+            $errors['current_password'] = Config::get('messages.account.password_current_wrong');
         }
 
         if (!empty($errors)) {
@@ -236,9 +236,9 @@ class AccountController extends Controller
 
         if ($this->userModel->updateEmail($userId, $newEmail)) {
             $_SESSION['email'] = $newEmail;
-            $this->flash('account_email_success', '電郵已更新');
+            $this->flash('account_email_success', Config::get('messages.account.email_update_success'));
         } else {
-            $this->flash('account_email_errors', ['email' => '更新失敗，此電郵可能已被使用']);
+            $this->flash('account_email_errors', ['email' => Config::get('messages.account.email_update_failed')]);
         }
         $this->redirect($this->view->url('account/settings'));
     }
@@ -250,7 +250,7 @@ class AccountController extends Controller
         $phone = trim((string) ($_POST['phone'] ?? ''));
 
         $this->userModel->updatePhone($userId, $phone);
-        $this->flash('account_phone_success', '手機號碼已更新');
+        $this->flash('account_phone_success', Config::get('messages.account.phone_update_success'));
         $this->redirect($this->view->url('account/settings'));
     }
 
@@ -259,7 +259,8 @@ class AccountController extends Controller
         $this->setupJsonApi();
 
         if (!isset($_SESSION['user_id'])) {
-            $this->json(['success' => false, 'error' => '未登入', 'message' => '未登入', 'orders' => []], 401);
+            $msg = (string) Config::get('messages.common.not_logged_in');
+            $this->json(['success' => false, 'error' => $msg, 'message' => $msg, 'orders' => []], 401);
             return;
         }
         $userId = (int) $_SESSION['user_id'];

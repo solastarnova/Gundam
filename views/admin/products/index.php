@@ -6,6 +6,7 @@ $page = $page ?? 1;
 $total = $total ?? 0;
 $limit = $limit ?? 15;
 $search = $search ?? '';
+$csrf_token = $csrf_token ?? '';
 $totalPages = ceil($total / $limit);
 ?>
 
@@ -91,12 +92,15 @@ $totalPages = ceil($total / $limit);
                                class="btn btn-sm btn-warning" title="編輯">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            <a href="<?= $url('admin/products/delete/' . $product['id']) ?>" 
-                               class="btn btn-sm btn-danger" 
-                               title="刪除"
-                               onclick="return confirm('確定要刪除該商品嗎？\n<?= htmlspecialchars($product['name']) ?>')">
-                                <i class="bi bi-trash"></i>
-                            </a>
+                            <form method="POST"
+                                  action="<?= $url('admin/products/delete/' . $product['id']) ?>"
+                                  class="d-inline"
+                                  onsubmit="return confirm('確定要刪除該商品嗎？\n<?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?>');">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8') ?>">
+                                <button type="submit" class="btn btn-sm btn-danger" title="刪除">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
                         </td>
                     </tr>
                     <?php endforeach; ?>

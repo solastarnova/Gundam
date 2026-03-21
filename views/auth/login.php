@@ -19,9 +19,7 @@ $message = $message ?? null;
             <?php endif; ?>
 
             <form action="<?= $url('login') ?>" method="POST" class="mb-3">
-                <?php if ($redirect !== ''): ?>
-                    <input type="hidden" name="redirect" value="<?= htmlspecialchars($redirect) ?>">
-                <?php endif; ?>
+                <input type="hidden" name="redirect" value="<?= htmlspecialchars((string) ($redirect ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                 <div class="mb-3">
                     <label for="inputEmail" class="form-label fw-semibold">電子郵箱</label>
                     <input

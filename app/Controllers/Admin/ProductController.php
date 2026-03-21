@@ -24,7 +24,7 @@ class ProductController extends BaseController
         $result = $this->productModel->getListForAdmin(['search' => $search], $page, $limit);
 
         $this->render('products/index', [
-            'title' => '商品管理',
+            'title' => Config::get('messages.titles.admin_products'),
             'products' => $result['rows'],
             'page' => $page,
             'total' => $result['total'],
@@ -36,7 +36,7 @@ class ProductController extends BaseController
     public function create()
     {
         $this->render('products/form', [
-            'title' => '新增商品',
+            'title' => Config::get('messages.titles.admin_product_create'),
             'product' => null
         ]);
     }
@@ -52,13 +52,19 @@ class ProductController extends BaseController
         }
         
         $this->render('products/form', [
-            'title' => '编辑商品',
+            'title' => Config::get('messages.titles.admin_product_edit'),
             'product' => $product
         ]);
     }
 
     public function save()
     {
+        if (!$this->requireAdminCsrf()) {
+            $this->setError(Config::get('messages.admin_login.csrf_invalid'));
+            $this->redirect('/admin/products');
+            return;
+        }
+
         $id = (int)($_POST['id'] ?? 0);
         $name = trim($_POST['name'] ?? '');
         $price = (float)($_POST['price'] ?? 0);
@@ -143,9 +149,14 @@ class ProductController extends BaseController
     
     public function delete(int $id)
     {
+        if (!$this->requireAdminCsrf()) {
+            $this->setError(Config::get('messages.admin_login.csrf_invalid'));
+            $this->redirect('/admin/products');
+            return;
+        }
+
         $id = (int) $id;
         try {
-            // 先讀取商品資料再刪除圖片
             $product = $this->productModel->find($id);
             if ($product && !empty($product['image_path'])) {
                 $imagesPath = trim((string) Config::get('upload.images_path', 'images'), '/');

@@ -7,6 +7,7 @@ use App\Core\Database;
 use App\Models\CartModel;
 use App\Models\Order;
 use App\Models\OrderModel;
+use PDOException;
 
 class OrderService
 {
@@ -38,22 +39,6 @@ class OrderService
         return $prefix . $date . substr(bin2hex(random_bytes(4)), 0, 8);
     }
 
-    /**
-     * Create order from cart items; optionally clear cart in same transaction.
-     *
-     * @param int    $userId
-     * @param array  $cartItems
-     * @param float  $totalAmount
-     * @param string $paymentMethod
-     * @param string $shippingAddress
-     * @param string $status
-     * @param string|null $orderNumber
-     * @param bool   $clearCart
-     * @param string|null $paymentProvider
-     * @param string|null $paymentReference
-     * @param float|null $walletAmountUsed
-     * @return array{order_id: int, order_number: string}
-     */
     public function createOrderFromCart(
         int $userId,
         array $cartItems,
@@ -111,10 +96,50 @@ class OrderService
                 'order_id' => $orderId,
                 'order_number' => $orderNumber,
             ];
+        } catch (PDOException $e) {
+            $pdo->rollBack();
+            if (
+                $this->isDuplicatePaymentReferenceException($e)
+                && $paymentProvider !== null
+                && $paymentProvider !== ''
+                && $paymentReference !== null
+                && trim((string) $paymentReference) !== ''
+            ) {
+                $existing = $this->orderModel->findByUserIdAndPaymentReference(
+                    $userId,
+                    (string) $paymentProvider,
+                    trim((string) $paymentReference)
+                );
+                if ($existing !== null) {
+                    $this->cartModel->clearCart($userId);
+
+                    return [
+                        'order_id' => (int) $existing['id'],
+                        'order_number' => (string) $existing['order_number'],
+                        'idempotent' => true,
+                    ];
+                }
+            }
+            throw $e;
         } catch (\Throwable $e) {
             $pdo->rollBack();
             throw $e;
         }
+    }
+
+    private function isDuplicatePaymentReferenceException(PDOException $e): bool
+    {
+        $code = (string) $e->getCode();
+        if ($code === '23000') {
+            return true;
+        }
+        $info = $e->errorInfo ?? [];
+        if (isset($info[1]) && (int) $info[1] === 1062) {
+            return true;
+        }
+        $msg = $e->getMessage();
+
+        return str_contains($msg, 'Duplicate') || str_contains($msg, 'uq_orders_user_provider_payment_ref');
     }
 }
 

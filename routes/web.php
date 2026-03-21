@@ -4,12 +4,12 @@ use App\Core\Router;
 
 $router = new Router();
 
-// 前台頁面
 $router->get('/', 'HomeController', 'index');
 
 $router->get('/login', 'AuthController', 'showLogin');
 $router->post('/login', 'AuthController', 'login');
 $router->get('/register', 'AuthController', 'showRegister');
+$router->post('/register/send-code', 'AuthController', 'sendRegistrationCode');
 $router->post('/register', 'AuthController', 'register');
 $router->get('/logout', 'AuthController', 'logout');
 
@@ -46,7 +46,6 @@ $router->get('/about', 'StaticController', 'about');
 $router->get('/privacy', 'StaticController', 'privacy');
 $router->get('/terms', 'StaticController', 'terms');
 
-// API 路由
 $router->get('/api/cart/count', 'CartController', 'getCount');
 $router->get('/api/cart/items', 'CartController', 'getItems');
 $router->post('/api/cart/add', 'CartController', 'add');
@@ -70,9 +69,9 @@ $router->post('/api/address/set-default', 'AddressController', 'setDefault');
 $router->get('/api/payment/publishable-key', 'PaymentController', 'getPublishableKey');
 $router->post('/api/payment/create-intent', 'PaymentController', 'createIntent');
 $router->post('/api/payment/create-paypal-order', 'PaymentController', 'createPaypalOrder');
+$router->post('/api/payment/wallet-checkout', 'PaymentController', 'walletCheckout');
 $router->post('/api/payment/confirm', 'PaymentController', 'confirm');
 
-// 後台管理
 $router->get('/admin/login', 'Admin\LoginController', 'index');
 $router->post('/admin/login', 'Admin\LoginController', 'login');
 $router->get('/admin/logout', 'Admin\LoginController', 'logout');
@@ -83,7 +82,7 @@ $router->get('/admin/products', 'Admin\ProductController', 'index');
 $router->get('/admin/products/create', 'Admin\ProductController', 'create');
 $router->post('/admin/products/save', 'Admin\ProductController', 'save');
 $router->get('/admin/products/edit/:id', 'Admin\ProductController', 'edit');
-$router->get('/admin/products/delete/:id', 'Admin\ProductController', 'delete');
+$router->post('/admin/products/delete/:id', 'Admin\ProductController', 'delete');
 
 $router->get('/admin/orders', 'Admin\OrderController', 'index');
 $router->get('/admin/orders/:id', 'Admin\OrderController', 'detail');

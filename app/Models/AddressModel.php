@@ -9,12 +9,6 @@ class AddressModel extends Model
 {
     private const DEFAULT_ADDRESS_TYPE = '住宅';
 
-    /**
-     * Validate Hong Kong address required fields.
-     *
-     * @param array $data Address data
-     * @return bool Validation result
-     */
     public static function validateHongKongAddress(array $data): bool
     {
         if (empty($data['recipient_name'])) {
@@ -44,12 +38,6 @@ class AddressModel extends Model
         return true;
     }
 
-    /**
-     * Format address fields as single line (e.g. for checkout shipping).
-     *
-     * @param array $addr Address row (region, district, street, building, unit, etc.)
-     * @return string
-     */
     public static function formatAddressAsOneLine(array $addr): string
     {
         $parts = array_filter([
@@ -64,12 +52,6 @@ class AddressModel extends Model
         return implode(' ', $parts);
     }
 
-    /**
-     * Get user addresses.
-     *
-     * @param int $userId User ID
-     * @return array Address list
-     */
     public function getUserAddresses(int $userId): array
     {
         $stmt = $this->pdo->prepare("SELECT id, address_label, is_default, recipient_name, phone, address_type,
@@ -83,12 +65,6 @@ class AddressModel extends Model
         return $list;
     }
 
-    /**
-     * Get default address (e.g. for checkout shipping).
-     *
-     * @param int $userId User ID
-     * @return array|null Default address or null
-     */
     public function getDefaultAddress(int $userId): ?array
     {
         $stmt = $this->pdo->prepare("SELECT id, address_label, is_default, recipient_name, phone, address_type,
@@ -99,13 +75,6 @@ class AddressModel extends Model
         return $row ?: null;
     }
 
-    /**
-     * Get address by ID.
-     *
-     * @param int $addressId Address ID
-     * @param int $userId User ID
-     * @return array|null Address or null
-     */
     public function getAddressById(int $addressId, int $userId): ?array
     {
         $stmt = $this->pdo->prepare("SELECT id, address_label, is_default, recipient_name, phone, address_type,

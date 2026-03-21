@@ -8,21 +8,6 @@ use App\Services\OrderStatusService;
 
 class Order extends Model
 {
-    /**
-     * Create order and order items (single transaction).
-     * Order number must be provided (OrderService::generateOrderNumber()).
-     *
-     * @param int    $userId
-     * @param array  $cart
-     * @param string $paymentMethod
-     * @param string $shippingAddress
-     * @param string $orderNumber
-     * @param string|null $status
-     * @param bool   $inTransaction
-     * @param string|null $paymentProvider
-     * @param string|null $paymentReference
-     * @return int Order ID
-     */
     public function create(
         int $userId,
         array $cart,
@@ -56,7 +41,6 @@ class Order extends Model
             $this->pdo->beginTransaction();
         }
         try {
-            // 彙總購買數量並檢查庫存
             $required = [];
             foreach ($items as $item) {
                 $itemId = (int) ($item['id'] ?? 0);
@@ -86,7 +70,6 @@ class Order extends Model
                         throw new \InvalidArgumentException($message);
                     }
                 }
-                // 扣減庫存
                 $stmtUpdateStock = $this->pdo->prepare(
                     "UPDATE items SET stock_quantity = stock_quantity - ? WHERE id = ?"
                 );
