@@ -1,14 +1,12 @@
-# 环境变量（含密钥，勿提交）
+# 環境變數（含密鑰，勿提交）
 .env
 
-# Composer 依赖（部署时用 composer install）
+# Composer 相依套件（部署時請執行 composer install）
 /vendor/
 
-# 系统与 IDE
+# 系統與 IDE
 .DS_Store
 .idea/
 *.log
 
-# 不提交／不推送：參考專案與 Markdown
-campfury/
-**/*.md
+
