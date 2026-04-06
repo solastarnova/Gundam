@@ -77,5 +77,16 @@ class WalletService
             $description,
         ]);
     }
+
+    public static function hasRefundForOrder(\PDO $pdo, int $userId, int $orderId): bool
+    {
+        $stmt = $pdo->prepare(
+            "SELECT id FROM user_wallet_transactions WHERE user_id = ? AND order_id = ? AND type = 'refund' LIMIT 1"
+        );
+        $stmt->execute([$userId, $orderId]);
+
+        return $stmt->fetch() !== false;
+    }
 }
+
 

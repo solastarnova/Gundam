@@ -101,10 +101,9 @@ if ($maxPrice <= $minPrice) {
             <div class="row d-flex justify-content-center" id="products-container">
                 <?php foreach ($featuredProducts as $product): ?>
                 <?php
-                $original = (int) str_replace('¥', '', $product['original_price'] ?? '');
-                $final = (int) str_replace('¥', '', $product['final_price'] ?? '');
-                $discount = ($original > 0 && $final < $original) ? round((1 - $final / $original) * 100) : 0;
+                $original = (float) ($product['original_price'] ?? $product['price'] ?? 0);
                 $price = (float) ($product['price'] ?? 0);
+                $discount = ($original > 0 && $price < $original) ? round((1 - $price / $original) * 100) : 0;
                 $stars = str_repeat('<i class="bi bi-star-fill"></i>', (int)($product['rating'] ?? 5)) . str_repeat('<i class="bi bi-star"></i>', 5 - (int)($product['rating'] ?? 5));
                 $imgPath = $product['image_path'] ?? 'placeholder.jpg';
                 $productLink = $url('product/' . (int)($product['id'] ?? 0));

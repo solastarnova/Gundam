@@ -10,6 +10,7 @@ $email = $email ?? '';
                 <h5 class="px-4 mb-4 text-dark fw-bold">我的帳戶</h5>
                 <div class="nav flex-column">
                     <a href="<?= $url('account') ?>" class="nav-link d-flex align-items-center active"><i class="bi bi-person me-2"></i> 個人資料</a>
+                    <a href="<?= $url('account/points') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-award me-2"></i> 會員中心</a>
                     <a href="<?= $url('account/orders') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-bag me-2"></i> 訂單記錄</a>
                     <a href="<?= $url('wishlist') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-heart me-2"></i> 喜愛清單</a>
                     <span class="nav-link d-flex align-items-center text-muted user-select-none" style="pointer-events: none; cursor: default;" title="暫未開放"><i class="bi bi-ticket-perforated me-2"></i> 優惠券</span>

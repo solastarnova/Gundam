@@ -6,6 +6,7 @@ use App\Core\Config;
 use App\Core\Controller;
 use App\Models\Product;
 use App\Models\Review;
+use App\Models\UserModel;
 use App\Services\MoneyFormatter;
 
 class ProductController extends Controller
@@ -24,10 +25,24 @@ class ProductController extends Controller
     {
         $limit = (int) Config::get('product_list_limit', 50);
         $rows = $this->productModel->getFeatured($limit);
+
+        $memberDiscountPercent = 0.0;
+        if (isset($_SESSION['user_id'])) {
+            $userId = (int) $_SESSION['user_id'];
+            $membershipInfo = (new UserModel())->getMembershipInfo($userId);
+            $currentRule = $membershipInfo['current_rule'] ?? null;
+            $memberDiscountPercent = max(0.0, min(100.0, (float) ($currentRule['discount_percent'] ?? 0)));
+        }
+
         $featuredProducts = [];
         foreach ($rows as $row) {
             $id = (int) ($row['id'] ?? 0);
-            $price = (float) ($row['price'] ?? 0);
+            $basePrice = (float) ($row['price'] ?? 0);
+            $memberPrice = $basePrice;
+            if ($memberDiscountPercent > 0) {
+                $memberPrice = round($basePrice * (1 - ($memberDiscountPercent / 100)), 2);
+            }
+
             $imgPath = $row['image_path'] ?? '';
             $category = trim((string) ($row['category'] ?? ''));
             $stockQty = (int) ($row['stock_quantity'] ?? 0);
@@ -35,12 +50,13 @@ class ProductController extends Controller
                 'id' => $id,
                 'name' => $row['name'] ?? '未命名商品',
                 'image_path' => $imgPath,
-                'price' => $price,
+                'price' => $memberPrice,
+                'original_price' => $basePrice,
+                'discount_percent' => $memberDiscountPercent,
                 'category' => $category !== '' ? $category : '其他',
                 'stock_quantity' => $stockQty,
-                'final_price' => '¥' . (string) (int) round($price),
-                'original_price' => '¥' . (string) (int) round($price),
-                'formatted_price' => MoneyFormatter::format($price),
+                'final_price' => MoneyFormatter::format($memberPrice),
+                'formatted_price' => MoneyFormatter::format($memberPrice),
                 'rating' => self::DEFAULT_DISPLAY_RATING,
             ];
         }
@@ -68,11 +84,23 @@ class ProductController extends Controller
             return;
         }
 
-        $finalPrice = $item['price'];
-        $discount   = $item['original_price'] ?? 0;
-        $discountPercent = ($discount > $finalPrice)
-            ? round((1 - $finalPrice / $discount) * 100)
-            : 0;
+        $basePrice = (float) ($item['price'] ?? 0);
+
+        $memberDiscountPercent = 0.0;
+        if (isset($_SESSION['user_id'])) {
+            $userId = (int) $_SESSION['user_id'];
+            $membershipInfo = (new UserModel())->getMembershipInfo($userId);
+            $currentRule = $membershipInfo['current_rule'] ?? null;
+            $memberDiscountPercent = max(0.0, min(100.0, (float) ($currentRule['discount_percent'] ?? 0)));
+        }
+
+        $finalPrice = $basePrice;
+        if ($memberDiscountPercent > 0) {
+            $finalPrice = round($basePrice * (1 - ($memberDiscountPercent / 100)), 2);
+        }
+
+        $discount = $basePrice;
+        $discountPercent = $memberDiscountPercent;
 
         $siteNameEn = (string) Config::get('site_name_en', 'Gundam Shop');
 

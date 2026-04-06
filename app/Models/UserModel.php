@@ -49,14 +49,33 @@ class UserModel extends Model
 
     public function findById(int $id): ?array
     {
-        $cols = ['id', 'name', 'email'];
+        $cols = ['u.id', 'u.name', 'u.email'];
         if ($this->hasUsersColumn('status')) {
-            $cols[] = 'status';
+            $cols[] = 'u.status';
         }
         if ($this->hasUsersColumn('created_at')) {
-            $cols[] = 'created_at';
+            $cols[] = 'u.created_at';
         }
-        $stmt = $this->pdo->prepare("SELECT " . implode(', ', $cols) . " FROM users WHERE id = ? LIMIT 1");
+        if ($this->hasUsersColumn('total_spent')) {
+            $cols[] = 'u.total_spent';
+        }
+        if ($this->hasUsersColumn('last_level_up_time')) {
+            $cols[] = 'u.last_level_up_time';
+        }
+        if ($this->hasUsersColumn('membership_level')) {
+            $cols[] = 'u.membership_level';
+            $cols[] = 'mr.level_name';
+            $cols[] = 'mr.discount_percent';
+            $cols[] = 'mr.points_multiplier';
+        }
+
+        $sql = "SELECT " . implode(', ', $cols) . " FROM users u";
+        if ($this->hasUsersColumn('membership_level')) {
+            $sql .= ' LEFT JOIN membership_rules mr ON mr.level_key = u.membership_level';
+        }
+        $sql .= ' WHERE u.id = ? LIMIT 1';
+
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$id]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         return $row ?: null;
@@ -163,21 +182,39 @@ class UserModel extends Model
     public function getListForAdmin(array $filters, int $page, int $perPage): array
     {
         $search = isset($filters['search']) ? trim((string) $filters['search']) : '';
+        $membershipLevel = trim((string) ($filters['membership_level'] ?? ''));
         $offset = (max(1, $page) - 1) * $perPage;
 
-        $where = '';
+        $whereParts = [];
         $params = [];
         if ($search !== '') {
-            $where = ' WHERE name LIKE ? OR email LIKE ?';
-            $params = ["%{$search}%", "%{$search}%"];
+            $whereParts[] = '(u.name LIKE ? OR u.email LIKE ?)';
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
         }
 
-        $countSql = "SELECT COUNT(*) FROM users" . $where;
+        if ($membershipLevel !== '' && $this->hasUsersColumn('membership_level')) {
+            $whereParts[] = 'u.membership_level = ?';
+            $params[] = $membershipLevel;
+        }
+
+        $where = $whereParts ? (' WHERE ' . implode(' AND ', $whereParts)) : '';
+
+        $countSql = "SELECT COUNT(*) FROM users u" . $where;
         $stmt = $this->pdo->prepare($countSql);
         $stmt->execute($params);
         $total = (int) $stmt->fetchColumn();
 
-        $sql = "SELECT * FROM users" . $where . " ORDER BY id DESC LIMIT ? OFFSET ?";
+        $selectCols = ['u.*'];
+        $join = '';
+        if ($this->hasUsersColumn('membership_level')) {
+            $selectCols[] = 'mr.level_name';
+            $selectCols[] = 'mr.discount_percent';
+            $selectCols[] = 'mr.points_multiplier';
+            $join = ' LEFT JOIN membership_rules mr ON mr.level_key = u.membership_level';
+        }
+
+        $sql = 'SELECT ' . implode(', ', $selectCols) . ' FROM users u' . $join . $where . ' ORDER BY u.id DESC LIMIT ? OFFSET ?';
         $stmt = $this->pdo->prepare($sql);
         $idx = 1;
         foreach ($params as $v) {
@@ -189,5 +226,275 @@ class UserModel extends Model
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
 
         return ['total' => $total, 'rows' => $rows];
+    }
+
+    public function updateMembershipLevel(int $id, ?string $membershipLevel): bool
+    {
+        if (!$this->hasUsersColumn('membership_level')) {
+            return false;
+        }
+
+        $level = trim((string) $membershipLevel);
+        if ($level === '') {
+            $level = 'bronze';
+        }
+
+        $stmt = $this->pdo->prepare('UPDATE users SET membership_level = ?, last_level_up_time = NOW() WHERE id = ?');
+        $stmt->execute([$level, $id]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function getMembershipRules(): array
+    {
+        try {
+            $stmt = $this->pdo->query('SELECT * FROM membership_rules ORDER BY sort_order ASC, min_spent ASC');
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable $e) {
+            return [
+                ['level_key' => 'bronze', 'level_name' => '青铜', 'min_spent' => 0, 'points_multiplier' => 1.0, 'discount_percent' => 0],
+                ['level_key' => 'silver', 'level_name' => '白银', 'min_spent' => 2000, 'points_multiplier' => 1.2, 'discount_percent' => 3],
+                ['level_key' => 'gold', 'level_name' => '黄金', 'min_spent' => 5000, 'points_multiplier' => 1.5, 'discount_percent' => 5],
+                ['level_key' => 'platinum', 'level_name' => '铂金', 'min_spent' => 10000, 'points_multiplier' => 2.0, 'discount_percent' => 8],
+            ];
+        }
+    }
+
+    public function getMembershipRuleByLevel(string $levelKey): ?array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM membership_rules WHERE level_key = ? LIMIT 1');
+        try {
+            $stmt->execute([$levelKey]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            return $row ?: null;
+        } catch (\Throwable $e) {
+            foreach ($this->getMembershipRules() as $rule) {
+                if ((string) ($rule['level_key'] ?? '') === $levelKey) {
+                    return $rule;
+                }
+            }
+            return null;
+        }
+    }
+
+    public function getMembershipInfo(int $userId): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT id, name, email, total_spent, points, total_points_earned, total_points_spent, membership_level
+             FROM users WHERE id = ? LIMIT 1'
+        );
+        $stmt->execute([$userId]);
+        $user = $stmt->fetch(\PDO::FETCH_ASSOC);
+        if (!$user) {
+            return null;
+        }
+
+        $rules = $this->getMembershipRules();
+        $currentLevel = (string) ($user['membership_level'] ?? 'bronze');
+
+        $currentRule = null;
+        $currentIndex = -1;
+        foreach ($rules as $idx => $rule) {
+            if ((string) ($rule['level_key'] ?? '') === $currentLevel) {
+                $currentRule = $rule;
+                $currentIndex = (int) $idx;
+                break;
+            }
+        }
+        if ($currentRule === null && !empty($rules)) {
+            $currentRule = $rules[0];
+            $currentLevel = (string) ($currentRule['level_key'] ?? 'bronze');
+            $currentIndex = 0;
+        }
+
+        $totalSpent = (float) ($user['total_spent'] ?? 0);
+        $nextRule = null;
+        if ($currentIndex >= 0 && isset($rules[$currentIndex + 1])) {
+            $nextRule = $rules[$currentIndex + 1];
+        }
+
+        $currentMinSpent = (float) ($currentRule['min_spent'] ?? 0);
+        $nextMinSpent = (float) ($nextRule['min_spent'] ?? 0);
+
+        $gapToNext = 0.0;
+        if ($nextRule !== null) {
+            $gapToNext = max(0.0, $nextMinSpent - $totalSpent);
+        }
+
+        $progressPercent = 100.0;
+        if ($nextRule !== null) {
+            $range = max(0.01, $nextMinSpent - $currentMinSpent);
+            $progressPercent = min(100.0, max(0.0, (($totalSpent - $currentMinSpent) / $range) * 100));
+        }
+
+        return [
+            'user' => $user,
+            'rules' => $rules,
+            'current_level_key' => $currentLevel,
+            'current_rule' => $currentRule,
+            'next_rule' => $nextRule,
+            'gap_to_next' => $gapToNext,
+            'progress_percent' => $progressPercent,
+            'current_min_spent' => $currentMinSpent,
+            'next_min_spent' => $nextMinSpent,
+            'points_to_hkd_rate' => 1000,
+        ];
+    }
+
+    public function refreshMembershipLevelBySpent(int $userId): ?string
+{
+    $stmt = $this->pdo->prepare('SELECT total_spent FROM users WHERE id = ? LIMIT 1');
+    $stmt->execute([$userId]);
+    $user = $stmt->fetch(\PDO::FETCH_ASSOC);
+    
+    if (!$user) {
+        return null;
+    }
+    
+    $totalSpent = (float) $user['total_spent'];
+    
+    $rules = $this->getMembershipRules();
+    
+    $targetLevel = null;
+    foreach ($rules as $rule) {
+        if ($totalSpent >= (float) $rule['min_spent']) {
+            $targetLevel = $rule['level_key'];
+        }
+    }
+    
+    if ($targetLevel === null) {
+        $targetLevel = 'bronze';
+    }
+    
+    $update = $this->pdo->prepare('UPDATE users SET membership_level = ?, last_level_up_time = NOW() WHERE id = ?');
+    $update->execute([$targetLevel, $userId]);
+    
+    return $targetLevel;
+}
+
+    public function addPoints(int $userId, int $points, ?int $orderId = null, string $description = ''): bool
+    {
+        if ($points <= 0) {
+            return false;
+        }
+
+        $pdo = $this->pdo;
+        $started = false;
+        if (!$pdo->inTransaction()) {
+            $pdo->beginTransaction();
+            $started = true;
+        }
+
+        try {
+            $stmt = $pdo->prepare(
+                'UPDATE users
+                 SET points = points + ?, total_points_earned = total_points_earned + ?
+                 WHERE id = ?'
+            );
+            $stmt->execute([$points, $points, $userId]);
+            if ($stmt->rowCount() === 0) {
+                throw new \RuntimeException('user_not_found');
+            }
+
+            $logStmt = $pdo->prepare(
+                'INSERT INTO points_log (user_id, order_id, change_type, points_change, amount_hkd, description, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, NOW())'
+            );
+            $logStmt->execute([
+                $userId,
+                $orderId,
+                'earn',
+                $points,
+                $points / 1000,
+                $description,
+            ]);
+
+            if ($started) {
+                $pdo->commit();
+            }
+            return true;
+        } catch (\Throwable $e) {
+            if ($started && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            return false;
+        }
+    }
+
+    public function spendPoints(int $userId, int $points, ?int $orderId = null, string $description = ''): bool
+    {
+        if ($points <= 0) {
+            return false;
+        }
+
+        $pdo = $this->pdo;
+        $started = false;
+        if (!$pdo->inTransaction()) {
+            $pdo->beginTransaction();
+            $started = true;
+        }
+
+        try {
+            $stmt = $pdo->prepare(
+                'UPDATE users
+                 SET points = points - ?, total_points_spent = total_points_spent + ?
+                 WHERE id = ? AND points >= ?'
+            );
+            $stmt->execute([$points, $points, $userId, $points]);
+            if ($stmt->rowCount() === 0) {
+                throw new \RuntimeException('insufficient_points');
+            }
+
+            $logStmt = $pdo->prepare(
+                'INSERT INTO points_log (user_id, order_id, change_type, points_change, amount_hkd, description, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, NOW())'
+            );
+            $logStmt->execute([
+                $userId,
+                $orderId,
+                'spend',
+                -$points,
+                $points / 1000,
+                $description,
+            ]);
+
+            if ($started) {
+                $pdo->commit();
+            }
+            return true;
+        } catch (\Throwable $e) {
+            if ($started && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            return false;
+        }
+    }
+
+    public function getPointsBalance(int $userId): int
+    {
+        $stmt = $this->pdo->prepare('SELECT points FROM users WHERE id = ? LIMIT 1');
+        $stmt->execute([$userId]);
+        $value = $stmt->fetchColumn();
+        return $value !== false ? (int) $value : 0;
+    }
+
+    public function getPointsLogs(int $userId, int $limit = 30): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM points_log WHERE user_id = ? ORDER BY created_at DESC LIMIT ?'
+        );
+        $stmt->bindValue(1, $userId, \PDO::PARAM_INT);
+        $stmt->bindValue(2, max(1, $limit), \PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function hasEarnedPointsForOrder(int $userId, int $orderId): bool
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT id FROM points_log WHERE user_id = ? AND order_id = ? AND change_type = 'earn' LIMIT 1"
+        );
+        $stmt->execute([$userId, $orderId]);
+        return $stmt->fetch() !== false;
     }
 }

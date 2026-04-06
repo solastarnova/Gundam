@@ -6,6 +6,7 @@ use App\Core\Config;
 use App\Core\Controller;
 use App\Models\CartModel;
 use App\Models\OrderModel;
+use App\Models\UserModel;
 use App\Services\PaymentService;
 use App\Services\OrderService;
 use App\Services\ShippingService;
@@ -17,6 +18,7 @@ class PaymentController extends Controller
     private CartModel $cartModel;
     private OrderService $orderService;
     private OrderModel $orderModel;
+    private UserModel $userModel;
 
     public function __construct()
     {
@@ -24,6 +26,7 @@ class PaymentController extends Controller
         $this->cartModel = new CartModel();
         $this->orderService = new OrderService();
         $this->orderModel = new OrderModel();
+        $this->userModel = new UserModel();
     }
 
     public function getPublishableKey(): void
@@ -59,13 +62,20 @@ class PaymentController extends Controller
         $shippingMethod = $_POST['shipping_method'] ?? 'standard';
         $totalAmount = ShippingService::calculateTotal($subtotal, $shippingMethod);
         $useWallet = $this->toBool($_POST['use_wallet'] ?? '1');
+        $usePoints = $this->toBool($_POST['use_points'] ?? '0');
 
         $walletService = new WalletService();
         $walletBalance = $walletService->getBalance($userId);
         $walletToUse = $useWallet ? max(0.0, min($walletBalance, $totalAmount)) : 0.0;
         $_SESSION['wallet_use_checkout'] = $walletToUse;
 
-        $payableAmount = $totalAmount - $walletToUse;
+        $remainAfterWallet = max(0.0, $totalAmount - $walletToUse);
+        $pointsBalance = $this->userModel->getPointsBalance($userId);
+        $pointsToUse = $usePoints ? min($pointsBalance, (int) floor($remainAfterWallet * 1000)) : 0;
+        $_SESSION['points_use_checkout'] = $pointsToUse;
+
+        $pointsHkdUsed = $pointsToUse / 1000;
+        $payableAmount = $remainAfterWallet - $pointsHkdUsed;
         $amountInCents = PaymentService::convertToCents($payableAmount);
         if ($amountInCents <= 0) {
             if ($totalAmount > 0 && $payableAmount <= 0.00001) {
@@ -97,6 +107,7 @@ class PaymentController extends Controller
                 'cart_items_count' => (string) count($cartItems),
                 'shipping_method' => $shippingMethod,
                 'wallet_used' => (string) $walletToUse,
+                'points_used' => (string) $pointsToUse,
             ]);
             $this->json([
                 'success' => true,
@@ -106,6 +117,8 @@ class PaymentController extends Controller
                 'amount' => $result['amount'],
                 'currency' => $result['currency'],
                 'wallet_used' => $walletToUse,
+                'points_used' => $pointsToUse,
+                'points_hkd_used' => $pointsHkdUsed,
                 'total_amount' => $totalAmount,
             ]);
         } catch (\Throwable $e) {
@@ -136,13 +149,20 @@ class PaymentController extends Controller
         $shippingFee = ShippingService::calculateShippingFee($subtotal, $shippingMethod);
         $totalAmount = ShippingService::calculateTotal($subtotal, $shippingMethod);
         $useWallet = $this->toBool($_POST['use_wallet'] ?? '1');
+        $usePoints = $this->toBool($_POST['use_points'] ?? '0');
 
         $walletService = new WalletService();
         $walletBalance = $walletService->getBalance($userId);
         $walletToUse = $useWallet ? max(0.0, min($walletBalance, $totalAmount)) : 0.0;
         $_SESSION['wallet_use_checkout'] = $walletToUse;
 
-        $payableAmount = $totalAmount - $walletToUse;
+        $remainAfterWallet = max(0.0, $totalAmount - $walletToUse);
+        $pointsBalance = $this->userModel->getPointsBalance($userId);
+        $pointsToUse = $usePoints ? min($pointsBalance, (int) floor($remainAfterWallet * 1000)) : 0;
+        $_SESSION['points_use_checkout'] = $pointsToUse;
+        $pointsHkdUsed = $pointsToUse / 1000;
+
+        $payableAmount = $remainAfterWallet - $pointsHkdUsed;
         if ($payableAmount < 0) {
             $payableAmount = 0;
         }
@@ -264,6 +284,7 @@ class PaymentController extends Controller
             );
 
             unset($_SESSION['wallet_use_checkout']);
+            unset($_SESSION['points_use_checkout']);
 
             $payload = [
                 'success' => true,
@@ -311,6 +332,7 @@ class PaymentController extends Controller
         $paymentMethod = trim($_POST['payment_method'] ?? 'credit_card');
         $shippingMethod = trim($_POST['shipping_method'] ?? 'standard');
         $useWallet = $this->toBool($_POST['use_wallet'] ?? '1');
+        $usePoints = $this->toBool($_POST['use_points'] ?? '0');
 
         if ($paymentIntentId === '') {
             $msg = Config::get('messages.payment.missing_info');
@@ -352,6 +374,7 @@ class PaymentController extends Controller
         $existingOrder = $this->orderModel->findByUserIdAndPaymentReference($userId, $paymentProvider, $paymentIntentId);
         if ($existingOrder !== null) {
             unset($_SESSION['wallet_use_checkout']);
+            unset($_SESSION['points_use_checkout']);
             $this->json([
                 'success' => true,
                 'message' => Config::get('messages.order.confirmed'),
@@ -378,6 +401,16 @@ class PaymentController extends Controller
         if ($walletUsed > $totalAmount) {
             $walletUsed = $totalAmount;
         }
+
+        $remainAfterWallet = max(0.0, $totalAmount - $walletUsed);
+        $pointsUsed = $usePoints && isset($_SESSION['points_use_checkout']) ? (int) $_SESSION['points_use_checkout'] : 0;
+        $maxPoints = (int) floor($remainAfterWallet * 1000);
+        if ($pointsUsed < 0) {
+            $pointsUsed = 0;
+        }
+        if ($pointsUsed > $maxPoints) {
+            $pointsUsed = $maxPoints;
+        }
         $itemsForOrder = [];
         foreach ($cartItems as $row) {
             $itemsForOrder[] = [
@@ -399,7 +432,7 @@ class PaymentController extends Controller
                 $totalAmount,
                 $paymentMethod === 'paypal' ? 'paypal' : 'credit',
                 $shippingAddress,
-                'paid',
+                'completed',
                 $orderNumber,
                 true,
                 $paymentMethod === 'paypal' ? 'paypal' : 'stripe',
@@ -407,7 +440,17 @@ class PaymentController extends Controller
                 $walletUsed
             );
 
+            if ($pointsUsed > 0) {
+                $this->userModel->spendPoints(
+                    $userId,
+                    $pointsUsed,
+                    (int) $result['order_id'],
+                    sprintf('訂單 #%s 使用積分抵扣', (string) $result['order_number'])
+                );
+            }
+
             unset($_SESSION['wallet_use_checkout']);
+            unset($_SESSION['points_use_checkout']);
 
             $payload = [
                 'success' => true,

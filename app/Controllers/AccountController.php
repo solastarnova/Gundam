@@ -22,17 +22,23 @@ class AccountController extends Controller
     }
 
     public function home(): void
-    {
-        $user = $this->requireUser();
-        $userId = (int) $_SESSION['user_id'];
-        $profile = $this->userModel->findById($userId);
-        $this->render('account/home', [
-            'title' => $this->titleWithSite('account_home'),
-            'user_name' => $profile['name'] ?? $_SESSION['user_name'] ?? '',
-            'email' => $profile['email'] ?? $_SESSION['email'] ?? '',
-            'head_extra_css' => [],
-        ]);
-    }
+{
+    $user = $this->requireUser();
+    $userId = $user['id'];
+    
+    $this->userModel->refreshMembershipLevelBySpent($userId);
+    
+    $profile = $this->userModel->findById($userId) ?? [];
+    $membershipInfo = $this->userModel->getMembershipInfo($userId);
+
+    $this->render('account/home', [
+        'title' => $this->titleWithSite('account_home'),
+        'profile' => $profile,
+        'user_name' => (string) ($profile['name'] ?? ($_SESSION['user_name'] ?? '')),
+        'email' => (string) ($profile['email'] ?? ($_SESSION['email'] ?? '')),
+        'membership' => $membershipInfo,
+    ]);
+}
 
     public function orders(): void
     {

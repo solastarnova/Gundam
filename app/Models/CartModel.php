@@ -29,20 +29,38 @@ class CartModel extends Model
     public function getCartItems(int $userId): array
     {
         $stmt = $this->pdo->prepare("
-            SELECT ui.id AS cart_item_id, ui.item_id AS id, ui.quantity AS qty, i.name, i.price, i.image_path
+            SELECT
+                ui.id AS cart_item_id,
+                ui.item_id AS id,
+                ui.quantity AS qty,
+                i.name,
+                i.price AS base_price,
+                i.image_path,
+                COALESCE(mr.discount_percent, 0) AS discount_percent
             FROM user_item ui
             JOIN items i ON ui.item_id = i.id
+            LEFT JOIN users u ON u.id = ui.user_id
+            LEFT JOIN membership_rules mr ON mr.level_key = u.membership_level
             WHERE ui.user_id = ? AND ui.status = ?
             ORDER BY ui.date_time DESC
         ");
         $stmt->execute([$userId, self::CART_STATUS]);
         $items = [];
         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+            $basePrice = (float) ($row['base_price'] ?? 0);
+            $discountPercent = max(0.0, min(100.0, (float) ($row['discount_percent'] ?? 0)));
+            $memberPrice = $basePrice;
+            if ($discountPercent > 0) {
+                $memberPrice = round($basePrice * (1 - ($discountPercent / 100)), 2);
+            }
+
             $items[] = [
                 'cart_item_id' => (int) $row['cart_item_id'],
                 'id' => (int) $row['id'],
                 'name' => $row['name'],
-                'price' => (float) $row['price'],
+                'base_price' => $basePrice,
+                'discount_percent' => $discountPercent,
+                'price' => $memberPrice,
                 'qty' => (int) $row['qty'],
                 'image_path' => $row['image_path'] ? trim($row['image_path']) : $this->placeholderImage,
             ];

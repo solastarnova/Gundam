@@ -59,8 +59,7 @@ class OrderModel extends Model
             return false;
         }
         $stmt = $this->pdo->prepare("UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?");
-        $stmt->execute([$status, $orderId]);
-        return $stmt->rowCount() > 0;
+        return $stmt->execute([$status, $orderId]);
     }
 
     public function orderNumberExists(string $orderNumber): bool
@@ -184,13 +183,18 @@ class OrderModel extends Model
     }
 
     public function replenishStockForOrder(int $orderId): void
-    {
-        $stmt = $this->pdo->prepare(
-            "UPDATE items i
-             JOIN order_items oi ON i.id = oi.item_id
-             SET i.stock_quantity = i.stock_quantity + oi.quantity
-             WHERE oi.order_id = ?"
-        );
-        $stmt->execute([$orderId]);
+{
+    $stmt = $this->pdo->prepare("
+        SELECT item_id, quantity FROM order_items WHERE order_id = ?
+    ");
+    $stmt->execute([$orderId]);
+    $items = $stmt->fetchAll();
+    
+    foreach ($items as $item) {
+        $updateStmt = $this->pdo->prepare("
+            UPDATE items SET stock_quantity = stock_quantity + ? WHERE id = ?
+        ");
+        $updateStmt->execute([$item['quantity'], $item['item_id']]);
     }
+}
 }

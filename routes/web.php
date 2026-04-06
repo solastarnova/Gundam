@@ -33,6 +33,7 @@ $router->get('/account/orders', 'AccountController', 'orders');
 $router->get('/account/order/:id', 'AccountController', 'orderDetail');
 $router->get('/account/settings', 'AccountController', 'settings');
 $router->get('/account/payment', 'AccountController', 'payment');
+$router->get('/account/points', 'PointsController', 'center');
 $router->post('/account/password', 'AccountController', 'updatePassword');
 $router->post('/account/email', 'AccountController', 'updateEmail');
 $router->post('/account/phone', 'AccountController', 'updatePhone');
@@ -58,6 +59,8 @@ $router->post('/api/wishlist/toggle', 'WishlistController', 'toggle');
 $router->post('/api/wishlist/remove', 'WishlistController', 'remove');
 
 $router->get('/api/orders', 'AccountController', 'getOrders');
+$router->get('/api/points/info', 'PointsController', 'apiInfo');
+$router->get('/api/points/logs', 'PointsController', 'apiLogs');
 
 $router->get('/api/address/list', 'AddressController', 'list');
 $router->get('/api/address/get', 'AddressController', 'get');
@@ -91,5 +94,6 @@ $router->post('/admin/orders/:id/status', 'Admin\OrderController', 'updateStatus
 $router->get('/admin/users', 'Admin\UserController', 'index');
 $router->get('/admin/users/:id', 'Admin\UserController', 'show');
 $router->post('/admin/users/:id/toggle-status', 'Admin\UserController', 'toggleStatus');
+$router->post('/admin/users/:id/vip-level', 'Admin\UserController', 'updateVipLevel');
 
 return $router;

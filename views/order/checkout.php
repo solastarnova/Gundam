@@ -6,6 +6,7 @@ $paypalClientId = $paypalClientId ?? '';
 $shippingConfig = $shippingConfig ?? ['express_fee' => 0, 'standard_fee' => 0, 'free_threshold' => 0];
 $defaultShippingAddress = $defaultShippingAddress ?? '香港';
 $walletBalance = isset($walletBalance) ? (float) $walletBalance : 0.0;
+$pointsBalance = isset($pointsBalance) ? (int) $pointsBalance : 0;
 $money = $money ?? fn(float $amount) => number_format($amount, 2);
 $checkoutJsPath = dirname(__DIR__, 2) . '/js/checkout.js';
 $checkoutJsVersion = is_file($checkoutJsPath) ? (string) filemtime($checkoutJsPath) : (string) time();
@@ -74,6 +75,12 @@ $isLoggedIn = !empty($isLoggedIn);
                     </div>
                     <p class="mb-1">錢包餘額：<span id="walletBalance" class="float-end"><?= htmlspecialchars($money($walletBalance), ENT_QUOTES, 'UTF-8') ?></span></p>
                     <p class="mb-1 text-success">錢包抵扣：<span id="walletUsed" class="float-end">-<?= htmlspecialchars($money(0.0), ENT_QUOTES, 'UTF-8') ?></span></p>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="usePoints" <?= $pointsBalance > 0 ? '' : 'disabled' ?>>
+                        <label class="form-check-label small" for="usePoints">使用積分抵扣（100 積分 = 1 HKD）</label>
+                    </div>
+                    <p class="mb-1">可用積分：<span id="pointsBalance" class="float-end"><?= (int) $pointsBalance ?></span></p>
+                    <p class="mb-1 text-success">積分抵扣：<span id="pointsUsed" class="float-end">-<?= htmlspecialchars($money(0.0), ENT_QUOTES, 'UTF-8') ?></span></p>
                     <hr>
                     <p class="mb-1">訂單總額：<span id="orderTotal" class="float-end"><?= htmlspecialchars($money(0.0), ENT_QUOTES, 'UTF-8') ?></span></p>
                     <p class="fs-5 fw-bold">實際需支付：<span id="final-total" class="float-end text-danger"><?= htmlspecialchars($money(0.0), ENT_QUOTES, 'UTF-8') ?></span></p>
@@ -213,5 +220,6 @@ window.PAYPAL_CLIENT_ID = <?= json_encode($paypalClientId, JSON_UNESCAPED_UNICOD
 window.SHIPPING_CONFIG = <?= json_encode($shippingConfig, JSON_UNESCAPED_UNICODE) ?>;
 window.DEFAULT_SHIPPING_ADDRESS = <?= json_encode($defaultShippingAddress, JSON_UNESCAPED_UNICODE) ?>;
 window.WALLET_BALANCE = <?= json_encode($walletBalance, JSON_UNESCAPED_UNICODE) ?>;
+window.POINTS_BALANCE = <?= json_encode($pointsBalance, JSON_UNESCAPED_UNICODE) ?>;
 </script>
 <script src="<?= $asset('js/checkout.js') ?>?v=<?= urlencode($checkoutJsVersion) ?>"></script>

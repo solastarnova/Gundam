@@ -20,8 +20,14 @@ INSERT INTO `items` (`id`, `name`, `description`, `category`, `price`, `stock_qu
     (5, 'BANDAI 高達模型 RG 144 sinanju 新安州', 'BANDAI RG 144 sinanju新安州模型，紅色彗星再臨', 'RG', 291, 50, 'bandai-rg144-sinanju.jpg'),
     (6, 'BANDAI 高達模型 RG 144 wing gundam ew', 'BANDAI RG 144 wing gundam ew飛翼高達模型，EW版特殊設計', 'RG', 191, 50, 'bandai-rg144-wing.jpg');
 
-INSERT INTO `users` (`id`, `name`, `email`, `password`) VALUES
-    (1, 'abandon', 'abandon@gmail.com', '$2y$10$cO1OpdbcI03CBlmMa0MMPeI6egWQVTMNnHQ68LYn8HNhfduT2yRua');
+INSERT INTO `membership_rules` (`id`, `level_key`, `level_name`, `min_spent`, `points_multiplier`, `discount_percent`, `sort_order`) VALUES
+    (1, 'bronze', '青铜', 0, 1.00, 0.00, 1),
+    (2, 'silver', '白银', 2000, 1.20, 3.00, 2),
+    (3, 'gold', '黄金', 5000, 1.50, 5.00, 3),
+    (4, 'platinum', '铂金', 10000, 2.00, 8.00, 4);
+
+INSERT INTO `users` (`id`, `name`, `email`, `password`, `total_spent`, `points`, `total_points_earned`, `total_points_spent`, `membership_level`) VALUES
+    (1, 'abandon', 'abandon@gmail.com', '$2y$10$cO1OpdbcI03CBlmMa0MMPeI6egWQVTMNnHQ68LYn8HNhfduT2yRua', 0.00, 0, 0, 0, 'bronze');
 
 INSERT INTO `user_item` (`id`, `user_id`, `item_id`, `quantity`, `status`, `review_title`, `review_content`, `review_rating`, `review_date`, `is_reviewed`, `date_time`) VALUES
     (1, 1, 1, 1, 'Completed', '分色與塗裝效果無敵！', '這款高達模型的分色設計簡直是業界標竿！板件預先分色完善，無需塗裝就能重現劇中標誌性的色彩搭配。細節處的獨立分件讓整體層次感更加豐富，完成後幾乎能達到官圖宣傳的完美效果。對於喜愛展示原創配色又不想費神塗裝的玩家來說，這絕對是最佳選擇！', 5, '2026-02-13 16:13:28', 1, '2026-02-13 16:13:28'),

@@ -6,6 +6,8 @@
     const paypalClientId = window.PAYPAL_CLIENT_ID || '';
     const shippingConfig = window.SHIPPING_CONFIG || { express_fee: 0, standard_fee: 0, free_threshold: 0 };
     const walletBalance = parseFloat(window.WALLET_BALANCE || 0) || 0;
+    const pointsBalance = parseInt(window.POINTS_BALANCE || 0, 10) || 0;
+    const POINTS_PER_HKD = 1000;
     const formatMoney = typeof window.formatMoney === 'function'
         ? window.formatMoney
         : function(v) {
@@ -212,15 +214,32 @@
         const orderTotalEl = document.getElementById('orderTotal');
         const walletBalanceEl = document.getElementById('walletBalance');
         const walletUsedEl = document.getElementById('walletUsed');
+        const pointsBalanceEl = document.getElementById('pointsBalance');
+        const pointsUsedEl = document.getElementById('pointsUsed');
         const totalEl = document.getElementById('final-total');
-        const walletUsed = isUseWalletEnabled() ? Math.max(0, Math.min(walletBalance, t.total)) : 0;
-        const payable = Math.max(0, t.total - walletUsed);
+
+        const useWallet = isUseWalletEnabled();
+        const usePointsEl = document.getElementById('usePoints');
+        const usePoints = !!(usePointsEl && usePointsEl.checked);
+
+        const walletUsed = useWallet ? Math.max(0, Math.min(walletBalance, t.total)) : 0;
+        const totalAfterWallet = Math.max(0, t.total - walletUsed);
+
+        const maxPointsCanUse = Math.floor(totalAfterWallet * POINTS_PER_HKD);
+        const pointsToUse = usePoints ? Math.max(0, Math.min(pointsBalance, maxPointsCanUse)) : 0;
+        const pointsHkdUsed = pointsToUse / POINTS_PER_HKD;
+
+        const payable = Math.max(0, totalAfterWallet - pointsHkdUsed);
+
         if (subEl) subEl.textContent = formatMoney(t.subtotal);
         if (feeEl) feeEl.textContent = formatMoney(t.shippingFee);
         if (orderTotalEl) orderTotalEl.textContent = formatMoney(t.total);
         if (walletBalanceEl) walletBalanceEl.textContent = formatMoney(walletBalance);
         if (walletUsedEl) walletUsedEl.textContent = '-' + formatMoney(walletUsed);
+        if (pointsBalanceEl) pointsBalanceEl.textContent = String(pointsBalance);
+        if (pointsUsedEl) pointsUsedEl.textContent = '-' + formatMoney(pointsHkdUsed);
         if (totalEl) totalEl.textContent = formatMoney(payable);
+
         if (typeof updateCartBadge === 'function') updateCartBadge();
         updateZeroPayUi();
     }
@@ -228,8 +247,14 @@
     function getPayableInfo() {
         var t = calculateTotals();
         var walletUsed = isUseWalletEnabled() ? Math.max(0, Math.min(walletBalance, t.total)) : 0;
-        var payable = Math.max(0, t.total - walletUsed);
-        return { total: t.total, walletUsed: walletUsed, payable: payable };
+        var totalAfterWallet = Math.max(0, t.total - walletUsed);
+        var usePointsEl = document.getElementById('usePoints');
+        var usePoints = !!(usePointsEl && usePointsEl.checked);
+        var maxPointsCanUse = Math.floor(totalAfterWallet * POINTS_PER_HKD);
+        var pointsUsed = usePoints ? Math.max(0, Math.min(pointsBalance, maxPointsCanUse)) : 0;
+        var pointsHkdUsed = pointsUsed / POINTS_PER_HKD;
+        var payable = Math.max(0, totalAfterWallet - pointsHkdUsed);
+        return { total: t.total, walletUsed: walletUsed, pointsUsed: pointsUsed, pointsHkdUsed: pointsHkdUsed, payable: payable };
     }
 
     function isWalletOnlyCheckout() {
@@ -392,7 +417,8 @@
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
                 shipping_method: getShippingMethod(),
-                use_wallet: isUseWalletEnabled() ? '1' : '0'
+                use_wallet: isUseWalletEnabled() ? '1' : '0',
+                use_points: (document.getElementById('usePoints') && document.getElementById('usePoints').checked) ? '1' : '0'
             })
         }).then(function(r) { return r.json(); });
     }
@@ -401,6 +427,7 @@
         payload.shipping_address = payload.shipping_address || getSelectedShippingAddress();
         payload.shipping_method = getShippingMethod();
         payload.use_wallet = isUseWalletEnabled() ? '1' : '0';
+        payload.use_points = (document.getElementById('usePoints') && document.getElementById('usePoints').checked) ? '1' : '0';
         return fetch(baseUrl + 'api/payment/confirm', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -614,6 +641,8 @@
     if (shippingEl) shippingEl.addEventListener('change', updateSummary);
     var walletToggleEl = document.getElementById('useWalletBalance');
     if (walletToggleEl) walletToggleEl.addEventListener('change', updateSummary);
+    var pointsToggleEl = document.getElementById('usePoints');
+    if (pointsToggleEl) pointsToggleEl.addEventListener('change', updateSummary);
 
     var confirmBtn = document.getElementById('confirmOrderBtn');
     if (confirmBtn) confirmBtn.addEventListener('click', handleConfirmClick);

@@ -13,6 +13,9 @@ DROP TABLE IF EXISTS `orders`;
 DROP TABLE IF EXISTS `user_addresses`;
 DROP TABLE IF EXISTS `user_favorites`;
 DROP TABLE IF EXISTS `user_item`;
+DROP TABLE IF EXISTS `points_log`;
+DROP TABLE IF EXISTS `membership_rules`;
+DROP TABLE IF EXISTS `vip_levels`;
 DROP TABLE IF EXISTS `user_wallet_transactions`;
 DROP TABLE IF EXISTS `user_wallets`;
 DROP TABLE IF EXISTS `users`;
@@ -38,9 +41,16 @@ CREATE TABLE `users` (
   `password_reset_hash` varchar(255) DEFAULT NULL,
   `password_reset_expires_at` datetime DEFAULT NULL,
   `status` enum('active','disabled') NOT NULL DEFAULT 'active',
+  `total_spent` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `last_level_up_time` datetime DEFAULT NULL,
+  `points` int(11) NOT NULL DEFAULT 0,
+  `total_points_earned` int(11) NOT NULL DEFAULT 0,
+  `total_points_spent` int(11) NOT NULL DEFAULT 0,
+  `membership_level` varchar(20) NOT NULL DEFAULT 'bronze',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `unq_users_email` (`email`)
+  UNIQUE KEY `unq_users_email` (`email`),
+  KEY `idx_users_membership_level` (`membership_level`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `user_item` (
@@ -138,6 +148,32 @@ CREATE TABLE IF NOT EXISTS `user_wallet_transactions` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `idx_wallet_tx_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `membership_rules` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `level_key` varchar(20) NOT NULL,
+  `level_name` varchar(50) NOT NULL,
+  `min_spent` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `points_multiplier` decimal(4,2) NOT NULL DEFAULT 1.00,
+  `discount_percent` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `sort_order` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unq_membership_rules_level_key` (`level_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `points_log` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `order_id` int(11) DEFAULT NULL,
+  `change_type` enum('earn','spend','adjust') NOT NULL,
+  `points_change` int(11) NOT NULL,
+  `amount_hkd` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `description` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_points_log_user` (`user_id`),
+  KEY `idx_points_log_order` (`order_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `admins` (

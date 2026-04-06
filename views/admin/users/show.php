@@ -2,6 +2,7 @@
 $url = $url ?? fn($p = '') => $p;
 $user = $user ?? null;
 $orders = $orders ?? [];
+$levels = $levels ?? [];
 ?>
 
 <div class="content-card">
@@ -27,7 +28,20 @@ $orders = $orders ?? [];
                     <div class="mt-2">
                         <div><strong>用戶名：</strong><?= htmlspecialchars($user['name']) ?></div>
                         <div><strong>電郵：</strong><?= htmlspecialchars($user['email']) ?></div>
+                        <div><strong>當前等級：</strong><?= htmlspecialchars((string) ($user['level_name'] ?? '無等級')) ?></div>
+                        <div><strong>累計消費：</strong><?= number_format((float) ($user['total_spent'] ?? 0), 2) ?></div>
                     </div>
+                    <form method="POST" action="<?= $url('admin/users/' . (int) $user['id'] . '/vip-level') ?>" class="mt-3 d-flex gap-2 align-items-center">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars((string) ($csrf_token ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                        <select name="membership_level" class="form-select" style="max-width: 220px;">
+                            <?php foreach ($levels as $level): ?>
+                                <option value="<?= htmlspecialchars((string) ($level['level_key'] ?? '')) ?>" <?= (string) ($user['membership_level'] ?? '') === (string) ($level['level_key'] ?? '') ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars((string) ($level['level_name'] ?? '')) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <button type="submit" class="btn btn-outline-primary">更新等級</button>
+                    </form>
                 </div>
             </div>
             <div class="col-md-6">

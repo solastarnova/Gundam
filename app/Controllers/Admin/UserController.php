@@ -23,8 +23,12 @@ class UserController extends BaseController
         $page = max(1, (int) ($_GET['page'] ?? 1));
         $limit = (int) Config::get('admin.list_per_page', 15);
         $search = trim($_GET['search'] ?? '');
+        $membershipLevel = trim((string) ($_GET['membership_level'] ?? ''));
 
-        $result = $this->userModel->getListForAdmin(['search' => $search], $page, $limit);
+        $result = $this->userModel->getListForAdmin([
+            'search' => $search,
+            'membership_level' => $membershipLevel,
+        ], $page, $limit);
         $users = $result['rows'];
 
         $userIds = array_column($users, 'id');
@@ -37,13 +41,15 @@ class UserController extends BaseController
         $this->render('users/index', [
             'title' => Config::get('messages.titles.admin_users'),
             'users' => $users,
+            'levels' => $this->userModel->getMembershipRules(),
             'page' => $page,
             'total' => $result['total'],
             'limit' => $limit,
             'search' => $search,
+            'membership_level' => $membershipLevel,
         ]);
     }
-    
+
     public function toggleStatus(int $id)
     {
         if (!$this->requireAdminCsrf()) {
@@ -85,20 +91,57 @@ class UserController extends BaseController
 
         $recentLimit = max(1, (int) Config::get('admin.user_detail_recent_orders', 10));
         $stmt = $this->userModel->getPdo()->prepare(
-            "SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT ?"
+            'SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT ?'
         );
         $stmt->bindValue(1, $id, \PDO::PARAM_INT);
         $stmt->bindValue(2, $recentLimit, \PDO::PARAM_INT);
         $stmt->execute();
         $orders = $stmt->fetchAll();
-        
+
         $this->render('users/show', [
             'title' => sprintf(
                 (string) Config::get('messages.titles.admin_user_detail'),
                 $user['name'] ?? ''
             ),
             'user' => $user,
-            'orders' => $orders
+            'orders' => $orders,
+            'levels' => $this->userModel->getMembershipRules(),
         ]);
+    }
+
+    public function updateVipLevel(int $id)
+    {
+        if (!$this->requireAdminCsrf()) {
+            $this->setError(Config::get('messages.admin_login.csrf_invalid'));
+            $this->redirect('/admin/users');
+            return;
+        }
+
+        $id = (int) $id;
+        $user = $this->userModel->findById($id);
+        if (!$user) {
+            $this->setError(Config::get('messages.admin.user_not_found'));
+            $this->redirect('/admin/users');
+            return;
+        }
+
+        $membershipLevel = trim((string) ($_POST['membership_level'] ?? ''));
+        if ($membershipLevel !== '') {
+            $rule = $this->userModel->getMembershipRuleByLevel($membershipLevel);
+            if (!$rule) {
+                $this->setError('會員等級不存在');
+                $this->redirect('/admin/users');
+                return;
+            }
+        }
+
+        if (!$this->userModel->updateMembershipLevel($id, $membershipLevel === '' ? null : $membershipLevel)) {
+            $this->setError(Config::get('messages.admin.update_failed'));
+            $this->redirect('/admin/users');
+            return;
+        }
+
+        $this->setSuccess('會員等級更新成功');
+        $this->redirect('/admin/users');
     }
 }

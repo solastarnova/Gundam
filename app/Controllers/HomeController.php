@@ -6,6 +6,7 @@ use App\Core\Config;
 use App\Core\Controller;
 use App\Models\Product;
 use App\Models\Review;
+use App\Models\UserModel;
 
 class HomeController extends Controller
 {
@@ -26,6 +27,27 @@ class HomeController extends Controller
         $placeholder = (string) Config::get('placeholder_image', 'images/placeholder.jpg');
 
         $dbProducts = $this->productModel->getFeatured($featuredLimit);
+
+        $memberDiscountPercent = 0.0;
+        if (isset($_SESSION['user_id'])) {
+            $userId = (int) $_SESSION['user_id'];
+            $membershipInfo = (new UserModel())->getMembershipInfo($userId);
+            $currentRule = $membershipInfo['current_rule'] ?? null;
+            $memberDiscountPercent = max(0.0, min(100.0, (float) ($currentRule['discount_percent'] ?? 0)));
+        }
+
+        foreach ($dbProducts as &$product) {
+            $basePrice = (float) ($product['price'] ?? 0);
+            $memberPrice = $basePrice;
+            if ($memberDiscountPercent > 0) {
+                $memberPrice = round($basePrice * (1 - ($memberDiscountPercent / 100)), 2);
+            }
+            $product['original_price'] = $basePrice;
+            $product['price'] = $memberPrice;
+            $product['discount_percent'] = $memberDiscountPercent;
+        }
+        unset($product);
+
         $dbReviews = $this->reviewModel->getFeaturedReviews($reviewsLimit);
 
         $projectRoot = dirname(__DIR__, 2);

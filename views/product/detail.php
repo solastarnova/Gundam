@@ -29,7 +29,7 @@ window.isLoggedIn = <?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>;
 
         <?php if ($discountPercent > 0): ?>
         <div class="discount-badge">
-            限時折扣 <?= $discountPercent ?>% OFF
+            會員折扣 <?= rtrim(rtrim(number_format($discountPercent, 2, '.', ''), '0'), '.') ?>% OFF
         </div>
         <?php endif; ?>
 
@@ -40,6 +40,9 @@ window.isLoggedIn = <?= isset($_SESSION['user_id']) ? 'true' : 'false' ?>;
                     <span class="original-price"><?= htmlspecialchars($money((float) $discount), ENT_QUOTES, 'UTF-8') ?></span>
                 <?php endif; ?>
             </div>
+            <?php if ($discountPercent > 0): ?>
+                <div class="small text-success mt-1">已套用會員價</div>
+            <?php endif; ?>
             <div class="hkd-price">
                 <?= $item['category'] ?? 'RG' ?> 系列 | 庫存：<?= $item['stock_quantity'] ?? 50 ?> 件
             </div>

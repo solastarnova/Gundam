@@ -7,6 +7,7 @@ use App\Core\Database;
 use App\Models\CartModel;
 use App\Models\Order;
 use App\Models\OrderModel;
+use App\Models\UserModel;
 use PDOException;
 
 class OrderService
@@ -86,6 +87,15 @@ class OrderService
                 WalletService::deductWithinTransaction($pdo, $userId, $walletUsed, 'payment', $orderId, $desc);
             }
 
+            // 付款成功即计入累计消费（含钱包支付订单 paid 状态）
+            if (in_array($status, ['paid', 'completed'], true)) {
+                $this->increaseTotalSpent($userId, $totalAmount);
+            }
+
+            if ($status === 'completed') {
+                $this->awardPointsForOrder($userId, $orderId, $totalAmount);
+            }
+
             if ($clearCart) {
                 $this->cartModel->clearCart($userId);
             }
@@ -140,6 +150,45 @@ class OrderService
         $msg = $e->getMessage();
 
         return str_contains($msg, 'Duplicate') || str_contains($msg, 'uq_orders_user_provider_payment_ref');
+    }
+
+    private function increaseTotalSpent(int $userId, float $amount): void
+    {
+        if ($userId <= 0 || $amount <= 0) {
+            return;
+        }
+
+        $pdo = Database::getConnection();
+        $stmt = $pdo->prepare('UPDATE users SET total_spent = total_spent + ? WHERE id = ?');
+        $stmt->execute([$amount, $userId]);
+    }
+
+    private function awardPointsForOrder(int $userId, int $orderId, float $orderAmount): void
+    {
+        if ($userId <= 0 || $orderId <= 0 || $orderAmount <= 0) {
+            return;
+        }
+
+        $userModel = new UserModel();
+        if ($userModel->hasEarnedPointsForOrder($userId, $orderId)) {
+            return;
+        }
+
+        $userModel->refreshMembershipLevelBySpent($userId);
+        $membershipInfo = $userModel->getMembershipInfo($userId);
+        $rule = $membershipInfo['current_rule'] ?? null;
+        $multiplier = (float) ($rule['points_multiplier'] ?? 1.0);
+        if ($multiplier <= 0) {
+            $multiplier = 1.0;
+        }
+
+        $pointsToAdd = (int) floor($orderAmount * $multiplier);
+        if ($pointsToAdd <= 0) {
+            return;
+        }
+
+        $desc = sprintf('訂單 #%d 消費獲得積分 (x%s)', $orderId, rtrim(rtrim(number_format($multiplier, 2, '.', ''), '0'), '.'));
+        $userModel->addPoints($userId, $pointsToAdd, $orderId, $desc);
     }
 }
 
