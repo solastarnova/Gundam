@@ -3,6 +3,7 @@
 namespace App\Core;
 
 use App\Core\Config;
+use App\Services\FirebaseWebConfig;
 use App\Services\MoneyFormatter;
 
 class Controller
@@ -33,6 +34,27 @@ class Controller
         $data['url'] = fn (string $path = '') => $this->view->url($path);
         $data['currency'] = $currency;
         $data['money'] = fn (float $amount): string => MoneyFormatter::format($amount);
+
+        if (isset($_SESSION['user_id'])) {
+            $webCfg = FirebaseWebConfig::forJavaScript();
+            if ($webCfg !== null && empty($data['firebase_auth_enabled'])) {
+                $data['firebase_web_config'] = $webCfg;
+                $firebaseScripts = [
+                    'https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js',
+                    'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js',
+                ];
+                $data['foot_script_srcs'] = array_merge(
+                    $firebaseScripts,
+                    (array) ($data['foot_script_srcs'] ?? [])
+                );
+            }
+            $extra = (array) ($data['foot_extra_js'] ?? []);
+            if (!in_array('js/auth-logout.js', $extra, true)) {
+                $extra[] = 'js/auth-logout.js';
+            }
+            $data['foot_extra_js'] = array_values(array_unique($extra));
+        }
+
         $this->view->renderWithLayout($view, $data, $layout);
     }
 

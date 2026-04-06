@@ -37,6 +37,9 @@ class UserModel extends Model
     public function findByEmail(string $email): ?array
     {
         $cols = ['id', 'name', 'email', 'password'];
+        if ($this->hasUsersColumn('firebase_uid')) {
+            $cols[] = 'firebase_uid';
+        }
         if ($this->hasUsersColumn('status')) {
             $cols[] = 'status';
         }
@@ -50,6 +53,12 @@ class UserModel extends Model
     public function findById(int $id): ?array
     {
         $cols = ['u.id', 'u.name', 'u.email'];
+        if ($this->hasUsersColumn('firebase_uid')) {
+            $cols[] = 'u.firebase_uid';
+        }
+        if ($this->hasUsersColumn('phone')) {
+            $cols[] = 'u.phone';
+        }
         if ($this->hasUsersColumn('status')) {
             $cols[] = 'u.status';
         }
@@ -97,6 +106,50 @@ class UserModel extends Model
     public function emailExists(string $email): bool
     {
         return $this->findByEmail($email) !== null;
+    }
+
+    public function findByFirebaseUid(string $firebaseUid): ?array
+    {
+        if ($firebaseUid === '' || !$this->hasUsersColumn('firebase_uid')) {
+            return null;
+        }
+        $cols = ['id', 'name', 'email', 'password', 'firebase_uid'];
+        if ($this->hasUsersColumn('status')) {
+            $cols[] = 'status';
+        }
+        $sql = 'SELECT ' . implode(', ', $cols) . ' FROM users WHERE firebase_uid = ? LIMIT 1';
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$firebaseUid]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    public function linkFirebaseUid(int $userId, string $firebaseUid): bool
+    {
+        if ($firebaseUid === '' || !$this->hasUsersColumn('firebase_uid')) {
+            return false;
+        }
+        $stmt = $this->pdo->prepare(
+            'UPDATE users SET firebase_uid = ? WHERE id = ? AND firebase_uid IS NULL'
+        );
+        $stmt->execute([$firebaseUid, $userId]);
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function createWithFirebaseUid(string $name, string $email, string $firebaseUid): int
+    {
+        if (!$this->hasUsersColumn('firebase_uid')) {
+            throw new \RuntimeException('users.firebase_uid column is required');
+        }
+        $hash = password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT);
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO users (name, email, password, firebase_uid) VALUES (?, ?, ?, ?)'
+        );
+        $stmt->execute([$name, $email, $hash, $firebaseUid]);
+
+        return (int) $this->pdo->lastInsertId();
     }
 
     public function create(string $name, string $email, string $password): int

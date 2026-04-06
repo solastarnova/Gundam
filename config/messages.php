@@ -127,6 +127,12 @@ return [
         'register_sent' => '我們已寄送驗證碼至您的電郵，請檢查並輸入驗證碼後完成註冊。',
         'register_success' => '註冊成功，歡迎成為高達模型商城會員！',
         'register_failed' => '註冊失敗，請稍後再試。',
+        'firebase_not_configured' => 'Firebase 登入尚未設定，請聯絡管理員。',
+        'firebase_invalid' => 'Firebase 登入驗證失敗，請稍後再試。',
+        'firebase_email_unverified' => '請先在第三方帳戶中驗證電郵後再試。',
+        'firebase_no_local_account' => '此帳戶尚未註冊，請先註冊。',
+        'firebase_account_mismatch' => '此電郵已綁定其他第三方帳戶，請使用原方式登入。',
+        'firebase_already_registered' => '此電郵已註冊，請改為登入。',
     ],
 
     'order' => [

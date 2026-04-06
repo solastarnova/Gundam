@@ -7,6 +7,8 @@ use App\Core\Controller;
 use App\Models\UserModel;
 use App\Models\OrderModel;
 use App\Models\Review;
+use App\Services\FirebaseAdminAuth;
+use App\Services\FirebaseWebConfig;
 use App\Services\WalletService;
 
 class AccountController extends Controller
@@ -128,7 +130,7 @@ class AccountController extends Controller
         $user = $this->requireUser();
         $userId = (int) $_SESSION['user_id'];
         $profile = $this->userModel->findById($userId);
-        $this->render('account/settings', [
+        $this->render('account/settings', array_merge([
             'title' => $this->titleWithSite('account_settings'),
             'profile' => $profile,
             'passwordErrors' => $this->consumeFlash('account_password_errors', []),
@@ -138,7 +140,24 @@ class AccountController extends Controller
             'phoneErrors' => $this->consumeFlash('account_phone_errors', []),
             'phoneSuccess' => $this->consumeFlash('account_phone_success'),
             'head_extra_css' => [],
-        ]);
+        ], $this->firebaseSocialLinkingBundle()));
+    }
+
+    /** @return array<string, mixed> */
+    private function firebaseSocialLinkingBundle(): array
+    {
+        if (FirebaseWebConfig::forJavaScript() === null || !FirebaseAdminAuth::isConfigured()) {
+            return [];
+        }
+
+        return [
+            'firebase_social_linking_enabled' => true,
+            'firebase_enable_facebook' => filter_var(
+                getenv('FIREBASE_ENABLE_FACEBOOK') ?: '',
+                FILTER_VALIDATE_BOOLEAN
+            ),
+            'foot_extra_js' => ['js/account-firebase-link.js'],
+        ];
     }
 
     public function payment(): void

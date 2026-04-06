@@ -36,6 +36,7 @@ CREATE TABLE `users` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
+  `firebase_uid` varchar(128) DEFAULT NULL,
   `phone` varchar(50) DEFAULT NULL,
   `password` varchar(255) NOT NULL,
   `password_reset_hash` varchar(255) DEFAULT NULL,
@@ -50,7 +51,8 @@ CREATE TABLE `users` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `unq_users_email` (`email`),
-  KEY `idx_users_membership_level` (`membership_level`)
+  KEY `idx_users_membership_level` (`membership_level`),
+  UNIQUE KEY `unq_users_firebase_uid` (`firebase_uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `user_item` (

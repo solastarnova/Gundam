@@ -8,6 +8,8 @@ $emailSuccess = $emailSuccess ?? null;
 $phoneErrors = $phoneErrors ?? [];
 $phoneSuccess = $phoneSuccess ?? null;
 $wallet_balance = $wallet_balance ?? 0.0;
+$firebase_social_linking_enabled = !empty($firebase_social_linking_enabled);
+$firebase_enable_facebook = !empty($firebase_enable_facebook);
 ?>
 <div class="container account-page my-5 pt-5">
     <div class="row account-layout">
@@ -23,7 +25,7 @@ $wallet_balance = $wallet_balance ?? 0.0;
                     <a href="<?= $url('account/addresses') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-geo-alt me-2"></i> 預設地址</a>
                     <a href="<?= $url('account/payment') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-credit-card me-2"></i> 付款方式</a>
                     <a href="<?= $url('account/settings') ?>" class="nav-link d-flex align-items-center active"> 帳戶設定</a>
-                    <a class="nav-link d-flex text-danger" href="<?= $url('logout') ?>"> 登出</a>
+                    <a class="nav-link d-flex text-danger" href="<?= $url('logout') ?>" data-logout="1"> 登出</a>
                 </div>
             </div>
         </div>
@@ -55,6 +57,64 @@ $wallet_balance = $wallet_balance ?? 0.0;
                         <button type="submit" class="btn btn-dark">更新電郵</button>
                     </form>
                 </div>
+
+                <?php if ($firebase_social_linking_enabled): ?>
+                <hr>
+                <div class="mb-5">
+                    <div class="card mt-4 border" id="social-link-card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-link-45deg me-2" aria-hidden="true"></i>社群帳號綁定</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted small mb-3">
+                                綁定後，您可以使用 Google<?= $firebase_enable_facebook ? '、Facebook' : '' ?> 或 GitHub 登入同一個 Gundam 商城帳號。
+                            </p>
+                            <?php if (trim((string) ($profile['firebase_uid'] ?? '')) === ''): ?>
+                                <div class="alert alert-light border small mb-3">
+                                    您目前可能僅以電郵密碼登入。請先到<a href="<?= $url('login') ?>">登入頁</a>使用社群登入並完成帳號連結，讓瀏覽器保留 Firebase 工作階段後，再回到此頁綁定其他平台。
+                                </div>
+                            <?php endif; ?>
+                            <p class="text-muted small mb-3">
+                                須在瀏覽器內已登入 Firebase（曾以社群成功登入本網站）。下方狀態由 Firebase 即時判斷；若顯示有誤請重新以社群登入一次。
+                            </p>
+                            <div class="d-flex flex-column gap-3">
+                                <div id="status-google" class="d-flex align-items-center justify-content-between p-2 border rounded">
+                                    <div>
+                                        <i class="bi bi-google text-danger me-2" aria-hidden="true"></i>
+                                        <strong>Google</strong>
+                                    </div>
+                                    <div id="google-action-area">
+                                        <span id="badge-google-linked" class="badge bg-success d-none">已連結</span>
+                                        <button type="button" id="btn-link-google" class="btn btn-sm btn-outline-primary">連結帳號</button>
+                                    </div>
+                                </div>
+                                <div id="status-github" class="d-flex align-items-center justify-content-between p-2 border rounded">
+                                    <div>
+                                        <i class="bi bi-github me-2" aria-hidden="true"></i>
+                                        <strong>GitHub</strong>
+                                    </div>
+                                    <div id="github-action-area">
+                                        <span id="badge-github-linked" class="badge bg-success d-none">已連結</span>
+                                        <button type="button" id="btn-link-github" class="btn btn-sm btn-outline-primary">連結帳號</button>
+                                    </div>
+                                </div>
+                                <?php if ($firebase_enable_facebook): ?>
+                                <div id="status-facebook" class="d-flex align-items-center justify-content-between p-2 border rounded">
+                                    <div>
+                                        <i class="bi bi-facebook text-primary me-2" aria-hidden="true"></i>
+                                        <strong>Facebook</strong>
+                                    </div>
+                                    <div id="facebook-action-area">
+                                        <span id="badge-facebook-linked" class="badge bg-success d-none">已連結</span>
+                                        <button type="button" id="btn-link-facebook" class="btn btn-sm btn-outline-primary">連結帳號</button>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
 
                 <hr>
 

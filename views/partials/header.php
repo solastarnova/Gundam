@@ -40,7 +40,7 @@ $asset = $asset ?? fn($p) => $p;
             <li><a class="dropdown-item" href="<?= $url('account') ?>">我的帳號</a></li>
             <li><a class="dropdown-item" href="<?= $url('account/settings') ?>">重置密碼</a></li>
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-primary" href="<?= $url('logout') ?>">登出</a></li>
+            <li><a class="dropdown-item text-primary" href="<?= $url('logout') ?>" data-logout="1">登出</a></li>
             <?php else: ?>
             <li><a class="dropdown-item" href="<?= $url('login') ?>">登入</a></li>
             <li><a class="dropdown-item" href="<?= $url('register') ?>">註冊</a></li>

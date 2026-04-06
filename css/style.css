@@ -791,3 +791,66 @@ body {
     padding: 0.25rem 0.35rem;
     min-width: 2rem;
 }
+
+.social-login-minimal .btn-circular {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 0;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.social-login-minimal .btn-circular:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.social-login-minimal .btn-circular img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.social-login-minimal .btn-circular i {
+    color: #444;
+}
+
+.social-login-minimal .btn-circular:hover:not(:disabled) {
+    border-color: #bbb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.social-login-minimal .btn-google:hover:not(:disabled) {
+    background-color: #f8f9fa;
+}
+
+.social-login-minimal .btn-github {
+    border-color: #ccc;
+}
+
+.social-login-minimal .btn-github:hover:not(:disabled) i {
+    color: #24292e;
+}
+
+.social-login-minimal .btn-facebook {
+    border-color: #ccd0d5;
+}
+
+.social-login-minimal .btn-facebook i {
+    color: #1877f2;
+}
+
+.social-login-minimal .btn-facebook:hover:not(:disabled) {
+    background-color: #f0f2f5;
+}
+
+.social-login-minimal .btn-more i {
+    color: #888;
+}

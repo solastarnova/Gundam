@@ -17,7 +17,7 @@ $email = $email ?? '';
                     <a href="<?= $url('account/addresses') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-geo-alt me-2"></i> 預設地址</a>
                     <a href="<?= $url('account/payment') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-credit-card me-2"></i> 付款方式</a>
                     <a class="nav-link d-flex" href="<?= $url('account/settings') ?>"> 帳戶設定</a>
-                    <a class="nav-link d-flex text-danger" href="<?= $url('logout') ?>"> 登出</a>
+                    <a class="nav-link d-flex text-danger" href="<?= $url('logout') ?>" data-logout="1"> 登出</a>
                 </div>
             </div>
         </div>

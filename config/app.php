@@ -60,4 +60,16 @@ return [
         'low_stock_limit' => 5,
         'user_detail_recent_orders' => 10,
     ],
+
+    /**
+     * Firebase ID Token 內 firebase.identities 的 provider id（鍵名）。
+     * 若 token 含任一鍵，後端將視為 email_verified（略過 OAuth 常見的 false）。
+     */
+    'firebase' => [
+        'trust_email_verified_identity_providers' => [
+            'facebook.com',
+            'google.com',
+            'github.com',
+        ],
+    ],
 ];

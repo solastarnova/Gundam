@@ -1,5 +1,6 @@
 <?php
 $url = $url ?? fn($p = '') => $p;
+$redirect = $redirect ?? '';
 $errors = $errors ?? [];
 $old = $old ?? [];
 $status = $status ?? null;
@@ -8,7 +9,10 @@ $status = $status ?? null;
 <div class="container d-flex justify-content-center align-items-center my-5">
     <div class="card shadow-sm" style="max-width: 480px; width: 100%;">
         <div class="card-body p-4">
-            <h3 class="text-center mb-3">建立新帳戶</h3>
+            <div class="position-relative mb-4">
+                <h3 class="text-center mb-0">建立新帳戶</h3>
+                <a href="<?= $url('') ?>" class="position-absolute top-50 end-0 translate-middle-y link-secondary p-1" aria-label="返回首頁"><i class="bi bi-x-lg fs-5" aria-hidden="true"></i></a>
+            </div>
 
             <?php if ($status): ?>
                 <div class="alert alert-success" role="alert"><?= htmlspecialchars($status) ?></div>
@@ -17,9 +21,9 @@ $status = $status ?? null;
                 <div class="alert alert-danger" role="alert"><?= htmlspecialchars($errors['general']) ?></div>
             <?php endif; ?>
 
-            <form action="<?= $url('register') ?>" method="POST" id="registerForm" class="mb-3">
+            <form action="<?= $url('register') ?>" method="POST" id="registerForm" class="d-flex flex-column gap-3">
                 <input type="hidden" name="redirect" value="<?= htmlspecialchars((string) ($old['redirect'] ?? $redirect ?? ''), ENT_QUOTES, 'UTF-8') ?>">
-                <div class="mb-3">
+                <div>
                     <label for="inputName" class="form-label fw-semibold">暱稱</label>
                     <input
                         type="text"
@@ -35,7 +39,7 @@ $status = $status ?? null;
                     <?php endif; ?>
                 </div>
 
-                <div class="mb-3">
+                <div>
                     <label for="inputEmail" class="form-label fw-semibold">電子郵箱</label>
                     <input
                         type="email"
@@ -49,10 +53,9 @@ $status = $status ?? null;
                     <?php if (isset($errors['email'])): ?>
                         <div class="invalid-feedback d-block"><?= htmlspecialchars($errors['email']) ?></div>
                     <?php endif; ?>
-                    <div class="form-text small text-muted">請先點擊「發送驗證碼」，再填寫下方驗證碼。</div>
                 </div>
 
-                <div class="mb-3">
+                <div>
                     <label for="inputCode" class="form-label fw-semibold">郵箱驗證碼</label>
                     <div class="input-group">
                         <input
@@ -72,7 +75,7 @@ $status = $status ?? null;
                     <?php endif; ?>
                 </div>
 
-                <div class="mb-3">
+                <div>
                     <label for="inputPassword" class="form-label fw-semibold">密碼</label>
                     <input
                         type="password"
@@ -88,7 +91,7 @@ $status = $status ?? null;
                     <?php endif; ?>
                 </div>
 
-                <div class="mb-3">
+                <div>
                     <label for="inputPassword2" class="form-label fw-semibold">確認密碼</label>
                     <input
                         type="password"
@@ -104,18 +107,35 @@ $status = $status ?? null;
                     <?php endif; ?>
                 </div>
 
-                <div class="auth-btn-center mb-3">
-                <button class="btn btn-dark" type="submit">註冊會員</button>
-            </div>
+                <button class="btn btn-dark w-100" type="submit">註冊</button>
             </form>
 
-            <hr class="my-3">
-            <div class="text-center">
-                <p class="mb-2 text-muted small">已經有帳戶？</p>
-                <div class="auth-btn-center">
-                    <a href="<?= $url('login') ?>?redirect=<?= urlencode($_SERVER['REQUEST_URI'] ?? '/') ?>" class="btn btn-outline-dark">前往登入</a>
+            <div class="d-flex justify-content-between align-items-center mt-3 small">
+                <span class="text-muted">已有帳戶？</span>
+                <a href="<?= $url('login') ?>?redirect=<?= urlencode($_SERVER['REQUEST_URI'] ?? '/') ?>" class="text-decoration-none">前往登入</a>
+            </div>
+
+            <?php if (!empty($firebase_auth_enabled)): ?>
+            <div class="social-login-minimal text-center mt-4">
+                <p class="text-muted small mb-3">使用第三方帳戶註冊</p>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <button type="button" class="btn-circular btn-google" id="google-login" title="使用 Google 帳號註冊" aria-label="使用 Google 帳號註冊">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="" width="20" height="20">
+                    </button>
+                    <button type="button" class="btn-circular btn-github" id="github-login" title="使用 GitHub 帳號註冊" aria-label="使用 GitHub 帳號註冊">
+                        <i class="fab fa-github fa-lg" aria-hidden="true"></i>
+                    </button>
+                    <?php if (!empty($firebase_enable_facebook)): ?>
+                    <button type="button" class="btn-circular btn-facebook" id="facebook-login" title="使用 Facebook 帳號註冊" aria-label="使用 Facebook 帳號註冊">
+                        <i class="fab fa-facebook-f fa-lg" aria-hidden="true"></i>
+                    </button>
+                    <?php endif; ?>
+                    <button type="button" class="btn-circular btn-more" title="更多方式" aria-label="更多方式" disabled>
+                        <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>

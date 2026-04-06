@@ -1,6 +1,10 @@
 # 環境變數（含密鑰，勿提交）
 .env
 
+# Firebase Admin 服務帳戶金鑰（勿提交）
+storage/firebase-service-account.json
+storage/firebase-adminsdk-*.json
+
 # Composer 相依套件（部署時請執行 composer install）
 /vendor/
 
@@ -9,4 +13,7 @@
 .idea/
 *.log
 
+# Markdown 與 docs（僅本地保留，不提交）
+*.md
+/docs/
 

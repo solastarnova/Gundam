@@ -8,6 +8,7 @@ $router->get('/', 'HomeController', 'index');
 
 $router->get('/login', 'AuthController', 'showLogin');
 $router->post('/login', 'AuthController', 'login');
+$router->post('/auth/firebase', 'AuthController', 'firebaseAuth');
 $router->get('/register', 'AuthController', 'showRegister');
 $router->post('/register/send-code', 'AuthController', 'sendRegistrationCode');
 $router->post('/register', 'AuthController', 'register');

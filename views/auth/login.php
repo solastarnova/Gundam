@@ -9,7 +9,10 @@ $message = $message ?? null;
 <div class="container d-flex justify-content-center align-items-center my-5">
     <div class="card shadow-sm" style="max-width: 420px; width: 100%;">
         <div class="card-body p-4">
-            <h3 class="text-center mb-3">登入賬戶</h3>
+            <div class="position-relative mb-4">
+                <h3 class="text-center mb-0">登入賬戶</h3>
+                <a href="<?= $url('') ?>" class="position-absolute top-50 end-0 translate-middle-y link-secondary p-1" aria-label="返回首頁"><i class="bi bi-x-lg fs-5" aria-hidden="true"></i></a>
+            </div>
 
             <?php if ($message): ?>
                 <div class="alert alert-success" role="alert"><?= htmlspecialchars($message) ?></div>
@@ -18,9 +21,9 @@ $message = $message ?? null;
                 <div class="alert alert-danger" role="alert"><?= htmlspecialchars($errors['general']) ?></div>
             <?php endif; ?>
 
-            <form action="<?= $url('login') ?>" method="POST" class="mb-3">
+            <form action="<?= $url('login') ?>" method="POST" class="d-flex flex-column gap-3">
                 <input type="hidden" name="redirect" value="<?= htmlspecialchars((string) ($redirect ?? ''), ENT_QUOTES, 'UTF-8') ?>">
-                <div class="mb-3">
+                <div>
                     <label for="inputEmail" class="form-label fw-semibold">電子郵箱</label>
                     <input
                         type="email"
@@ -35,11 +38,8 @@ $message = $message ?? null;
                         <div class="invalid-feedback d-block"><?= htmlspecialchars($errors['email']) ?></div>
                     <?php endif; ?>
                 </div>
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <label for="inputPassword" class="form-label fw-semibold mb-0">密碼</label>
-                        <a href="<?= $url('forgot') ?>" class="text-decoration-none small">忘記密碼？</a>
-                    </div>
+                <div>
+                    <label for="inputPassword" class="form-label fw-semibold">密碼</label>
                     <input
                         type="password"
                         class="form-control <?= isset($errors['password']) ? 'is-invalid' : '' ?>"
@@ -53,19 +53,35 @@ $message = $message ?? null;
                         <div class="invalid-feedback d-block"><?= htmlspecialchars($errors['password']) ?></div>
                     <?php endif; ?>
                 </div>
-
-                <div class="auth-btn-center mb-3">
-                <button class="btn btn-dark" type="submit">登入</button>
-            </div>
+                <button class="btn btn-dark w-100" type="submit">登入</button>
             </form>
 
-            <hr class="my-3">
-            <div class="text-center">
-                <p class="mb-2 text-muted small">還沒有帳戶？</p>
-                <div class="auth-btn-center">
-                    <a href="<?= $url('register') ?>" class="btn btn-outline-dark">建立新帳戶</a>
+            <div class="d-flex justify-content-between align-items-center mt-3 small">
+                <a href="<?= $url('forgot') ?>" class="text-decoration-none">忘記密碼</a>
+                <a href="<?= $url('register') ?>" class="text-decoration-none">立即註冊</a>
+            </div>
+
+            <?php if (!empty($firebase_auth_enabled)): ?>
+            <div class="social-login-minimal text-center mt-4">
+                <p class="text-muted small mb-3">使用第三方帳戶</p>
+                <div class="d-flex justify-content-center gap-3 flex-wrap">
+                    <button type="button" class="btn-circular btn-google" id="google-login" title="使用 Google 帳號登入" aria-label="使用 Google 帳號登入">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="" width="20" height="20">
+                    </button>
+                    <button type="button" class="btn-circular btn-github" id="github-login" title="使用 GitHub 帳號登入" aria-label="使用 GitHub 帳號登入">
+                        <i class="fab fa-github fa-lg" aria-hidden="true"></i>
+                    </button>
+                    <?php if (!empty($firebase_enable_facebook)): ?>
+                    <button type="button" class="btn-circular btn-facebook" id="facebook-login" title="使用 Facebook 帳號登入" aria-label="使用 Facebook 帳號登入">
+                        <i class="fab fa-facebook-f fa-lg" aria-hidden="true"></i>
+                    </button>
+                    <?php endif; ?>
+                    <button type="button" class="btn-circular btn-more" title="更多登入方式" aria-label="更多登入方式" disabled>
+                        <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>

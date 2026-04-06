@@ -5,6 +5,7 @@
     "require": {
         "php": ">=8.0",
         "stripe/stripe-php": "^19.1",
-        "phpmailer/phpmailer": "^7.0"
+        "phpmailer/phpmailer": "^7.0",
+        "kreait/firebase-php": "^7.0"
     }
 }
