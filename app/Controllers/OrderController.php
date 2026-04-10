@@ -24,7 +24,7 @@ class OrderController extends Controller
         $isLoggedIn = isset($_SESSION['user_id']);
         $userId = $isLoggedIn ? (int) $_SESSION['user_id'] : 0;
         $shippingConfig = ShippingService::getConfig();
-        $defaultShippingAddress = (string) Config::get('default_shipping_region', '香港');
+        $defaultShippingAddress = (string) Config::get('default_shipping_region', __m('checkout.default_shipping_region'));
         if ($isLoggedIn) {
             $defaultAddr = $this->addressModel->getDefaultAddress($userId);
             if ($defaultAddr) {
@@ -52,33 +52,4 @@ class OrderController extends Controller
             'pointsBalance' => $pointsBalance,
         ]);
     }
-
-    private function awardPointsForOrder(int $userId, int $orderId, float $orderAmount): void
-{
-    $userModel = new UserModel();
-    
-    if ($userModel->hasEarnedPointsForOrder($userId, $orderId)) {
-        return;
-    }
-    
-    // 更新用户累计消费金额
-    $pdo = Database::getConnection();
-    $updateSpent = $pdo->prepare("
-        UPDATE users SET total_spent = total_spent + ? WHERE id = ?
-    ");
-    $updateSpent->execute([$orderAmount, $userId]);
-    
-    // 刷新会员等级
-    $userModel->refreshMembershipLevelBySpent($userId);
-    
-    // 获取会员信息以计算积分倍数
-    $membershipInfo = $userModel->getMembershipInfo($userId);
-    $multiplier = $membershipInfo['points_multiplier'] ?? 1;
-    
-    // 计算应得积分（每消费1元得1分，乘以会员倍数）
-    $pointsToAdd = (int) floor($orderAmount * $multiplier);
-    $desc = '订单 #' . $orderId . ' 消费获得积分 (x' . $multiplier . ')';
-    
-    $userModel->addPoints($userId, $pointsToAdd, $orderId, $desc);
-}
 }

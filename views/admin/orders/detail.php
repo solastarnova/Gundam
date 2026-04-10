@@ -81,7 +81,7 @@ $methodMap = [
                         <span class="badge-status <?= $statusInfo['class'] ?>"><?= $statusInfo['text'] ?></span>
                     </p>
                     <p><strong>下單時間：</strong><br><?= date('Y-m-d H:i:s', strtotime($order['created_at'])) ?></p>
-                    <p><strong>支付方式：</strong><br><?= $methodMap[$order['payment_method']] ?? $order['payment_method'] ?></p>
+                    <p><strong>付款方式：</strong><br><?= $methodMap[$order['payment_method']] ?? $order['payment_method'] ?></p>
                     <p><strong>配送地址：</strong><br><?= nl2br(htmlspecialchars($order['shipping_address'])) ?></p>
                 </div>
             </div>

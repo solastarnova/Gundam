@@ -2,6 +2,9 @@
 
 namespace App\Core;
 
+/**
+ * HTTP router: match request URI to routes and dispatch to App\Controllers\*.
+ */
 class Router
 {
     private array $routes = [];
@@ -41,7 +44,12 @@ class Router
 
         http_response_code(404);
         $view = new View();
-        $view->renderWithLayout('errors/404', ['title' => '404 - 找不到頁面']);
+        $view->renderWithLayout('errors/404', [
+            'title' => (string) Config::get('messages.titles.page_not_found', '404'),
+            'error_heading' => (string) Config::get('messages.errors.page_not_found_heading'),
+            'error_body' => (string) Config::get('messages.errors.page_not_found_body'),
+            'back_home_label' => (string) Config::get('messages.errors.back_home'),
+        ]);
     }
 
     private function getUri(): string
@@ -50,11 +58,13 @@ class Router
         $uri = parse_url($uri, PHP_URL_PATH);
         $uri = rtrim($uri, '/') ?: '/';
 
+        // Strip PHP script subdirectory (e.g. /Gundam/index.php)
         $basePath = dirname($_SERVER['SCRIPT_NAME']);
         if ($basePath !== '/' && $basePath !== '' && strpos($uri, $basePath) === 0) {
             $uri = substr($uri, strlen($basePath));
         }
 
+        // Strip configured base_url prefix if present
         $baseUrl = rtrim(\App\Core\Config::get('base_url', ''), '/');
         if ($baseUrl !== '' && strpos($uri, $baseUrl) === 0) {
             $uri = substr($uri, strlen($baseUrl));

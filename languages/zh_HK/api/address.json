@@ -1,0 +1,16 @@
+{
+    "address": {
+        "invalid_id": "無效的地址 ID",
+        "not_found": "地址不存在",
+        "not_found_or_forbidden": "地址不存在或無權限",
+        "create_success": "地址新增成功",
+        "create_failed": "新增地址失敗",
+        "update_success": "地址更新成功",
+        "update_failed": "更新地址失敗",
+        "delete_success": "地址已刪除",
+        "delete_failed": "刪除地址失敗",
+        "default_updated": "預設地址已更新",
+        "set_default_failed": "設定預設地址失敗",
+        "validation_error": "請檢查輸入資料是否正確。"
+    }
+}

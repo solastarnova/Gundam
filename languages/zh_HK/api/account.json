@@ -1,0 +1,19 @@
+{
+    "account": {
+        "review_invalid_product": "無效的商品",
+        "review_not_eligible": "您尚未購買此商品或已評價過",
+        "review_default_title": "用戶評價",
+        "review_thanks": "感謝您的評價！",
+        "password_current_required": "請輸入目前密碼",
+        "password_new_required": "請輸入新密碼",
+        "password_new_min": "新密碼至少 %d 個字元",
+        "password_same_as_current": "新密碼不可與目前密碼相同",
+        "password_new_confirm_required": "請再次輸入新密碼",
+        "user_not_found": "用戶不存在",
+        "profile_not_found": "找不到帳戶資料，請重新登入後再試。",
+        "password_update_error": "更新密碼時發生錯誤，請稍後再試。",
+        "password_update_success": "密碼已成功更新",
+        "password_current_wrong": "目前密碼不正確",
+        "phone_update_success": "手機號碼已更新"
+    }
+}

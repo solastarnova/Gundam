@@ -9,42 +9,42 @@ $asset = $asset ?? fn($p) => $p;
         <div class="col-lg-4 col-md-6">
           <a href="<?= $url('') ?>" class="footer-brand d-inline-flex align-items-center mb-3">
             <img src="<?= $asset('images/logo.png') ?>" alt="Logo" width="40" height="34" class="me-2">
-            <span class="footer-brand-text">Gundam 模型商城</span>
+            <span class="footer-brand-text"><?= htmlspecialchars(__m('footer.brand_text'), ENT_QUOTES, 'UTF-8') ?></span>
           </a>
-          <p class="footer-desc small text-secondary mb-4">專營高達模型、手辦與周邊，為您搜羅最新與經典款式。</p>
+          <p class="footer-desc small text-secondary mb-4"><?= htmlspecialchars(__m('footer.desc'), ENT_QUOTES, 'UTF-8') ?></p>
           <p class="mb-2 text-secondary">wolaiwagandomigo@gmail.com</p>
           <p class="mb-4 text-secondary">WhatsApp: +852 8000 5000</p>
           <p class="footer-legal small text-secondary mb-0">Daito, Gilded City, IOI-Resistance Zone</p>
         </div>
         <div class="col-lg-2 col-md-6">
-          <h6 class="footer-heading text-uppercase text-secondary mb-3">企業</h6>
+          <h6 class="footer-heading text-uppercase text-secondary mb-3"><?= htmlspecialchars(__m('footer.heading_corp'), ENT_QUOTES, 'UTF-8') ?></h6>
           <ul class="list-unstyled footer-links mb-0">
-            <li class="mb-2"><a href="<?= $url('about') ?>">關於我們</a></li>
-            <li class="mb-2"><a href="<?= $url('faq') ?>">常見問題</a></li>
-            <li><a href="<?= $url('faq') ?>#contact">聯絡我們</a></li>
+            <li class="mb-2"><a href="<?= $url('about') ?>"><?= htmlspecialchars(__m('footer.about'), ENT_QUOTES, 'UTF-8') ?></a></li>
+            <li class="mb-2"><a href="<?= $url('faq') ?>"><?= htmlspecialchars(__m('footer.faq'), ENT_QUOTES, 'UTF-8') ?></a></li>
+            <li><a href="<?= $url('faq') ?>#contact"><?= htmlspecialchars(__m('footer.contact'), ENT_QUOTES, 'UTF-8') ?></a></li>
           </ul>
         </div>
         <div class="col-lg-2 col-md-6">
-          <h6 class="footer-heading text-uppercase text-secondary mb-3">探索</h6>
+          <h6 class="footer-heading text-uppercase text-secondary mb-3"><?= htmlspecialchars(__m('footer.heading_explore'), ENT_QUOTES, 'UTF-8') ?></h6>
           <ul class="list-unstyled footer-links mb-0">
-            <li class="mb-2"><a href="<?= $url('') ?>">首頁</a></li>
-            <li class="mb-2"><a href="<?= $url('products') ?>">更多產品</a></li>
-            <li><a href="<?= $url('faq') ?>">FAQ</a></li>
+            <li class="mb-2"><a href="<?= $url('') ?>"><?= htmlspecialchars(__m('footer.home'), ENT_QUOTES, 'UTF-8') ?></a></li>
+            <li class="mb-2"><a href="<?= $url('products') ?>"><?= htmlspecialchars(__m('footer.more_products'), ENT_QUOTES, 'UTF-8') ?></a></li>
+            <li><a href="<?= $url('faq') ?>"><?= htmlspecialchars(__m('footer.faq_link'), ENT_QUOTES, 'UTF-8') ?></a></li>
           </ul>
         </div>
         <div class="col-lg-2 col-md-6">
-          <h6 class="footer-heading text-uppercase text-secondary mb-3">更多資訊</h6>
+          <h6 class="footer-heading text-uppercase text-secondary mb-3"><?= htmlspecialchars(__m('footer.heading_legal'), ENT_QUOTES, 'UTF-8') ?></h6>
           <ul class="list-unstyled footer-links mb-0">
-            <li class="mb-2"><a href="<?= $url('privacy') ?>">隱私條款</a></li>
-            <li class="mb-2"><a href="<?= $url('terms') ?>">服務條款</a></li>
+            <li class="mb-2"><a href="<?= $url('privacy') ?>"><?= htmlspecialchars(__m('footer.privacy'), ENT_QUOTES, 'UTF-8') ?></a></li>
+            <li class="mb-2"><a href="<?= $url('terms') ?>"><?= htmlspecialchars(__m('footer.terms'), ENT_QUOTES, 'UTF-8') ?></a></li>
           </ul>
-          <h6 class="footer-heading text-uppercase text-secondary mt-4 mb-2">營業時間</h6>
-          <p class="small text-secondary mb-0">Mon–Fri: 8am–9pm<br>Sat–Sun: 8am–1am</p>
+          <h6 class="footer-heading text-uppercase text-secondary mt-4 mb-2"><?= htmlspecialchars(__m('footer.heading_hours'), ENT_QUOTES, 'UTF-8') ?></h6>
+          <p class="small text-secondary mb-0"><?= __m('footer.hours_body') ?></p>
         </div>
       </div>
     </div>
     <div class="footer-bottom text-center py-3">
-      © 2025 Gundam 模型商城. All rights reserved.
+      <?= htmlspecialchars(__m('footer.copyright', (int) date('Y')), ENT_QUOTES, 'UTF-8') ?>
     </div>
 </footer>
 <script>

@@ -9,9 +9,9 @@ $has_email_sent = $has_email_sent ?? false;
 <div class="container d-flex justify-content-center align-items-center my-5">
     <div class="card shadow-sm" style="max-width: 420px; width: 100%;">
         <div class="card-body p-4">
-            <h3 class="text-center mb-3">忘記密碼</h3>
+            <h3 class="text-center mb-3"><?= htmlspecialchars(__m('auth_forgot.title'), ENT_QUOTES, 'UTF-8') ?></h3>
             <p class="text-center text-muted mb-4">
-                請輸入您註冊時使用的電子郵箱，我們會將驗證碼寄送至該信箱。
+                <?= htmlspecialchars(__m('auth_forgot.intro'), ENT_QUOTES, 'UTF-8') ?>
             </p>
 
             <?php if ($status): ?>
@@ -24,7 +24,7 @@ $has_email_sent = $has_email_sent ?? false;
             <?php if (!$has_email_sent): ?>
                 <form action="<?= $url('forgot') ?>" method="POST" class="mb-3">
                     <div class="mb-3">
-                        <label for="inputEmail" class="form-label fw-semibold">電子郵箱</label>
+                        <label for="inputEmail" class="form-label fw-semibold"><?= htmlspecialchars(__m('auth_forgot.email_label'), ENT_QUOTES, 'UTF-8') ?></label>
                         <input
                             type="email"
                             class="form-control <?= isset($errors['email']) ? 'is-invalid' : '' ?>"
@@ -39,19 +39,19 @@ $has_email_sent = $has_email_sent ?? false;
                         <?php endif; ?>
                     </div>
                     <div class="auth-btn-center mb-3">
-                    <button class="btn btn-dark" type="submit">發送驗證碼</button>
+                    <button class="btn btn-dark" type="submit"><?= htmlspecialchars(__m('auth_forgot.send_code'), ENT_QUOTES, 'UTF-8') ?></button>
                 </div>
                 </form>
             <?php else: ?>
                 <form action="<?= $url('forgot/verify') ?>" method="POST" class="mb-3">
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">電子郵箱</label>
+                        <label class="form-label fw-semibold"><?= htmlspecialchars(__m('auth_forgot.email_confirm_label'), ENT_QUOTES, 'UTF-8') ?></label>
                         <div class="form-control-plaintext">
                             <?= htmlspecialchars($old['email'] ?? $_SESSION['forgot_password_email'] ?? '') ?>
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label for="inputCode" class="form-label fw-semibold">驗證碼</label>
+                        <label for="inputCode" class="form-label fw-semibold"><?= htmlspecialchars(__m('auth_forgot.code_label'), ENT_QUOTES, 'UTF-8') ?></label>
                         <input
                             type="text"
                             class="form-control <?= isset($errors['code']) ? 'is-invalid' : '' ?>"
@@ -68,18 +68,18 @@ $has_email_sent = $has_email_sent ?? false;
                         <?php endif; ?>
                     </div>
                     <div class="auth-btn-center mb-3">
-                    <button class="btn btn-dark" type="submit">驗證並繼續</button>
+                    <button class="btn btn-dark" type="submit"><?= htmlspecialchars(__m('auth_forgot.verify_continue'), ENT_QUOTES, 'UTF-8') ?></button>
                 </div>
                 </form>
                 <div class="text-center mb-3">
-                    <a href="<?= $url('forgot') ?>" class="text-decoration-none">重新輸入電郵地址</a>
+                    <a href="<?= $url('forgot') ?>" class="text-decoration-none"><?= htmlspecialchars(__m('auth_forgot.reenter_email'), ENT_QUOTES, 'UTF-8') ?></a>
                 </div>
             <?php endif; ?>
 
             <hr class="my-3">
             <div class="d-flex justify-content-between">
-                <a href="<?= $url('login') ?>" class="text-decoration-none">返回登入</a>
-                <a href="<?= $url('register') ?>" class="text-decoration-none">建立新帳戶</a>
+                <a href="<?= $url('login') ?>" class="text-decoration-none"><?= htmlspecialchars(__m('auth_forgot.back_login'), ENT_QUOTES, 'UTF-8') ?></a>
+                <a href="<?= $url('register') ?>" class="text-decoration-none"><?= htmlspecialchars(__m('auth_forgot.create_account'), ENT_QUOTES, 'UTF-8') ?></a>
             </div>
         </div>
     </div>

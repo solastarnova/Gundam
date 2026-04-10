@@ -58,7 +58,7 @@ $statusLabels = [
                         <th>訂單號</th>
                         <th>用戶</th>
                         <th>金額</th>
-                        <th>支付方式</th>
+                        <th>付款方式</th>
                         <th>狀態</th>
                         <th>下單時間</th>
                         <th>操作</th>

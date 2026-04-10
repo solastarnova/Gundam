@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Core\Constants;
 use App\Core\Model;
 
 class UserModel extends Model
@@ -76,6 +77,9 @@ class UserModel extends Model
             $cols[] = 'mr.level_name';
             $cols[] = 'mr.discount_percent';
             $cols[] = 'mr.points_multiplier';
+        }
+        if ($this->hasUsersColumn('is_level_locked')) {
+            $cols[] = 'u.is_level_locked';
         }
 
         $sql = "SELECT " . implode(', ', $cols) . " FROM users u";
@@ -182,16 +186,6 @@ class UserModel extends Model
         return $storedHash !== '' && $this->verifyPassword($plainPassword, $storedHash);
     }
 
-    public function updateEmail(int $userId, string $newEmail): bool
-    {
-        if ($newEmail === '') {
-            return false;
-        }
-        $stmt = $this->pdo->prepare("UPDATE users SET email = ? WHERE id = ?");
-        $stmt->execute([$newEmail, $userId]);
-        return $stmt->rowCount() > 0;
-    }
-
     public function updatePhone(int $userId, string $phone): bool
     {
         if (!$this->hasUsersColumn('phone')) {
@@ -289,13 +283,25 @@ class UserModel extends Model
 
         $level = trim((string) $membershipLevel);
         if ($level === '') {
-            $level = 'bronze';
+            $level = Constants::MEMBERSHIP_LEVEL_BRONZE;
         }
 
-        $stmt = $this->pdo->prepare('UPDATE users SET membership_level = ?, last_level_up_time = NOW() WHERE id = ?');
+        $existsStmt = $this->pdo->prepare('SELECT 1 FROM users WHERE id = ? LIMIT 1');
+        $existsStmt->execute([$id]);
+        if ($existsStmt->fetchColumn() === false) {
+            return false;
+        }
+
+        if ($this->hasUsersColumn('is_level_locked')) {
+            $stmt = $this->pdo->prepare(
+                'UPDATE users SET membership_level = ?, is_level_locked = 1, last_level_up_time = NOW() WHERE id = ?'
+            );
+        } else {
+            $stmt = $this->pdo->prepare('UPDATE users SET membership_level = ?, last_level_up_time = NOW() WHERE id = ?');
+        }
         $stmt->execute([$level, $id]);
 
-        return $stmt->rowCount() > 0;
+        return true;
     }
 
     public function getMembershipRules(): array
@@ -304,29 +310,19 @@ class UserModel extends Model
             $stmt = $this->pdo->query('SELECT * FROM membership_rules ORDER BY sort_order ASC, min_spent ASC');
             return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
         } catch (\Throwable $e) {
-            return [
-                ['level_key' => 'bronze', 'level_name' => '青铜', 'min_spent' => 0, 'points_multiplier' => 1.0, 'discount_percent' => 0],
-                ['level_key' => 'silver', 'level_name' => '白银', 'min_spent' => 2000, 'points_multiplier' => 1.2, 'discount_percent' => 3],
-                ['level_key' => 'gold', 'level_name' => '黄金', 'min_spent' => 5000, 'points_multiplier' => 1.5, 'discount_percent' => 5],
-                ['level_key' => 'platinum', 'level_name' => '铂金', 'min_spent' => 10000, 'points_multiplier' => 2.0, 'discount_percent' => 8],
-            ];
+            throw new \Exception('Membership rules configuration missing in DB.', 0, $e);
         }
     }
 
     public function getMembershipRuleByLevel(string $levelKey): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM membership_rules WHERE level_key = ? LIMIT 1');
         try {
+            $stmt = $this->pdo->prepare('SELECT * FROM membership_rules WHERE level_key = ? LIMIT 1');
             $stmt->execute([$levelKey]);
             $row = $stmt->fetch(\PDO::FETCH_ASSOC);
             return $row ?: null;
         } catch (\Throwable $e) {
-            foreach ($this->getMembershipRules() as $rule) {
-                if ((string) ($rule['level_key'] ?? '') === $levelKey) {
-                    return $rule;
-                }
-            }
-            return null;
+            throw new \Exception('Membership rules configuration missing in DB.', 0, $e);
         }
     }
 
@@ -343,7 +339,7 @@ class UserModel extends Model
         }
 
         $rules = $this->getMembershipRules();
-        $currentLevel = (string) ($user['membership_level'] ?? 'bronze');
+        $currentLevel = (string) ($user['membership_level'] ?? Constants::MEMBERSHIP_LEVEL_BRONZE);
 
         $currentRule = null;
         $currentIndex = -1;
@@ -356,7 +352,7 @@ class UserModel extends Model
         }
         if ($currentRule === null && !empty($rules)) {
             $currentRule = $rules[0];
-            $currentLevel = (string) ($currentRule['level_key'] ?? 'bronze');
+            $currentLevel = (string) ($currentRule['level_key'] ?? Constants::MEMBERSHIP_LEVEL_BRONZE);
             $currentIndex = 0;
         }
 
@@ -390,40 +386,163 @@ class UserModel extends Model
             'progress_percent' => $progressPercent,
             'current_min_spent' => $currentMinSpent,
             'next_min_spent' => $nextMinSpent,
-            'points_to_hkd_rate' => 1000,
+            'points_to_hkd_rate' => Constants::POINTS_PER_HKD,
         ];
     }
 
-    public function refreshMembershipLevelBySpent(int $userId): ?string
-{
-    $stmt = $this->pdo->prepare('SELECT total_spent FROM users WHERE id = ? LIMIT 1');
-    $stmt->execute([$userId]);
-    $user = $stmt->fetch(\PDO::FETCH_ASSOC);
-    
-    if (!$user) {
-        return null;
-    }
-    
-    $totalSpent = (float) $user['total_spent'];
-    
-    $rules = $this->getMembershipRules();
-    
-    $targetLevel = null;
-    foreach ($rules as $rule) {
-        if ($totalSpent >= (float) $rule['min_spent']) {
-            $targetLevel = $rule['level_key'];
+    /**
+     * Member shelf price: base minus membership_rules.discount_percent (0–100), rounded to 2 decimals.
+     */
+    public static function getDiscountedPrice(float $basePrice, float $discountPercent): float
+    {
+        $p = max(0.0, min(100.0, $discountPercent));
+        if ($p <= 0.0) {
+            return round($basePrice, 2);
         }
+
+        return round($basePrice * (1 - ($p / 100.0)), 2);
     }
-    
-    if ($targetLevel === null) {
-        $targetLevel = 'bronze';
+
+    /**
+     * Logged-in user's current tier discount percent (0–100); 0 for guest or missing data.
+     */
+    public function getMemberDiscountPercentForUser(int $userId): float
+    {
+        if ($userId <= 0) {
+            return 0.0;
+        }
+
+        $membershipInfo = $this->getMembershipInfo($userId);
+        if ($membershipInfo === null) {
+            return 0.0;
+        }
+
+        $currentRule = $membershipInfo['current_rule'] ?? null;
+
+        return max(0.0, min(100.0, (float) ($currentRule['discount_percent'] ?? 0)));
     }
-    
-    $update = $this->pdo->prepare('UPDATE users SET membership_level = ?, last_level_up_time = NOW() WHERE id = ?');
-    $update->execute([$targetLevel, $userId]);
-    
-    return $targetLevel;
-}
+
+    /**
+     * Points earn multiplier from current tier (membership_rules.points_multiplier). 1.0 if guest, unknown user, or non-positive rule value.
+     */
+    public function getPointsMultiplierForUser(int $userId): float
+    {
+        if ($userId <= 0) {
+            return 1.0;
+        }
+
+        $membershipInfo = $this->getMembershipInfo($userId);
+        if ($membershipInfo === null) {
+            return 1.0;
+        }
+
+        $currentRule = $membershipInfo['current_rule'] ?? null;
+        $m = (float) ($currentRule['points_multiplier'] ?? 1.0);
+        if ($m <= 0.0) {
+            return 1.0;
+        }
+
+        return $m;
+    }
+
+    /**
+     * Rule row index for a level_key (-1 if not found). Rules must be ordered low → high tier.
+     *
+     * @param array<int, array<string, mixed>> $rules
+     */
+    private function getLevelIndex(string $levelKey, array $rules): int
+    {
+        foreach ($rules as $idx => $rule) {
+            if ((string) ($rule['level_key'] ?? '') === $levelKey) {
+                return (int) $idx;
+            }
+        }
+
+        return -1;
+    }
+
+    /**
+     * Sync membership from total_spent when not locked. Upgrades only (no downgrade when spending drops).
+     */
+    public function refreshMembershipLevelBySpent(int $userId): string
+    {
+        if ($userId <= 0) {
+            return Constants::MEMBERSHIP_LEVEL_BRONZE;
+        }
+
+        $user = $this->findById($userId);
+        if (!$user) {
+            return Constants::MEMBERSHIP_LEVEL_BRONZE;
+        }
+
+        if (!$this->hasUsersColumn('membership_level')) {
+            return Constants::MEMBERSHIP_LEVEL_BRONZE;
+        }
+
+        $currentLevel = (string) ($user['membership_level'] ?? Constants::MEMBERSHIP_LEVEL_BRONZE);
+
+        if ($this->hasUsersColumn('is_level_locked') && !empty($user['is_level_locked'])) {
+            return $currentLevel;
+        }
+
+        $rules = $this->getMembershipRules();
+        if ($rules === []) {
+            return $currentLevel;
+        }
+
+        $currentSpent = (float) ($user['total_spent'] ?? 0);
+        $spentBasedLevel = Constants::MEMBERSHIP_LEVEL_BRONZE;
+        foreach ($rules as $rule) {
+            if ($currentSpent >= (float) ($rule['min_spent'] ?? 0)) {
+                $spentBasedLevel = (string) ($rule['level_key'] ?? Constants::MEMBERSHIP_LEVEL_BRONZE);
+            }
+        }
+
+        $currentIndex = $this->getLevelIndex($currentLevel, $rules);
+        $targetIndex = $this->getLevelIndex($spentBasedLevel, $rules);
+
+        if ($targetIndex < 0) {
+            $targetIndex = 0;
+        }
+
+        if ($targetIndex > $currentIndex) {
+            if ($this->hasUsersColumn('last_level_up_time')) {
+                $stmt = $this->pdo->prepare(
+                    'UPDATE users SET membership_level = ?, last_level_up_time = NOW() WHERE id = ?'
+                );
+            } else {
+                $stmt = $this->pdo->prepare('UPDATE users SET membership_level = ? WHERE id = ?');
+            }
+            $stmt->execute([$spentBasedLevel, $userId]);
+
+            return $spentBasedLevel;
+        }
+
+        return $currentLevel;
+    }
+
+    /**
+     * Clear admin level lock and re-sync membership from total_spent rules.
+     */
+    public function unlockLevel(int $userId): string
+    {
+        if ($userId <= 0) {
+            return Constants::MEMBERSHIP_LEVEL_BRONZE;
+        }
+
+        $existsStmt = $this->pdo->prepare('SELECT 1 FROM users WHERE id = ? LIMIT 1');
+        $existsStmt->execute([$userId]);
+        if ($existsStmt->fetchColumn() === false) {
+            return Constants::MEMBERSHIP_LEVEL_BRONZE;
+        }
+
+        if ($this->hasUsersColumn('is_level_locked')) {
+            $stmt = $this->pdo->prepare('UPDATE users SET is_level_locked = 0 WHERE id = ?');
+            $stmt->execute([$userId]);
+        }
+
+        return $this->refreshMembershipLevelBySpent($userId);
+    }
 
     public function addPoints(int $userId, int $points, ?int $orderId = null, string $description = ''): bool
     {
@@ -458,7 +577,7 @@ class UserModel extends Model
                 $orderId,
                 'earn',
                 $points,
-                $points / 1000,
+                $points / Constants::POINTS_PER_HKD,
                 $description,
             ]);
 
@@ -507,7 +626,7 @@ class UserModel extends Model
                 $orderId,
                 'spend',
                 -$points,
-                $points / 1000,
+                $points / Constants::POINTS_PER_HKD,
                 $description,
             ]);
 

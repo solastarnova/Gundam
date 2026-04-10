@@ -4,7 +4,7 @@ $asset = $asset ?? fn($p) => $p;
 $error = $error ?? '';
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= htmlspecialchars((string) ($html_lang ?? 'zh-HK'), ENT_QUOTES, 'UTF-8') ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,9 +14,8 @@ $error = $error ?? '';
     <link rel="stylesheet" href="<?= $asset('css/style.css') ?>">
     <link rel="stylesheet" href="<?= $asset('css/admin.css') ?>">
 </head>
-<body class="admin-login">
-    <?php include __DIR__ . '/../partials/header.php'; ?>
-    <div class="container py-5 mt-5">
+<body class="admin-login d-flex align-items-center min-vh-100 py-4">
+    <div class="container">
         <div class="row justify-content-center">
             <div class="col-12 col-sm-10 col-md-7 col-lg-5">
                 <div class="auth-card">
@@ -64,9 +63,9 @@ $error = $error ?? '';
                     </form>
 
                     <div class="help-links">
-                        <a href="<?= $url('') ?>">返回首页</a>
+                        <a href="<?= $url('') ?>">返回首頁</a>
                         <span class="text-muted mx-2">|</span>
-                        <a href="<?= $url('faq') ?>">帮助中心</a>
+                        <a href="<?= $url('faq') ?>">幫助中心</a>
                     </div>
                 </div>
             </div>

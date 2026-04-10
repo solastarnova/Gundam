@@ -25,8 +25,9 @@ const Cart = {
 };
 
 async function addToCart(id, name, price, img, qty = 1) {
+    var J = window.APP_JS_I18N || {};
     if (!window.isLoggedIn) {
-        alert('請先登入才能加入購物車');
+        alert(J.cartLoginRequired || '');
         window.location.href = (window.APP_BASE || '') + 'login?redirect=' + encodeURIComponent(window.location.pathname || '/');
         return;
     }
@@ -41,10 +42,10 @@ async function addToCart(id, name, price, img, qty = 1) {
         if (data && data.success) {
             await Cart.updateBadge();
         } else {
-            alert((data && data.message) ? data.message : '加入購物車失敗');
+            alert((data && data.message) ? data.message : (J.cartAddFailed || ''));
         }
     } catch (e) {
-        alert('加入購物車失敗，請稍後再試');
+        alert(J.cartAddFailedRetry || '');
     }
 }
 

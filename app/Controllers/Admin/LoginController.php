@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Core\Config;
 use App\Core\Controller;
+use App\Core\I18n;
 use App\Models\AdminModel;
 
 class LoginController extends Controller
@@ -26,10 +27,13 @@ class LoginController extends Controller
         $error = $this->consumeFlash('admin_login_error');
         $csrfToken = bin2hex(random_bytes(32));
         $_SESSION['admin_csrf_token'] = $csrfToken;
+        $locale = Config::locale();
         $data = [
             'title' => Config::get('messages.titles.admin_login'),
             'error' => $error,
             'csrf_token' => $csrfToken,
+            'locale' => $locale,
+            'html_lang' => I18n::toBcp47($locale),
             'asset' => fn (string $path) => $this->view->asset($path),
             'url' => fn (string $path = '') => $this->view->url($path),
         ];

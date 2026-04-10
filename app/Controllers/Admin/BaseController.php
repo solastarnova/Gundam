@@ -5,6 +5,9 @@ namespace App\Controllers\Admin;
 use App\Core\Config;
 use App\Core\Controller;
 
+/**
+ * Admin base: session auth (except login), CSRF for mutating requests.
+ */
 class BaseController extends Controller
 {
     protected array $adminUser;

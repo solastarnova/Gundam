@@ -1,0 +1,9 @@
+{
+    "wishlist": {
+        "invalid_product_id": "無效的商品ID",
+        "unfavorited": "已取消收藏",
+        "favorited": "已加入收藏",
+        "removed": "已移除",
+        "operation_failed": "操作失敗"
+    }
+}

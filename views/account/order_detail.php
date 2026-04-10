@@ -6,13 +6,26 @@ $orderItems = $orderItems ?? [];
 $canReviewItems = $canReviewItems ?? [];
 $reviewSuccess = $reviewSuccess ?? null;
 $reviewError = $reviewError ?? null;
+
+$statusLabels = [
+    'pending' => ['label' => __m('account.order_detail.status_pending_payment'), 'class' => 'warning'],
+    'paid' => ['label' => __m('account.order_detail.status_paid'), 'class' => 'info'],
+    'shipped' => ['label' => __m('account.order_detail.status_shipped'), 'class' => 'primary'],
+    'completed' => ['label' => __m('account.order_detail.status_completed'), 'class' => 'success'],
+    'cancelled' => ['label' => __m('account.order_detail.status_cancelled'), 'class' => 'secondary'],
+];
+$paymentLabels = [
+    'credit' => __m('account.order_detail.pay_credit'),
+    'paypal' => __m('account.order_detail.pay_paypal'),
+    'credit_card' => __m('account.order_detail.pay_credit'),
+];
 ?>
 <div class="container my-5 pt-5">
     <div class="row justify-content-center">
         <div class="col-lg-10">
             <div class="mb-4">
-                <h2 class="mb-1">訂單詳情</h2>
-                <p class="text-muted">查看訂單的詳細資訊與商品列表</p>
+                <h2 class="mb-1"><?= htmlspecialchars(__m('account.order_detail.title'), ENT_QUOTES, 'UTF-8') ?></h2>
+                <p class="text-muted"><?= htmlspecialchars(__m('account.order_detail.subtitle'), ENT_QUOTES, 'UTF-8') ?></p>
             </div>
 
             <?php if (!empty($reviewSuccess)): ?>
@@ -27,7 +40,7 @@ $reviewError = $reviewError ?? null;
                     <div class="col-lg-8">
                         <div class="card mb-4">
                             <div class="card-header bg-primary text-white">
-                                <h5 class="mb-0">訂單商品</h5>
+                                <h5 class="mb-0"><?= htmlspecialchars(__m('account.order_detail.card_items'), ENT_QUOTES, 'UTF-8') ?></h5>
                             </div>
                             <div class="card-body">
                                 <?php if (!empty($orderItems)): ?>
@@ -55,7 +68,7 @@ $reviewError = $reviewError ?? null;
                                                         <h6 class="mb-1">
                                                             <a href="<?= $detailUrl ?>" class="text-decoration-none text-dark"><?= htmlspecialchars($item['product_name'] ?? '') ?></a>
                                                         </h6>
-                                                        <small class="text-muted">數量：<?= (int)($item['quantity'] ?? 0) ?></small>
+                                                        <small class="text-muted"><?= htmlspecialchars(__m('account.order_detail.qty_label'), ENT_QUOTES, 'UTF-8') ?><?= (int)($item['quantity'] ?? 0) ?></small>
                                                         <p class="mb-0 mt-1 text-danger fw-bold">
                                                             <?= htmlspecialchars($money((float)($item['price'] ?? 0)), ENT_QUOTES, 'UTF-8') ?> × <?= (int)($item['quantity'] ?? 0) ?> = <?= htmlspecialchars($money((float)($item['price'] ?? 0) * (int)($item['quantity'] ?? 0)), ENT_QUOTES, 'UTF-8') ?>
                                                         </p>
@@ -63,30 +76,28 @@ $reviewError = $reviewError ?? null;
                                                 </div>
                                                 <?php if ($canReview): ?>
                                                 <div class="mt-3 pt-3 border-top">
-                                                    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#review-form-<?= $itemId ?>" aria-expanded="false">撰寫評價</button>
+                                                    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#review-form-<?= $itemId ?>" aria-expanded="false"><?= htmlspecialchars(__m('account.order_detail.write_review'), ENT_QUOTES, 'UTF-8') ?></button>
                                                     <div class="collapse mt-2" id="review-form-<?= $itemId ?>">
                                                         <form method="post" action="<?= $url('account/review') ?>">
                                                             <input type="hidden" name="item_id" value="<?= $itemId ?>">
                                                             <input type="hidden" name="order_id" value="<?= (int)($order['id'] ?? 0) ?>">
                                                             <div class="mb-2">
-                                                                <label class="form-label small">評價標題</label>
-                                                                <input type="text" class="form-control form-control-sm" name="review_title" placeholder="選填" maxlength="255">
+                                                                <label class="form-label small"><?= htmlspecialchars(__m('account.order_detail.review_title'), ENT_QUOTES, 'UTF-8') ?></label>
+                                                                <input type="text" class="form-control form-control-sm" name="review_title" placeholder="<?= htmlspecialchars(__m('account.order_detail.review_title_ph'), ENT_QUOTES, 'UTF-8') ?>" maxlength="255">
                                                             </div>
                                                             <div class="mb-2">
-                                                                <label class="form-label small">評價內容</label>
-                                                                <textarea class="form-control form-control-sm" name="review_content" rows="2" placeholder="分享您的使用心得" required></textarea>
+                                                                <label class="form-label small"><?= htmlspecialchars(__m('account.order_detail.review_body'), ENT_QUOTES, 'UTF-8') ?></label>
+                                                                <textarea class="form-control form-control-sm" name="review_content" rows="2" placeholder="<?= htmlspecialchars(__m('account.order_detail.review_body_ph'), ENT_QUOTES, 'UTF-8') ?>" required></textarea>
                                                             </div>
                                                             <div class="mb-2">
-                                                                <label class="form-label small">評分</label>
+                                                                <label class="form-label small"><?= htmlspecialchars(__m('account.order_detail.review_rating'), ENT_QUOTES, 'UTF-8') ?></label>
                                                                 <select class="form-select form-select-sm" name="review_rating" required>
-                                                                    <option value="5">5 星</option>
-                                                                    <option value="4">4 星</option>
-                                                                    <option value="3">3 星</option>
-                                                                    <option value="2">2 星</option>
-                                                                    <option value="1">1 星</option>
+                                                                    <?php for ($s = 5; $s >= 1; $s--): ?>
+                                                                    <option value="<?= $s ?>"><?= htmlspecialchars(sprintf(__m('account.order_detail.star_option'), $s), ENT_QUOTES, 'UTF-8') ?></option>
+                                                                    <?php endfor; ?>
                                                                 </select>
                                                             </div>
-                                                            <button type="submit" class="btn btn-primary btn-sm">提交評價</button>
+                                                            <button type="submit" class="btn btn-primary btn-sm"><?= htmlspecialchars(__m('account.order_detail.submit_review'), ENT_QUOTES, 'UTF-8') ?></button>
                                                         </form>
                                                     </div>
                                                 </div>
@@ -95,7 +106,7 @@ $reviewError = $reviewError ?? null;
                                         <?php endforeach; ?>
                                     </div>
                                 <?php else: ?>
-                                    <p class="text-muted text-center py-3 mb-0">沒有訂單商品資料</p>
+                                    <p class="text-muted text-center py-3 mb-0"><?= htmlspecialchars(__m('account.order_detail.no_items'), ENT_QUOTES, 'UTF-8') ?></p>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -103,34 +114,26 @@ $reviewError = $reviewError ?? null;
                     <div class="col-lg-4">
                         <div class="card">
                             <div class="card-header bg-success text-white">
-                                <h5 class="mb-0">訂單資訊</h5>
+                                <h5 class="mb-0"><?= htmlspecialchars(__m('account.order_detail.card_info'), ENT_QUOTES, 'UTF-8') ?></h5>
                             </div>
                             <div class="card-body">
                                 <?php
-                                $statusLabels = [
-                                    'pending' => ['label' => '待付款', 'class' => 'warning'],
-                                    'paid' => ['label' => '已付款', 'class' => 'info'],
-                                    'shipped' => ['label' => '已發貨', 'class' => 'primary'],
-                                    'completed' => ['label' => '已完成', 'class' => 'success'],
-                                    'cancelled' => ['label' => '已取消', 'class' => 'secondary'],
-                                ];
                                 $status = $order['status'] ?? 'pending';
                                 $statusInfo = $statusLabels[$status] ?? $statusLabels['pending'];
-                                $paymentLabels = ['credit' => '信用卡/扣帳卡', 'paypal' => 'PayPal', 'credit_card' => '信用卡/扣帳卡'];
                                 ?>
-                                <p class="mb-2"><span class="badge bg-<?= $statusInfo['class'] ?>"><?= $statusInfo['label'] ?></span></p>
-                                <p class="mb-2"><strong>訂單編號：</strong><?= htmlspecialchars($order['order_number'] ?? '') ?></p>
-                                <p class="mb-2"><strong>下單時間：</strong><?= date('Y-m-d H:i', strtotime($order['created_at'] ?? 'now')) ?></p>
+                                <p class="mb-2"><span class="badge bg-<?= $statusInfo['class'] ?>"><?= htmlspecialchars($statusInfo['label'], ENT_QUOTES, 'UTF-8') ?></span></p>
+                                <p class="mb-2"><strong><?= htmlspecialchars(__m('account.order_detail.label_order_no'), ENT_QUOTES, 'UTF-8') ?></strong><?= htmlspecialchars($order['order_number'] ?? '') ?></p>
+                                <p class="mb-2"><strong><?= htmlspecialchars(__m('account.order_detail.label_created'), ENT_QUOTES, 'UTF-8') ?></strong><?= date('Y-m-d H:i', strtotime($order['created_at'] ?? 'now')) ?></p>
                                 <?php if (!empty($order['payment_method'])): ?>
-                                    <p class="mb-2"><strong>付款方式：</strong><?= htmlspecialchars($paymentLabels[$order['payment_method']] ?? $order['payment_method']) ?></p>
+                                    <p class="mb-2"><strong><?= htmlspecialchars(__m('account.order_detail.label_payment_method'), ENT_QUOTES, 'UTF-8') ?></strong><?= htmlspecialchars((string) ($paymentLabels[$order['payment_method']] ?? $order['payment_method']), ENT_QUOTES, 'UTF-8') ?></p>
                                 <?php endif; ?>
                                 <?php if (!empty($order['shipping_address'])): ?>
-                                    <p class="mb-3"><strong>配送地址：</strong><br><span class="text-muted small" style="white-space: pre-line;"><?= htmlspecialchars($order['shipping_address']) ?></span></p>
+                                    <p class="mb-3"><strong><?= htmlspecialchars(__m('account.order_detail.label_shipping'), ENT_QUOTES, 'UTF-8') ?></strong><br><span class="text-muted small" style="white-space: pre-line;"><?= htmlspecialchars($order['shipping_address']) ?></span></p>
                                 <?php endif; ?>
                                 <hr>
-                                <p class="mb-0 d-flex justify-content-between"><strong>訂單總額</strong><strong class="text-danger"><?= htmlspecialchars($money((float)($order['total_amount'] ?? 0)), ENT_QUOTES, 'UTF-8') ?></strong></p>
+                                <p class="mb-0 d-flex justify-content-between"><strong><?= htmlspecialchars(__m('account.order_detail.order_total'), ENT_QUOTES, 'UTF-8') ?></strong><strong class="text-danger"><?= htmlspecialchars($money((float)($order['total_amount'] ?? 0)), ENT_QUOTES, 'UTF-8') ?></strong></p>
                                 <hr>
-                                <a href="<?= $url('account/orders') ?>" class="btn btn-outline-secondary w-100">返回訂單列表</a>
+                                <a href="<?= $url('account/orders') ?>" class="btn btn-outline-secondary w-100"><?= htmlspecialchars(__m('account.order_detail.back_list'), ENT_QUOTES, 'UTF-8') ?></a>
                             </div>
                         </div>
                     </div>
@@ -138,8 +141,8 @@ $reviewError = $reviewError ?? null;
             <?php else: ?>
                 <div class="card">
                     <div class="card-body text-center py-5">
-                        <p class="text-muted mb-3">找不到此訂單</p>
-                        <a href="<?= $url('account/orders') ?>" class="btn btn-primary">返回訂單列表</a>
+                        <p class="text-muted mb-3"><?= htmlspecialchars(__m('account.order_detail.not_found'), ENT_QUOTES, 'UTF-8') ?></p>
+                        <a href="<?= $url('account/orders') ?>" class="btn btn-primary"><?= htmlspecialchars(__m('account.order_detail.back_list'), ENT_QUOTES, 'UTF-8') ?></a>
                     </div>
                 </div>
             <?php endif; ?>

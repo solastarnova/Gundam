@@ -19,18 +19,20 @@ function view_highlight_keyword($text, $keyword) {
                 <div class="alert alert-warning"><?= htmlspecialchars($errorMessage) ?></div>
             <?php elseif ($keyword !== ''): ?>
                 <div class="search-stats">
-                    找到 <span class="text-primary fw-bold"><?= $totalResults ?></span> 個與 "<span class="text-danger"><?= htmlspecialchars($keyword) ?></span>" 相關的商品
+                    <?= htmlspecialchars(__m('search.results_prefix'), ENT_QUOTES, 'UTF-8') ?><span class="text-primary fw-bold"><?= (int) $totalResults ?></span><?= htmlspecialchars(__m('search.results_mid'), ENT_QUOTES, 'UTF-8') ?><span class="text-danger">"<?= htmlspecialchars($keyword, ENT_QUOTES, 'UTF-8') ?>"</span><?= htmlspecialchars(__m('search.results_suffix'), ENT_QUOTES, 'UTF-8') ?>
                 </div>
                 <?php if ($totalResults > 0): ?>
                     <div class="row">
                         <?php foreach ($products as $product): ?>
                         <div class="col-md-4 col-lg-3 mb-4">
-                            <div class="card h-100">
+                            <div class="card h-100 product-card">
                                 <img src="<?= $asset('images/' . ($product['image_path'] ?? 'placeholder.jpg')) ?>" class="card-img-top search-card-img" alt="<?= htmlspecialchars($product['name']) ?>" onerror="this.src='<?= $asset('images/placeholder.jpg') ?>'">
                                 <div class="card-body">
                                     <h6 class="card-title"><?= view_highlight_keyword($product['name'], $keyword) ?></h6>
-                                    <p class="card-text text-primary fw-bold"><?= htmlspecialchars($money((float)($product['price'] ?? 0)), ENT_QUOTES, 'UTF-8') ?></p>
-                                    <a href="<?= $url('product/' . (int)($product['id'] ?? 0)) ?>" class="btn btn-outline-primary btn-sm">查看詳情</a>
+                                    <div class="price-box mb-2">
+                                        <span class="member-price"><?= htmlspecialchars($money((float)($product['price'] ?? 0)), ENT_QUOTES, 'UTF-8') ?></span>
+                                    </div>
+                                    <a href="<?= $url('product/' . (int)($product['id'] ?? 0)) ?>" class="btn btn-outline-primary btn-sm"><?= htmlspecialchars(__m('search.view_detail'), ENT_QUOTES, 'UTF-8') ?></a>
                                 </div>
                             </div>
                         </div>
@@ -39,9 +41,9 @@ function view_highlight_keyword($text, $keyword) {
                 <?php else: ?>
                     <div class="no-results">
                         <i class="bi bi-search no-results-icon"></i>
-                        <h4 class="mt-3">沒有找到相關商品</h4>
-                        <p class="text-muted">嘗試使用其他關鍵詞或查看我們的熱門商品</p>
-                        <a href="<?= $url('') ?>" class="btn btn-primary mt-3">瀏覽所有商品</a>
+                        <h4 class="mt-3"><?= htmlspecialchars(__m('search.no_results_title'), ENT_QUOTES, 'UTF-8') ?></h4>
+                        <p class="text-muted"><?= htmlspecialchars(__m('search.no_results_hint'), ENT_QUOTES, 'UTF-8') ?></p>
+                        <a href="<?= $url('') ?>" class="btn btn-primary mt-3"><?= htmlspecialchars(__m('search.browse_all'), ENT_QUOTES, 'UTF-8') ?></a>
                     </div>
                 <?php endif; ?>
             <?php endif; ?>

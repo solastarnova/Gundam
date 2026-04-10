@@ -17,3 +17,10 @@ storage/firebase-adminsdk-*.json
 *.md
 /docs/
 
+# 僅本地腳本與工具（不提交）
+/scripts/
+/local/
+/tools/
+*.local.sh
+scratch.php
+

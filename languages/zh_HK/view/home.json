@@ -1,0 +1,39 @@
+{
+    "view": {
+        "home": {
+            "carousel_slide": "輪播圖 %d",
+            "promo_alt": "當月主打宣傳 %d",
+            "prev_slide": "上一張",
+            "next_slide": "下一張",
+            "view_detail": "查看詳情",
+            "secondary_nav_aria": "首頁區塊導覽",
+            "nav_home": "首頁",
+            "nav_products": "全部商品",
+            "nav_categories": "比例 / 系列",
+            "nav_new_arrivals": "最新上架",
+            "nav_featured": "推薦精選",
+            "nav_news": "模型情報",
+            "usp_authentic_title": "正版授權",
+            "usp_authentic_text": "原廠貨源與包裝，收藏更安心。",
+            "usp_shipping_title": "快速發貨",
+            "usp_shipping_text": "訂單處理透明，盡快安排出貨。",
+            "usp_payment_title": "安全付款",
+            "usp_payment_text": "主流支付與加密流程，保障交易。",
+            "usp_support_title": "客服支援",
+            "usp_support_text": "組裝、訂單問題線上協助。",
+            "categories_title": "比例 / 系列導覽",
+            "categories_empty": "系列資料整理中，請先前往商品館探索。",
+            "category_box_aria": "前往 %s 商品列表",
+            "new_arrivals_title": "最新商品",
+            "featured_title": "推薦商品",
+            "section_shop_more": "前往選購",
+            "products_empty": "暫無商品，請稍後再來看看。",
+            "news_title": "模型情報",
+            "news_subtitle": "組裝技巧 · 選購指南 · 收藏心得",
+            "news_read_more": "閱讀全文",
+            "news_empty": "專欄內容籌備中。",
+            "swiper_prev": "上一組商品",
+            "swiper_next": "下一組商品"
+        }
+    }
+}

@@ -5,6 +5,9 @@ namespace App\Models;
 use App\Core\Model;
 use App\Core\Config;
 
+/**
+ * Cart persistence in session (items JSON) with stock checks.
+ */
 class CartModel extends Model
 {
     private const CART_STATUS = 'Added to cart';
@@ -49,10 +52,7 @@ class CartModel extends Model
         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
             $basePrice = (float) ($row['base_price'] ?? 0);
             $discountPercent = max(0.0, min(100.0, (float) ($row['discount_percent'] ?? 0)));
-            $memberPrice = $basePrice;
-            if ($discountPercent > 0) {
-                $memberPrice = round($basePrice * (1 - ($discountPercent / 100)), 2);
-            }
+            $memberPrice = UserModel::getDiscountedPrice($basePrice, $discountPercent);
 
             $items[] = [
                 'cart_item_id' => (int) $row['cart_item_id'],

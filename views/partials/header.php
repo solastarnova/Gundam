@@ -10,18 +10,18 @@ $asset = $asset ?? fn($p) => $p;
     </a>
     <form class="d-none d-sm-flex w-100 p-0 m-0 navbar-search-form js-search-form" action="<?= $url('search') ?>" method="GET">
       <div class="input-group">
-        <input class="form-control border-primary" name="search" type="search" placeholder="搜尋喜愛產品或諮詢" aria-label="Search">
+        <input class="form-control border-primary" name="search" type="search" placeholder="<?= htmlspecialchars(__m('header.search_placeholder'), ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars(__m('header.search_aria'), ENT_QUOTES, 'UTF-8') ?>">
         <button class="btn btn-primary" type="submit"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg></button>
       </div>
     </form>
-    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="<?= htmlspecialchars(__m('header.nav_toggle_aria'), ENT_QUOTES, 'UTF-8') ?>">
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse navbar-collapse-mobile-right" id="navbarSupportedContent">
       <form class="d-sm-none mb-3 px-3 js-search-form" action="<?= $url('search') ?>" method="GET">
         <div class="input-group">
-          <input class="form-control border-primary" name="search" type="search" placeholder="搜尋喜愛產品或諮詢" aria-label="Search">
-          <button class="btn btn-primary" type="submit" aria-label="搜尋"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg></button>
+          <input class="form-control border-primary" name="search" type="search" placeholder="<?= htmlspecialchars(__m('header.search_placeholder'), ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars(__m('header.search_aria'), ENT_QUOTES, 'UTF-8') ?>">
+          <button class="btn btn-primary" type="submit" aria-label="<?= htmlspecialchars(__m('header.search_submit_aria'), ENT_QUOTES, 'UTF-8') ?>"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg></button>
         </div>
       </form>
       <ul class="navbar-nav ms-auto mb-2 mb-sm-0 align-items-sm-center">
@@ -33,17 +33,17 @@ $asset = $asset ?? fn($p) => $p;
         </li>
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle d-flex align-items-center" href="<?= isset($_SESSION['email']) ? $url('account') : '#' ?>" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            <?= isset($_SESSION['email']) ? '<span class="me-1">' . htmlspecialchars($_SESSION['user_name'] ?? '用戶') . '</span>' : '帳戶' ?>
+            <?= isset($_SESSION['email']) ? '<span class="me-1">' . htmlspecialchars($_SESSION['user_name'] ?? __m('header.user_default'), ENT_QUOTES, 'UTF-8') . '</span>' : htmlspecialchars(__m('header.account'), ENT_QUOTES, 'UTF-8') ?>
           </a>
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
             <?php if (isset($_SESSION['email'])): ?>
-            <li><a class="dropdown-item" href="<?= $url('account') ?>">我的帳號</a></li>
-            <li><a class="dropdown-item" href="<?= $url('account/settings') ?>">重置密碼</a></li>
+            <li><a class="dropdown-item" href="<?= $url('account') ?>"><?= htmlspecialchars(__m('header.my_account'), ENT_QUOTES, 'UTF-8') ?></a></li>
+            <li><a class="dropdown-item" href="<?= $url('account/settings') ?>"><?= htmlspecialchars(__m('header.reset_password'), ENT_QUOTES, 'UTF-8') ?></a></li>
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-primary" href="<?= $url('logout') ?>" data-logout="1">登出</a></li>
+            <li><a class="dropdown-item text-primary" href="<?= $url('logout') ?>" data-logout="1"><?= htmlspecialchars(__m('header.logout'), ENT_QUOTES, 'UTF-8') ?></a></li>
             <?php else: ?>
-            <li><a class="dropdown-item" href="<?= $url('login') ?>">登入</a></li>
-            <li><a class="dropdown-item" href="<?= $url('register') ?>">註冊</a></li>
+            <li><a class="dropdown-item" href="<?= $url('login') ?>"><?= htmlspecialchars(__m('header.login'), ENT_QUOTES, 'UTF-8') ?></a></li>
+            <li><a class="dropdown-item" href="<?= $url('register') ?>"><?= htmlspecialchars(__m('header.register'), ENT_QUOTES, 'UTF-8') ?></a></li>
             <?php endif; ?>
           </ul>
         </li>

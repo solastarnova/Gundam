@@ -10,6 +10,9 @@ use App\Models\OrderModel;
 use App\Models\UserModel;
 use PDOException;
 
+/**
+ * Cart-to-order flow: numbering, persistence, wallet deduction, spend/points side effects.
+ */
 class OrderService
 {
     private Order $order;
@@ -87,9 +90,10 @@ class OrderService
                 WalletService::deductWithinTransaction($pdo, $userId, $walletUsed, 'payment', $orderId, $desc);
             }
 
-            // 付款成功即计入累计消费（含钱包支付订单 paid 状态）
+            // paid/completed: bump total_spent and refresh membership; completed also awards points below
             if (in_array($status, ['paid', 'completed'], true)) {
                 $this->increaseTotalSpent($userId, $totalAmount);
+                (new UserModel($pdo))->refreshMembershipLevelBySpent($userId);
             }
 
             if ($status === 'completed') {
@@ -174,13 +178,7 @@ class OrderService
             return;
         }
 
-        $userModel->refreshMembershipLevelBySpent($userId);
-        $membershipInfo = $userModel->getMembershipInfo($userId);
-        $rule = $membershipInfo['current_rule'] ?? null;
-        $multiplier = (float) ($rule['points_multiplier'] ?? 1.0);
-        if ($multiplier <= 0) {
-            $multiplier = 1.0;
-        }
+        $multiplier = $userModel->getPointsMultiplierForUser($userId);
 
         $pointsToAdd = (int) floor($orderAmount * $multiplier);
         if ($pointsToAdd <= 0) {

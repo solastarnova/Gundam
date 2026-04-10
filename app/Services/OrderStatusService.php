@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Core\Config;
 
+/**
+ * Order status whitelist and transition matrix from config.
+ */
 class OrderStatusService
 {
     public static function allowed(): array

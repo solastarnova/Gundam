@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+/**
+ * Shipping fee calculation from config (with defaults).
+ */
 class ShippingService
 {
     private const DEFAULT_CONFIG = [
@@ -10,6 +13,11 @@ class ShippingService
         'free_threshold' => 500.0,
     ];
 
+    /**
+     * Merged shipping thresholds and fees.
+     *
+     * @return array{express_fee: float, standard_fee: float, free_threshold: float}
+     */
     public static function getConfig(): array
     {
         $raw = \App\Core\Config::get('shipping', []);
@@ -24,6 +32,10 @@ class ShippingService
         ];
     }
 
+    /**
+     * @param float $subtotal Cart subtotal before shipping
+     * @param string $shippingMethod standard|express
+     */
     public static function calculateShippingFee(float $subtotal, string $shippingMethod = 'standard'): float
     {
         $shippingConfig = self::getConfig();
@@ -43,6 +55,9 @@ class ShippingService
         return 0.0;
     }
 
+    /**
+     * Subtotal plus shipping for the given method.
+     */
     public static function calculateTotal(float $subtotal, string $shippingMethod = 'standard'): float
     {
         $shippingFee = self::calculateShippingFee($subtotal, $shippingMethod);

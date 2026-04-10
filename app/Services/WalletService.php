@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Core\Database;
 
+/**
+ * User wallet balance and ledger rows (must use provided PDO when inside a transaction).
+ */
 class WalletService
 {
     public function getBalance(int $userId): float

@@ -29,7 +29,12 @@ CREATE TABLE `items` (
   `price` int(11) NOT NULL,
   `stock_quantity` int(11) DEFAULT 0,
   `image_path` varchar(255) DEFAULT NULL,
-  PRIMARY KEY (`id`)
+  `listed_at` datetime NOT NULL DEFAULT current_timestamp() COMMENT '上架時間（首頁最新商品排序）',
+  `is_recommended` tinyint(1) NOT NULL DEFAULT 0 COMMENT '首頁推薦商品',
+  `recommended_sort` int(11) NOT NULL DEFAULT 0 COMMENT '推薦排序（數字越小越前）',
+  PRIMARY KEY (`id`),
+  KEY `idx_items_listed_at` (`listed_at`),
+  KEY `idx_items_recommended` (`is_recommended`,`recommended_sort`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `users` (
@@ -48,6 +53,7 @@ CREATE TABLE `users` (
   `total_points_earned` int(11) NOT NULL DEFAULT 0,
   `total_points_spent` int(11) NOT NULL DEFAULT 0,
   `membership_level` varchar(20) NOT NULL DEFAULT 'bronze',
+  `is_level_locked` tinyint(1) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `unq_users_email` (`email`),

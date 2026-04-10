@@ -26,34 +26,28 @@ class ProductController extends Controller
         $limit = (int) Config::get('product_list_limit', 50);
         $rows = $this->productModel->getFeatured($limit);
 
-        $memberDiscountPercent = 0.0;
-        if (isset($_SESSION['user_id'])) {
-            $userId = (int) $_SESSION['user_id'];
-            $membershipInfo = (new UserModel())->getMembershipInfo($userId);
-            $currentRule = $membershipInfo['current_rule'] ?? null;
-            $memberDiscountPercent = max(0.0, min(100.0, (float) ($currentRule['discount_percent'] ?? 0)));
-        }
+        $userModel = new UserModel();
+        $memberDiscountPercent = isset($_SESSION['user_id'])
+            ? $userModel->getMemberDiscountPercentForUser((int) $_SESSION['user_id'])
+            : 0.0;
 
         $featuredProducts = [];
         foreach ($rows as $row) {
             $id = (int) ($row['id'] ?? 0);
             $basePrice = (float) ($row['price'] ?? 0);
-            $memberPrice = $basePrice;
-            if ($memberDiscountPercent > 0) {
-                $memberPrice = round($basePrice * (1 - ($memberDiscountPercent / 100)), 2);
-            }
+            $memberPrice = UserModel::getDiscountedPrice($basePrice, $memberDiscountPercent);
 
             $imgPath = $row['image_path'] ?? '';
             $category = trim((string) ($row['category'] ?? ''));
             $stockQty = (int) ($row['stock_quantity'] ?? 0);
             $featuredProducts[] = [
                 'id' => $id,
-                'name' => $row['name'] ?? '未命名商品',
+                'name' => $row['name'] ?? (string) Config::get('messages.view.product_list.unnamed_product', '未命名商品'),
                 'image_path' => $imgPath,
                 'price' => $memberPrice,
                 'original_price' => $basePrice,
                 'discount_percent' => $memberDiscountPercent,
-                'category' => $category !== '' ? $category : '其他',
+                'category' => $category !== '' ? $category : (string) Config::get('messages.view.product_list.category_other', '其他'),
                 'stock_quantity' => $stockQty,
                 'final_price' => MoneyFormatter::format($memberPrice),
                 'formatted_price' => MoneyFormatter::format($memberPrice),
@@ -86,18 +80,12 @@ class ProductController extends Controller
 
         $basePrice = (float) ($item['price'] ?? 0);
 
-        $memberDiscountPercent = 0.0;
-        if (isset($_SESSION['user_id'])) {
-            $userId = (int) $_SESSION['user_id'];
-            $membershipInfo = (new UserModel())->getMembershipInfo($userId);
-            $currentRule = $membershipInfo['current_rule'] ?? null;
-            $memberDiscountPercent = max(0.0, min(100.0, (float) ($currentRule['discount_percent'] ?? 0)));
-        }
+        $userModel = new UserModel();
+        $memberDiscountPercent = isset($_SESSION['user_id'])
+            ? $userModel->getMemberDiscountPercentForUser((int) $_SESSION['user_id'])
+            : 0.0;
 
-        $finalPrice = $basePrice;
-        if ($memberDiscountPercent > 0) {
-            $finalPrice = round($basePrice * (1 - ($memberDiscountPercent / 100)), 2);
-        }
+        $finalPrice = UserModel::getDiscountedPrice($basePrice, $memberDiscountPercent);
 
         $discount = $basePrice;
         $discountPercent = $memberDiscountPercent;

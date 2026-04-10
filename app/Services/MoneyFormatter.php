@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Core\Config;
 
+/**
+ * Format amounts using currency.symbol and currency.decimals from config.
+ */
 final class MoneyFormatter
 {
     public static function format(float $amount): string

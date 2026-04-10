@@ -1,0 +1,13 @@
+{
+    "view": {
+        "search": {
+            "results_prefix": "找到 ",
+            "results_mid": " 個與 ",
+            "results_suffix": " 相關的商品",
+            "view_detail": "查看詳情",
+            "no_results_title": "沒有找到相關商品",
+            "no_results_hint": "嘗試使用其他關鍵詞或查看我們的熱門商品",
+            "browse_all": "瀏覽所有商品"
+        }
+    }
+}

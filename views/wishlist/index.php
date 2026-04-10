@@ -1,36 +1,22 @@
 <?php
 $url = $url ?? fn($p = '') => $p;
+$account_nav_active = 'wishlist';
 ?>
 <div class="container account-page my-5 pt-5">
     <div class="row account-layout">
-        <div class="col-lg-3 col-md-4">
-            <div class="sidebar account-sidebar">
-                <h5 class="px-4 mb-4 text-dark fw-bold">我的帳戶</h5>
-                <div class="nav flex-column">
-                    <a href="<?= $url('account') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-person me-2"></i> 個人資料</a>
-                    <a href="<?= $url('account/points') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-award me-2"></i> 會員中心</a>
-                    <a href="<?= $url('account/orders') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-bag me-2"></i> 訂單記錄</a>
-                    <a href="<?= $url('wishlist') ?>" class="nav-link d-flex align-items-center active"><i class="bi bi-heart me-2"></i> 喜愛清單</a>
-                    <span class="nav-link d-flex align-items-center text-muted user-select-none" style="pointer-events: none; cursor: default;" title="暫未開放"><i class="bi bi-ticket-perforated me-2"></i> 優惠券</span>
-                    <a href="<?= $url('account/addresses') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-geo-alt me-2"></i> 預設地址</a>
-                    <a href="<?= $url('account/payment') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-credit-card me-2"></i> 付款方式</a>
-                    <a class="nav-link d-flex" href="<?= $url('account/settings') ?>"> 帳戶設定</a>
-                    <a class="nav-link d-flex text-danger" href="<?= $url('logout') ?>" data-logout="1"> 登出</a>
-                </div>
-            </div>
-        </div>
+        <?php include __DIR__ . '/../partials/account_sidebar.php'; ?>
         <div class="col-lg-9 col-md-8">
             <div class="account-main-card account-main-padding">
                 <div class="mb-4">
-                    <h4 class="mb-4">喜愛清單</h4>
-                    <p class="page-subtitle">收藏您喜愛的商品，隨時查看與購買</p>
+                    <h4 class="mb-4"><?= htmlspecialchars(__m('wishlist.title'), ENT_QUOTES, 'UTF-8') ?></h4>
+                    <p class="page-subtitle"><?= htmlspecialchars(__m('wishlist.subtitle'), ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
-                <p class="text-muted mb-3" id="wishlistCount">共 0 件商品</p>
+                <p class="text-muted mb-3" id="wishlistCount"><?= htmlspecialchars(__m('wishlist.count_initial'), ENT_QUOTES, 'UTF-8') ?></p>
                 <div class="row g-4" id="wishlistGrid"></div>
                 <div id="emptyWishlist" class="empty-wishlist">
-                    <div class="empty-wishlist-text">您的喜愛清單是空的</div>
-                    <p class="text-muted mb-4">將您喜愛的商品加入清單，方便以後查看與購買</p>
-                    <a href="<?= $url('') ?>" class="btn btn-primary"><i class="bi bi-bag me-1"></i> 去購物</a>
+                    <div class="empty-wishlist-text"><?= htmlspecialchars(__m('wishlist.empty_title'), ENT_QUOTES, 'UTF-8') ?></div>
+                    <p class="text-muted mb-4"><?= htmlspecialchars(__m('wishlist.empty_hint'), ENT_QUOTES, 'UTF-8') ?></p>
+                    <a href="<?= $url('') ?>" class="btn btn-primary"><i class="bi bi-bag me-1"></i> <?= htmlspecialchars(__m('wishlist.go_shopping'), ENT_QUOTES, 'UTF-8') ?></a>
                 </div>
             </div>
         </div>
@@ -38,7 +24,20 @@ $url = $url ?? fn($p = '') => $p;
 </div>
 
 <script>
+window.VIEW_WISHLIST = <?= json_encode([
+    'countTpl' => __m('wishlist.js_count_tpl'),
+    'addToCart' => __mu('add_to_cart'),
+    'addedPrefix' => __m('wishlist.js_added_prefix'),
+    'addFailed' => __m('wishlist.js_add_failed'),
+    'addFailedRetry' => __m('wishlist.js_add_failed_retry'),
+    'confirmRemove' => __m('wishlist.js_confirm_remove'),
+    'removeFailed' => __m('wishlist.js_remove_failed'),
+    'removeFailedRetry' => __m('wishlist.js_remove_failed_retry'),
+    'shareDev' => __m('wishlist.js_share_dev'),
+    'confirmClear' => __m('wishlist.js_confirm_clear'),
+], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>;
 (function() {
+    const v = window.VIEW_WISHLIST || {};
     let wishlist = [];
     function escapeHtml(str) {
         const d = document.createElement('div');
@@ -57,7 +56,7 @@ $url = $url ?? fn($p = '') => $p;
         } catch (e) {
             wishlist = [];
         }
-        countElement.textContent = '共 ' + wishlist.length + ' 件商品';
+        countElement.textContent = (v.countTpl || '').replace(/\{\{n\}\}/g, String(wishlist.length));
         if (wishlist.length === 0) {
             container.style.display = 'none';
             emptyWishlist.style.display = 'block';
@@ -77,7 +76,7 @@ $url = $url ?? fn($p = '') => $p;
             const imgSrc = imgPath.startsWith('http') ? imgPath : (baseUrl + imgPath.replace(/^\/+/, ''));
             const productUrl = baseUrl + 'product/' + (item.id || '');
             col.innerHTML = `
-                <div class="card h-100">
+                <div class="card h-100 product-card">
                     <a href="${escapeHtml(productUrl)}" class="text-decoration-none d-block">
                         <div class="ratio ratio-1x1 bg-light">
                             <img src="${escapeHtml(imgSrc)}" class="card-img-top object-fit-cover" alt="${escapeHtml(item.name || '')}" loading="lazy" onerror="this.onerror=null;this.src='${escapeHtml(placeholderImg)}';">
@@ -85,10 +84,10 @@ $url = $url ?? fn($p = '') => $p;
                     </a>
                     <div class="card-body d-flex flex-column">
                         <h6 class="card-title text-truncate mb-2" title="${escapeHtml(item.name || '')}">${escapeHtml(item.name || '')}</h6>
-                        <p class="card-text text-danger fw-bold mb-2">${(typeof window.formatMoney === 'function' ? window.formatMoney(Number(item.price || 0)) : Number(item.price || 0).toFixed(2))}</p>
+                        <div class="price-box mb-2"><span class="member-price">${(typeof window.formatMoney === 'function' ? window.formatMoney(Number(item.price || 0)) : Number(item.price || 0).toFixed(2))}</span></div>
                         <div class="d-flex gap-2 mt-auto">
                             <button class="btn btn-primary btn-sm flex-grow-1 btn-add-cart-wishlist" data-index="${index}" type="button">
-                                <i class="bi bi-cart-plus"></i> 加入購物車
+                                <i class="bi bi-cart-plus"></i> ${escapeHtml(v.addToCart || '')}
                             </button>
                             <button class="btn btn-outline-danger btn-sm btn-remove-wishlist" data-id="${item.id}" type="button">
                                 <i class="bi bi-trash"></i>
@@ -117,16 +116,16 @@ $url = $url ?? fn($p = '') => $p;
             const data = await res.json();
             if (data && data.success) {
                 if (typeof updateCartBadge === 'function') await updateCartBadge();
-                alert('已加入購物車：' + item.name);
+                alert((v.addedPrefix || '') + item.name);
             } else {
-                alert((data && data.message) ? data.message : '加入購物車失敗');
+                alert((data && data.message) ? data.message : (v.addFailed || ''));
             }
         } catch (e) {
-            alert('加入購物車失敗，請稍後再試');
+            alert(v.addFailedRetry || '');
         }
     }
     async function removeFromWishlist(productId) {
-        if (!confirm('確定要移除嗎？')) return;
+        if (!confirm(v.confirmRemove || '')) return;
         const base = window.APP_BASE || '';
         try {
             const fd = new FormData();
@@ -134,17 +133,17 @@ $url = $url ?? fn($p = '') => $p;
             const res = await fetch(base + 'api/wishlist/remove', { method: 'POST', body: fd });
             const data = await res.json();
             if (data && data.success) await loadWishlist();
-            else alert(data && data.message ? data.message : '移除失敗');
+            else alert(data && data.message ? data.message : (v.removeFailed || ''));
         } catch (e) {
-            alert('移除失敗，請稍後再試');
+            alert(v.removeFailedRetry || '');
         }
     }
-    window.shareWishlist = function() { alert('分享功能開發中'); };
+    window.shareWishlist = function() { alert(v.shareDev || ''); };
     document.addEventListener('DOMContentLoaded', function() {
         loadWishlist();
         var clearBtn = document.getElementById('clearWishlistBtn');
         if (clearBtn) clearBtn.addEventListener('click', function() {
-            if (!confirm('確定要清空喜愛清單嗎？')) return;
+            if (!confirm(v.confirmClear || '')) return;
             (async function() {
                 var base = window.APP_BASE || '';
                 var res = await fetch(base + 'api/wishlist/items');

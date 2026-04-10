@@ -77,11 +77,11 @@ $totalPages = ceil($total / $limit);
                             <?php if ($status === 'active'): ?>
                                 <span class="badge bg-success">啟用</span>
                             <?php else: ?>
-                                <span class="badge bg-secondary">禁用</span>
+                                <span class="badge bg-secondary">停用</span>
                             <?php endif; ?>
                         </td>
                         <td>
-                            <form method="POST" action="<?= $url('admin/users/' . $user['id'] . '/vip-level') ?>" class="d-flex flex-row flex-nowrap gap-1 align-items-center mb-0" style="white-space: nowrap;">
+                            <form method="POST" action="<?= $url('admin/users/' . $user['id'] . '/membership-level') ?>" class="d-flex flex-row flex-nowrap gap-1 align-items-center mb-0" style="white-space: nowrap;">
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8') ?>">
                                 <select name="membership_level" class="form-select form-select-sm" style="width: 120px; min-width: 120px;">
                                     <?php foreach ($levels as $level): ?>
@@ -90,7 +90,7 @@ $totalPages = ceil($total / $limit);
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
-                                <button type="submit" class="btn btn-sm btn-outline-primary">保存</button>
+                                <button type="submit" class="btn btn-sm btn-outline-primary">儲存</button>
                             </form>
                         </td>
                         <td><?= number_format((float) ($user['total_spent'] ?? 0), 2) ?></td>
@@ -101,8 +101,8 @@ $totalPages = ceil($total / $limit);
                         <td>
                             <form method="POST" action="<?= $url('admin/users/' . $user['id'] . '/toggle-status') ?>" class="d-inline me-1">
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token ?? '', ENT_QUOTES, 'UTF-8') ?>">
-                                <button type="submit" class="btn btn-sm <?= $status === 'active' ? 'btn-warning' : 'btn-success' ?>" title="<?= $status === 'active' ? '禁用' : '啟用' ?>">
-                                    <?= $status === 'active' ? '禁用' : '啟用' ?>
+                                <button type="submit" class="btn btn-sm <?= $status === 'active' ? 'btn-warning' : 'btn-success' ?>" title="<?= $status === 'active' ? '停用' : '啟用' ?>">
+                                    <?= $status === 'active' ? '停用' : '啟用' ?>
                                 </button>
                             </form>
                             <a href="<?= $url('admin/users/' . $user['id']) ?>" 
@@ -147,7 +147,7 @@ $totalPages = ceil($total / $limit);
         <?php endif; ?>
         
         <div class="text-muted text-center mt-2">
-            共 <?= $total ?> 個用戶，當前顯示第 <?= ($page-1)*$limit+1 ?> - <?= min($page*$limit, $total) ?> 個
+            共 <?= $total ?> 個用戶，目前顯示第 <?= ($page-1)*$limit+1 ?> - <?= min($page*$limit, $total) ?> 個
         </div>
     <?php endif; ?>
 </div>

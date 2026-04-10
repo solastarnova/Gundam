@@ -10,8 +10,8 @@ $message = $message ?? null;
     <div class="card shadow-sm" style="max-width: 420px; width: 100%;">
         <div class="card-body p-4">
             <div class="position-relative mb-4">
-                <h3 class="text-center mb-0">登入賬戶</h3>
-                <a href="<?= $url('') ?>" class="position-absolute top-50 end-0 translate-middle-y link-secondary p-1" aria-label="返回首頁"><i class="bi bi-x-lg fs-5" aria-hidden="true"></i></a>
+                <h3 class="text-center mb-0"><?= htmlspecialchars(__m('auth_login.title'), ENT_QUOTES, 'UTF-8') ?></h3>
+                <a href="<?= $url('') ?>" class="position-absolute top-50 end-0 translate-middle-y link-secondary p-1" aria-label="<?= htmlspecialchars(__m('auth_login.back_home_aria'), ENT_QUOTES, 'UTF-8') ?>"><i class="bi bi-x-lg fs-5" aria-hidden="true"></i></a>
             </div>
 
             <?php if ($message): ?>
@@ -24,7 +24,7 @@ $message = $message ?? null;
             <form action="<?= $url('login') ?>" method="POST" class="d-flex flex-column gap-3">
                 <input type="hidden" name="redirect" value="<?= htmlspecialchars((string) ($redirect ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                 <div>
-                    <label for="inputEmail" class="form-label fw-semibold">電子郵箱</label>
+                    <label for="inputEmail" class="form-label fw-semibold"><?= htmlspecialchars(__m('auth_login.email_label'), ENT_QUOTES, 'UTF-8') ?></label>
                     <input
                         type="email"
                         class="form-control <?= isset($errors['email']) ? 'is-invalid' : '' ?>"
@@ -39,7 +39,7 @@ $message = $message ?? null;
                     <?php endif; ?>
                 </div>
                 <div>
-                    <label for="inputPassword" class="form-label fw-semibold">密碼</label>
+                    <label for="inputPassword" class="form-label fw-semibold"><?= htmlspecialchars(__m('auth_login.password_label'), ENT_QUOTES, 'UTF-8') ?></label>
                     <input
                         type="password"
                         class="form-control <?= isset($errors['password']) ? 'is-invalid' : '' ?>"
@@ -53,30 +53,30 @@ $message = $message ?? null;
                         <div class="invalid-feedback d-block"><?= htmlspecialchars($errors['password']) ?></div>
                     <?php endif; ?>
                 </div>
-                <button class="btn btn-dark w-100" type="submit">登入</button>
+                <button class="btn btn-dark w-100" type="submit"><?= htmlspecialchars(__m('auth_login.submit'), ENT_QUOTES, 'UTF-8') ?></button>
             </form>
 
             <div class="d-flex justify-content-between align-items-center mt-3 small">
-                <a href="<?= $url('forgot') ?>" class="text-decoration-none">忘記密碼</a>
-                <a href="<?= $url('register') ?>" class="text-decoration-none">立即註冊</a>
+                <a href="<?= $url('forgot') ?>" class="text-decoration-none"><?= htmlspecialchars(__m('auth_login.forgot'), ENT_QUOTES, 'UTF-8') ?></a>
+                <a href="<?= $url('register') ?>" class="text-decoration-none"><?= htmlspecialchars(__m('auth_login.register_now'), ENT_QUOTES, 'UTF-8') ?></a>
             </div>
 
             <?php if (!empty($firebase_auth_enabled)): ?>
             <div class="social-login-minimal text-center mt-4">
-                <p class="text-muted small mb-3">使用第三方帳戶</p>
+                <p class="text-muted small mb-3"><?= htmlspecialchars(__m('auth_login.social_intro'), ENT_QUOTES, 'UTF-8') ?></p>
                 <div class="d-flex justify-content-center gap-3 flex-wrap">
-                    <button type="button" class="btn-circular btn-google" id="google-login" title="使用 Google 帳號登入" aria-label="使用 Google 帳號登入">
+                    <button type="button" class="btn-circular btn-google" id="google-login" title="<?= htmlspecialchars(__m('auth_login.google_login'), ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars(__m('auth_login.google_login'), ENT_QUOTES, 'UTF-8') ?>">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="" width="20" height="20">
                     </button>
-                    <button type="button" class="btn-circular btn-github" id="github-login" title="使用 GitHub 帳號登入" aria-label="使用 GitHub 帳號登入">
+                    <button type="button" class="btn-circular btn-github" id="github-login" title="<?= htmlspecialchars(__m('auth_login.github_login'), ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars(__m('auth_login.github_login'), ENT_QUOTES, 'UTF-8') ?>">
                         <i class="fab fa-github fa-lg" aria-hidden="true"></i>
                     </button>
                     <?php if (!empty($firebase_enable_facebook)): ?>
-                    <button type="button" class="btn-circular btn-facebook" id="facebook-login" title="使用 Facebook 帳號登入" aria-label="使用 Facebook 帳號登入">
+                    <button type="button" class="btn-circular btn-facebook" id="facebook-login" title="<?= htmlspecialchars(__m('auth_login.facebook_login'), ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars(__m('auth_login.facebook_login'), ENT_QUOTES, 'UTF-8') ?>">
                         <i class="fab fa-facebook-f fa-lg" aria-hidden="true"></i>
                     </button>
                     <?php endif; ?>
-                    <button type="button" class="btn-circular btn-more" title="更多登入方式" aria-label="更多登入方式" disabled>
+                    <button type="button" class="btn-circular btn-more" title="<?= htmlspecialchars(__m('auth_login.more_login'), ENT_QUOTES, 'UTF-8') ?>" aria-label="<?= htmlspecialchars(__m('auth_login.more_login'), ENT_QUOTES, 'UTF-8') ?>" disabled>
                         <i class="fas fa-ellipsis-h" aria-hidden="true"></i>
                     </button>
                 </div>

@@ -1,0 +1,44 @@
+{
+    "view": {
+        "cart": {
+            "title": "購物車",
+            "guest_prompt": "請先登入以使用購物車與結帳。",
+            "go_login": "前往登入",
+            "continue_shopping": "繼續購物",
+            "th_product": "商品",
+            "th_unit_price": "單價",
+            "th_qty": "數量",
+            "th_subtotal": "小計",
+            "loading": "載入中...",
+            "total_label": "總計：",
+            "checkout": "結帳",
+            "js_empty_title": "購物車是空的",
+            "js_browse": "去逛逛",
+            "js_load_failed": "無法載入購物車，請稍後再試。",
+            "js_sku_label": "編號: %s",
+            "js_sku_na": "N/A",
+            "js_remove": "移除",
+            "js_login_required": "請先登入才能加入購物車",
+            "js_add_failed_generic": "加入購物車失敗",
+            "js_add_failed_retry": "加入購物車失敗，請稍後再試"
+        },
+        "wishlist": {
+            "title": "喜愛清單",
+            "subtitle": "收藏您喜愛的商品，隨時查看與購買",
+            "count_initial": "共 0 件商品",
+            "empty_title": "您的喜愛清單是空的",
+            "empty_hint": "將您喜愛的商品加入清單，方便以後查看與購買",
+            "go_shopping": "去購物",
+            "js_count_tpl": "共 {{n}} 件商品",
+            "js_added_prefix": "已加入購物車：",
+            "js_add_failed": "加入購物車失敗",
+            "js_add_failed_retry": "加入購物車失敗，請稍後再試",
+            "js_confirm_remove": "確定要移除嗎？",
+            "js_remove_failed": "移除失敗",
+            "js_remove_failed_retry": "移除失敗，請稍後再試",
+            "js_share_dev": "分享功能開發中",
+            "js_confirm_clear": "確定要清空喜愛清單嗎？",
+            "js_login_required": "請先登入才能收藏"
+        }
+    }
+}

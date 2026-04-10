@@ -3,9 +3,13 @@
 namespace App\Core;
 
 use App\Core\Config;
+use App\Core\I18n;
 use App\Services\FirebaseWebConfig;
 use App\Services\MoneyFormatter;
 
+/**
+ * Base HTTP controller: layout render, JSON helpers, auth, validation, flash.
+ */
 class Controller
 {
     protected View $view;
@@ -34,6 +38,8 @@ class Controller
         $data['url'] = fn (string $path = '') => $this->view->url($path);
         $data['currency'] = $currency;
         $data['money'] = fn (float $amount): string => MoneyFormatter::format($amount);
+        $data['locale'] = Config::locale();
+        $data['html_lang'] = I18n::toBcp47($data['locale']);
 
         if (isset($_SESSION['user_id'])) {
             $webCfg = FirebaseWebConfig::forJavaScript();
@@ -119,6 +125,11 @@ class Controller
         ];
     }
 
+    /**
+     * Require logged-in user for JSON endpoints; sends 401 JSON when missing.
+     *
+     * @return bool True if session has user_id
+     */
     protected function requireAuthForApi(): bool
     {
         if (!isset($_SESSION['user_id'])) {

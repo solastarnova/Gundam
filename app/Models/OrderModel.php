@@ -5,6 +5,9 @@ namespace App\Models;
 use App\Core\Model;
 use App\Services\OrderStatusService;
 
+/**
+ * Order queries: storefront lists, admin list/detail helpers, status updates.
+ */
 class OrderModel extends Model
 {
     public function getUserOrders(int $userId, ?int $limit = null): array

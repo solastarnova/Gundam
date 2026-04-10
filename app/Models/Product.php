@@ -21,6 +21,36 @@ class Product extends Model
         return $stmt->fetchAll() ?: [];
     }
 
+    /**
+     * Newest items by listed_at (set in admin), then id.
+     */
+    public function getNewArrivals(int $limit = 8): array
+    {
+        $limit = max(1, $limit);
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM items ORDER BY listed_at DESC, id DESC LIMIT ?'
+        );
+        $stmt->bindValue(1, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll() ?: [];
+    }
+
+    /**
+     * Homepage recommended: flagged in admin (is_recommended), order by recommended_sort then id.
+     */
+    public function getRecommendedHome(int $limit = 8): array
+    {
+        $limit = max(1, $limit);
+        $stmt = $this->pdo->prepare(
+            'SELECT * FROM items WHERE is_recommended = 1 ORDER BY recommended_sort ASC, id DESC LIMIT ?'
+        );
+        $stmt->bindValue(1, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll() ?: [];
+    }
+
     public function getCategories(): array
     {
         $stmt = $this->pdo->query("SELECT DISTINCT category FROM items WHERE category IS NOT NULL AND TRIM(category) != '' ORDER BY category");
@@ -40,6 +70,23 @@ class Product extends Model
     {
         $stmt = $this->pdo->query("SELECT COUNT(*) FROM items");
         return (int)$stmt->fetchColumn();
+    }
+
+    /**
+     * Product rows for AI system prompt (limit caps prompt size).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getCatalogForChat(int $limit = 200): array
+    {
+        $limit = max(1, min(500, $limit));
+        $stmt = $this->pdo->prepare(
+            'SELECT id, name, description, category, price, stock_quantity FROM items ORDER BY id ASC LIMIT ?'
+        );
+        $stmt->bindValue(1, $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
     }
 
     public function getLowStock(int $threshold = 10, int $limit = 5): array

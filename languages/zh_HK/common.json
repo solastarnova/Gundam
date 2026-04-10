@@ -1,0 +1,48 @@
+{
+    "common": {
+        "not_logged_in": "未登入",
+        "cart_empty": "購物車是空的"
+    },
+    "ui": {
+        "add_to_cart": "加入購物車"
+    },
+    "errors": {
+        "page_not_found_heading": "404 - 找不到頁面",
+        "page_not_found_body": "很抱歉，您請求的頁面不存在或已被移除。",
+        "back_home": "返回首頁"
+    },
+    "titles": {
+        "home": "%s",
+        "account_home": "個人資料 - %s",
+        "account_orders": "訂單記錄 - %s",
+        "account_order_detail": "訂單詳情 - %s",
+        "account_settings": "帳戶設定 - %s",
+        "account_payment": "付款方式 - %s",
+        "checkout": "結帳付款 - %s",
+        "search": "搜尋 - %s",
+        "search_with_keyword": "搜尋：%s - %s",
+        "auth_login": "登入 - %s",
+        "auth_register": "註冊 - %s",
+        "products_list": "模型專區 - %s",
+        "product_not_found": "商品不存在 - %s",
+        "wishlist": "喜愛清單 - %s",
+        "cart": "購物車 - %s",
+        "address_default": "預設地址 - %s",
+        "forgot_password": "忘記密碼 - %s",
+        "reset_password": "設定新密碼 - %s",
+        "static_faq": "FAQ - %s",
+        "static_about": "關於我們 - %s",
+        "static_privacy": "隱私條款 - %s",
+        "static_terms": "服務條款 - %s",
+        "admin_products": "商品管理",
+        "admin_product_create": "新增商品",
+        "admin_product_edit": "編輯商品",
+        "admin_dashboard": "儀表板",
+        "admin_orders": "訂單管理",
+        "admin_order_detail": "訂單詳情 #%s",
+        "admin_users": "用戶管理",
+        "admin_user_detail": "用戶詳情 - %s",
+        "admin_login": "後台登入",
+        "page_not_found": "404 - 找不到頁面"
+    }
+}

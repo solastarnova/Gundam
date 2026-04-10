@@ -8,6 +8,10 @@ use App\Models\UserModel;
 use App\Services\OrderStatusService;
 use App\Services\WalletService;
 
+/**
+ * Admin orders: list, detail, status updates.
+ * Cancelling paid/completed orders restocks items and credits wallet once.
+ */
 class OrderController extends BaseController
 {
     private OrderModel $orderModel;
@@ -72,7 +76,11 @@ class OrderController extends BaseController
             'items' => $items
         ]);
     }
-    
+
+    /**
+     * Update order status from admin form.
+     * When moving to cancelled from paid/completed, restocks SKUs and credits user wallet once.
+     */
     public function updateStatus(int $id)
     {
         if (!$this->requireAdminCsrf()) {
@@ -88,7 +96,6 @@ class OrderController extends BaseController
             return;
         }
 
-        // 获取当前订单信息
         $stmt = $this->orderModel->getPdo()->prepare("SELECT * FROM orders WHERE id = ?");
         $stmt->execute([$id]);
         $order = $stmt->fetch();
@@ -101,7 +108,7 @@ class OrderController extends BaseController
 
         $currentStatus = (string) ($order['status'] ?? '');
 
-        // 后台可直接设置为任意合法状态（不受前台状态机限制）
+        // Admin may set any status in config order_status.allowed (not limited to storefront transitions)
         if (!OrderStatusService::isAllowed($status)) {
             $this->setError(Config::get('messages.admin.order_status_invalid'));
             $this->redirect("/admin/orders/{$id}");
@@ -113,24 +120,20 @@ class OrderController extends BaseController
         try {
             $pdo->beginTransaction();
 
-            // 更新订单状态
             if (!$this->orderModel->updateStatusByAdmin($id, $status)) {
                 throw new \RuntimeException('order_update_failed');
             }
 
-            // 处理取消订单：已付款/已完成订单取消时，执行补货与退款
+            // Cancel after pay/complete: restock line items and refund wallet (idempotent refund row)
             if ($status === 'cancelled' && in_array($currentStatus, ['paid', 'completed'], true)) {
-                // 补货
                 $this->replenishStock($id);
 
-                // 防止重复退款（例如重复提交取消）
                 $checkRefundStmt = $pdo->prepare(
                     "SELECT id FROM user_wallet_transactions WHERE order_id = ? AND type = 'refund' LIMIT 1"
                 );
                 $checkRefundStmt->execute([$id]);
                 $alreadyRefunded = $checkRefundStmt->fetch() !== false;
 
-                // 退款到钱包
                 $userId = (int) $order['user_id'];
                 $amount = (float) $order['total_amount'];
 
@@ -152,6 +155,9 @@ class OrderController extends BaseController
         $this->redirect("/admin/orders/{$id}");
     }
 
+    /**
+     * Add order line quantities back to items.stock_quantity.
+     */
     private function replenishStock(int $orderId): void
     {
         $stmt = $this->orderModel->getPdo()->prepare("

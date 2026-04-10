@@ -7,6 +7,9 @@ use Stripe\PaymentIntent;
 use Stripe\Exception\ApiErrorException;
 use RuntimeException;
 
+/**
+ * Stripe PaymentIntent wrapper.
+ */
 class PaymentService
 {
     private string $secretKey;

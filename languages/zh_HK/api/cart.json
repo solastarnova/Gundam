@@ -1,0 +1,11 @@
+{
+    "cart": {
+        "invalid_product_id": "無效的商品ID",
+        "quantity_range": "數量必須在 1-%d 之間",
+        "added": "已加入購物車",
+        "invalid_item": "無效的購物車項目",
+        "quantity_updated": "已更新數量",
+        "operation_failed": "操作失敗",
+        "item_removed": "已移除商品"
+    }
+}

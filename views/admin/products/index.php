@@ -41,7 +41,7 @@ $totalPages = ceil($total / $limit);
                 <p class="text-muted">沒有找到與「<?= htmlspecialchars($search) ?>」相關的商品</p>
                 <a href="<?= $url('admin/products') ?>" class="btn btn-outline-secondary mt-2">清除搜尋</a>
             <?php else: ?>
-                <a href="<?= $url('admin/products/create') ?>" class="btn btn-primary mt-2">立即添加</a>
+                <a href="<?= $url('admin/products/create') ?>" class="btn btn-primary mt-2">立即新增</a>
             <?php endif; ?>
         </div>
     <?php else: ?>
@@ -55,6 +55,8 @@ $totalPages = ceil($total / $limit);
                         <th>分類</th>
                         <th>價格</th>
                         <th>庫存</th>
+                        <th>上架時間</th>
+                        <th>推薦</th>
                         <th style="width: 150px;">操作</th>
                     </tr>
                 </thead>
@@ -85,6 +87,20 @@ $totalPages = ceil($total / $limit);
                                 <span class="badge bg-warning"><?= $product['stock_quantity'] ?></span>
                             <?php else: ?>
                                 <span class="badge bg-danger">缺貨</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <small class="text-muted">
+                                <?= !empty($product['listed_at'])
+                                    ? htmlspecialchars(date('Y-m-d H:i', strtotime((string) $product['listed_at'])), ENT_QUOTES, 'UTF-8')
+                                    : '—' ?>
+                            </small>
+                        </td>
+                        <td>
+                            <?php if (!empty($product['is_recommended'])): ?>
+                                <span class="badge bg-primary">推薦 <?= (int) ($product['recommended_sort'] ?? 0) ?></span>
+                            <?php else: ?>
+                                <span class="text-muted">—</span>
                             <?php endif; ?>
                         </td>
                         <td>
@@ -143,7 +159,7 @@ $totalPages = ceil($total / $limit);
         <?php endif; ?>
         
         <div class="text-muted text-center mt-2">
-            共 <?= $total ?> 件商品，當前顯示第 <?= ($page-1)*$limit+1 ?> - <?= min($page*$limit, $total) ?> 件
+            共 <?= $total ?> 件商品，目前顯示第 <?= ($page-1)*$limit+1 ?> - <?= min($page*$limit, $total) ?> 件
         </div>
     <?php endif; ?>
 </div>

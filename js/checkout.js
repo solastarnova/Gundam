@@ -4,10 +4,19 @@
     const baseUrl = (window.APP_BASE || '').replace(/\/$/, '') + '/';
     const stripePublishableKey = window.STRIPE_PUBLISHABLE_KEY || '';
     const paypalClientId = window.PAYPAL_CLIENT_ID || '';
+    const stripeSdkUrl = window.STRIPE_SDK_URL || 'https://js.stripe.com/v3/';
+    const paypalSdkUrl = window.PAYPAL_SDK_URL || '';
     const shippingConfig = window.SHIPPING_CONFIG || { express_fee: 0, standard_fee: 0, free_threshold: 0 };
     const walletBalance = parseFloat(window.WALLET_BALANCE || 0) || 0;
     const pointsBalance = parseInt(window.POINTS_BALANCE || 0, 10) || 0;
-    const POINTS_PER_HKD = 1000;
+    const POINTS_PER_HKD = (function() {
+        const n = Number(window.POINTS_PER_HKD);
+        if (!Number.isFinite(n) || n < 1) {
+            throw new Error('POINTS_PER_HKD missing or invalid (must match server Constants::POINTS_PER_HKD)');
+        }
+        return n;
+    })();
+    const CI = window.CHECKOUT_I18N || {};
     const formatMoney = typeof window.formatMoney === 'function'
         ? window.formatMoney
         : function(v) {
@@ -33,33 +42,88 @@
     let paymentIntentId = null;
     let orderNumberForConfirm = null;
     let paypalButtons = null;
+    const PaymentLoader = {
+        stripe: null,
+        cache: Object.create(null),
+        injectScript: function(src, globalName) {
+            if (!src) {
+                return Promise.reject(new Error('script_src_missing'));
+            }
+            if (globalName && typeof window[globalName] !== 'undefined') {
+                return Promise.resolve(window[globalName]);
+            }
+            if (this.cache[src]) {
+                return this.cache[src];
+            }
+            this.cache[src] = new Promise(function(resolve, reject) {
+                const script = document.createElement('script');
+                script.src = src;
+                script.async = true;
+                script.onload = function() {
+                    if (globalName && typeof window[globalName] === 'undefined') {
+                        reject(new Error(globalName + '_not_ready'));
+                        return;
+                    }
+                    resolve(globalName ? window[globalName] : true);
+                };
+                script.onerror = function() {
+                    reject(new Error('script_load_failed'));
+                };
+                document.head.appendChild(script);
+            });
+            return this.cache[src];
+        },
+        loadStripe: function() {
+            if (this.stripe) {
+                return Promise.resolve(this.stripe);
+            }
+            return this.injectScript(stripeSdkUrl, 'Stripe').then(function(StripeCtor) {
+                if (!stripePublishableKey) {
+                    throw new Error('stripe_not_configured');
+                }
+                const instance = StripeCtor(stripePublishableKey);
+                PaymentLoader.stripe = instance;
+                return instance;
+            });
+        },
+        loadPayPal: function() {
+            return this.injectScript(paypalSdkUrl, 'paypal');
+        }
+    };
 
-    // 將地址物件格式化為單行字串（與後端一致）
+    function showSystemLinking(show) {
+        const loader = document.getElementById('paymentSystemLoader');
+        if (!loader) return;
+        loader.style.display = show ? 'block' : 'none';
+    }
+
+    // Format address object as one line (same semantics as backend)
     function formatAddressOneLine(addr) {
         if (!addr) return '';
+        var floorSuffix = CI.floorSuffix || '';
         var parts = [
             addr.region || '',
             addr.district || '',
             addr.street || '',
             addr.village_estate || '',
             addr.building || '',
-            (addr.floor && String(addr.floor).trim() !== '' ? String(addr.floor).trim() + '樓' : ''),
+            (addr.floor && String(addr.floor).trim() !== '' ? String(addr.floor).trim() + floorSuffix : ''),
             addr.unit || ''
         ].filter(function(v) { return String(v).trim() !== ''; });
         return parts.join(' ');
     }
 
-    // 取得目前選擇的配送地址（單行）
+    // Selected shipping address as one line
     function getSelectedShippingAddress() {
         var radio = document.querySelector('input[name="checkout_address"]:checked');
         if (radio && radio.getAttribute('data-address-one-line')) {
             return radio.getAttribute('data-address-one-line').trim();
         }
-        return (window.DEFAULT_SHIPPING_ADDRESS || '香港').trim();
+        return String(window.DEFAULT_SHIPPING_ADDRESS || CI.defaultShipping || '').trim();
     }
 
     /**
-     * @param {string|number} [selectAfterId] 重新載入後要選取的地址 id（例如剛新增的地址）
+     * @param {string|number} [selectAfterId] Address id to select after reload (e.g. newly created)
      */
     function loadAddresses(selectAfterId) {
         var loadingEl = document.getElementById('addressLoading');
@@ -102,7 +166,7 @@
                     card.innerHTML = '<div class="form-check border rounded p-3 checkout-address-card">' +
                         '<input class="form-check-input" type="radio" name="checkout_address" id="' + id + '" value="' + (addr.id || '') + '" data-address-one-line="' + (oneLine.replace(/"/g, '&quot;')) + '"' + (shouldCheck ? ' checked' : '') + '>' +
                         '<label class="form-check-label w-100 ms-2" for="' + id + '">' +
-                        (isDefault ? '<span class="badge bg-danger me-2">預設</span>' : '') +
+                        (isDefault ? '<span class="badge bg-danger me-2">' + String(CI.badgeDefault || '').replace(/</g, '&lt;') + '</span>' : '') +
                         (addr.address_label ? '<strong>' + String(addr.address_label).replace(/</g, '&lt;') + '</strong><br>' : '') +
                         '<span class="text-muted small">' + String(addr.recipient_name || '').replace(/</g, '&lt;') + '　' + String(addr.phone || '').replace(/</g, '&lt;') + '</span><br>' +
                         '<span class="small">' + String(oneLine).replace(/</g, '&lt;') + '</span>' +
@@ -122,7 +186,7 @@
         var modalLabel = document.getElementById('addressModalLabel');
         var form = document.getElementById('addressForm');
         if (!modal || !form) return;
-        if (modalLabel) modalLabel.textContent = '新增地址';
+        if (modalLabel) modalLabel.textContent = CI.modalAddAddress || '';
         form.reset();
         var aid = document.getElementById('addressId');
         if (aid) aid.value = '';
@@ -142,11 +206,11 @@
         var addressId = formData.get('id');
         var data = Object.fromEntries(formData.entries());
         if (!data.recipient_name || !data.phone || !data.region || !data.district || !data.building || !data.unit) {
-            alert('請填寫所有必填欄位');
+            alert(CI.alertRequired || '');
             return;
         }
         if (!data.village_estate && !data.street) {
-            alert('請填寫屋邨/屋苑名稱或街道地址');
+            alert(CI.alertVillageOrStreet || '');
             return;
         }
         data.is_default = document.getElementById('isDefault') && document.getElementById('isDefault').checked ? 1 : 0;
@@ -163,7 +227,7 @@
             });
             var result = await response.json();
             if (!result.success) {
-                throw new Error(result.message || result.error || '儲存失敗');
+                throw new Error(result.message || result.error || CI.errSaveGeneric || '');
             }
             var modalEl = document.getElementById('addressModal');
             if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
@@ -174,7 +238,7 @@
             loadAddresses(newId);
         } catch (err) {
             console.error('saveCheckoutAddress:', err);
-            alert(err.message || '儲存地址失敗，請稍後再試');
+            alert(err.message || CI.alertSaveAddressFailed || '');
         }
     };
 
@@ -289,7 +353,7 @@
         var container = document.getElementById('orderItems');
         if (!container) return;
         if (!cartItems || cartItems.length === 0) {
-            container.innerHTML = '<p class="text-muted text-center py-3">購物車是空的，請先加入商品。</p>';
+            container.innerHTML = '<p class="text-muted text-center py-3">' + String(CI.emptyCart || '').replace(/</g, '&lt;') + '</p>';
             return;
         }
         var imgBase = baseUrl.replace(/\/$/, '') + '/';
@@ -307,15 +371,15 @@
             html += '<div class="d-flex align-items-center py-3 border-bottom checkout-order-row" data-cart-id="' + cartId + '">';
             html += '<a href="' + detailUrl + '" class="d-flex align-items-center text-decoration-none text-dark flex-grow-1 me-2">';
             html += '<img src="' + imgPath + '" alt="" class="rounded me-3 checkout-item-img">';
-            html += '<div class="flex-grow-1"><div class="fw-bold">' + name + '</div><small class="text-muted">' + formatMoney(price) + '/件</small></div>';
+            html += '<div class="flex-grow-1"><div class="fw-bold">' + name + '</div><small class="text-muted">' + formatMoney(price) + String(CI.perUnit || '').replace(/"/g, '&quot;') + '</small></div>';
             html += '</a>';
             html += '<div class="d-flex align-items-center quantity-control me-2">';
-            html += '<button type="button" class="btn btn-sm btn-outline-secondary checkout-qty-minus" data-cart-id="' + cartId + '" aria-label="減少">−</button>';
+            html += '<button type="button" class="btn btn-sm btn-outline-secondary checkout-qty-minus" data-cart-id="' + cartId + '" aria-label="' + String(CI.ariaQtyMinus || '').replace(/"/g, '&quot;') + '">−</button>';
             html += '<span class="checkout-qty-display mx-2 fw-bold" data-cart-id="' + cartId + '">' + qty + '</span>';
-            html += '<button type="button" class="btn btn-sm btn-outline-secondary checkout-qty-plus" data-cart-id="' + cartId + '" aria-label="增加">+</button>';
+            html += '<button type="button" class="btn btn-sm btn-outline-secondary checkout-qty-plus" data-cart-id="' + cartId + '" aria-label="' + String(CI.ariaQtyPlus || '').replace(/"/g, '&quot;') + '">+</button>';
             html += '</div>';
             html += '<span class="fw-bold text-primary me-2" style="min-width:4rem;">' + formatMoney(subtotal) + '</span>';
-            html += '<button type="button" class="btn btn-sm btn-link text-danger p-0 border-0 checkout-item-remove" data-cart-id="' + cartId + '" title="移除">×</button>';
+            html += '<button type="button" class="btn btn-sm btn-link text-danger p-0 border-0 checkout-item-remove" data-cart-id="' + cartId + '" title="' + String(CI.removeTitle || '').replace(/"/g, '&quot;') + '">×</button>';
             html += '</div>';
         });
         container.innerHTML = html;
@@ -350,7 +414,7 @@
             if (target) {
                 e.preventDefault();
                 var cartId = target.getAttribute('data-cart-id');
-                if (confirm('確定要移除此商品嗎？')) removeCheckoutItem(cartId);
+                if (confirm(CI.confirmRemoveLine || '')) removeCheckoutItem(cartId);
                 return;
             }
         });
@@ -366,7 +430,7 @@
         }).then(function(r) { return r.json(); }).then(function(data) {
             if (data.success) loadCart();
             else if (data.message) alert(data.message);
-        }).catch(function() { alert('更新數量失敗'); });
+        }).catch(function() { alert(CI.alertUpdateQtyFailed || ''); });
     }
 
     function removeCheckoutItem(cartItemId) {
@@ -378,7 +442,7 @@
         }).then(function(r) { return r.json(); }).then(function(data) {
             if (data.success) loadCart();
             else if (data.message) alert(data.message);
-        }).catch(function() { alert('移除失敗'); });
+        }).catch(function() { alert(CI.alertRemoveFailed || ''); });
     }
 
     function loadCart() {
@@ -393,9 +457,10 @@
     }
 
     function initStripe() {
-        if (!stripePublishableKey || typeof Stripe === 'undefined') return;
+        if (!stripePublishableKey || typeof Stripe === 'undefined') return false;
+        if (stripe && cardElement) return true;
         try {
-            stripe = Stripe(stripePublishableKey);
+            stripe = PaymentLoader.stripe || Stripe(stripePublishableKey);
             var elements = stripe.elements();
             cardElement = elements.create('card', {
                 style: { base: { fontSize: '16px' }, invalid: { color: '#9e2146' } }
@@ -408,7 +473,30 @@
                     if (errEl) errEl.textContent = ev.error ? ev.error.message : '';
                 });
             }
-        } catch (e) { console.error('Stripe init:', e); }
+            return true;
+        } catch (e) {
+            console.error('Stripe init:', e);
+            return false;
+        }
+    }
+
+    function ensureStripeReady() {
+        if (!stripePublishableKey) {
+            return Promise.reject(new Error('stripe_not_configured'));
+        }
+        if (stripe && cardElement) {
+            return Promise.resolve(true);
+        }
+        showSystemLinking(true);
+        return PaymentLoader.loadStripe().then(function(stripeInstance) {
+            stripe = stripeInstance;
+            if (!initStripe()) {
+                throw new Error('stripe_init_failed');
+            }
+            return true;
+        }).finally(function() {
+            showSystemLinking(false);
+        });
     }
 
     function createPaymentIntent() {
@@ -439,7 +527,7 @@
         var btn = document.getElementById('confirmOrderBtn');
         if (btn) {
             btn.disabled = loading;
-            btn.textContent = loading ? '處理中...' : '確認訂單';
+            btn.textContent = loading ? (CI.processing || '') : (CI.confirmOrder || '');
         }
     }
 
@@ -458,18 +546,32 @@
         if (stripeForm) stripeForm.style.display = value === 'stripe' ? 'block' : 'none';
         if (paypalContainer) paypalContainer.style.display = value === 'paypal' ? 'block' : 'none';
         if (confirmOrderBtn) confirmOrderBtn.style.display = value === 'paypal' ? 'none' : 'block';
-        if (value === 'paypal' && paypalContainer && !paypalButtons && paypalClientId && typeof paypal !== 'undefined') {
-            initPayPal();
+        if (value === 'stripe') {
+            ensureStripeReady().catch(function(err) {
+                console.error('Stripe SDK load:', err);
+                showError(CI.errStripeModule || '');
+            });
+        }
+        if (value === 'paypal' && paypalContainer && !paypalButtons && paypalClientId) {
+            showSystemLinking(true);
+            PaymentLoader.loadPayPal().then(function() {
+                initPayPal();
+            }).catch(function(err) {
+                console.error('PayPal SDK load:', err);
+                alert(CI.alertPaypalLoadFailed || '');
+            }).finally(function() {
+                showSystemLinking(false);
+            });
         }
     }
 
     function handleStripeConfirm() {
         if (!stripe || !cardElement) {
-            showError('請選擇信用卡付款並填寫卡號');
+            showError(CI.errSelectCard || '');
             return;
         }
         if (!paymentIntentClientSecret) {
-            showError('請先取得支付授權');
+            showError(CI.errNeedPaymentAuth || '');
             return;
         }
         setConfirmLoading(true);
@@ -479,7 +581,7 @@
         }).then(function(result) {
             if (result.error) {
                 setConfirmLoading(false);
-                showError(result.error.message || '付款失敗');
+                showError(result.error.message || CI.errPaymentFailed || '');
                 return;
             }
             if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
@@ -491,22 +593,22 @@
                 confirmOrder(payload).then(function(data) {
                     setConfirmLoading(false);
                     if (data.success) {
-                        alert('訂單已確認，訂單編號：' + (data.order_number || data.order_id));
+                        alert((CI.orderConfirmedPrefix || '') + (data.order_number || data.order_id));
                         window.location.href = baseUrl + 'account/orders';
                     } else {
-                        showError(data.message || '訂單確認失敗');
+                        showError(data.message || CI.errOrderConfirm || '');
                     }
                 }).catch(function() {
                     setConfirmLoading(false);
-                    showError('訂單確認失敗，請稍後再試');
+                    showError(CI.errOrderConfirmRetry || '');
                 });
             } else {
                 setConfirmLoading(false);
-                showError('付款尚未完成');
+                showError(CI.errPaymentIncomplete || '');
             }
         }).catch(function(err) {
             setConfirmLoading(false);
-            showError(err.message || '付款失敗');
+            showError(err.message || CI.errPaymentFailed || '');
         });
     }
 
@@ -524,14 +626,14 @@
         }).then(function(r) { return r.json(); }).then(function(data) {
             setConfirmLoading(false);
             if (data.success) {
-                alert('訂單已確認，訂單編號：' + (data.order_number || data.order_id));
+                alert((CI.orderConfirmedPrefix || '') + (data.order_number || data.order_id));
                 window.location.href = baseUrl + 'account/orders';
             } else {
-                showError(data.message || '結帳失敗');
+                showError(data.message || CI.errCheckout || '');
             }
         }).catch(function() {
             setConfirmLoading(false);
-            showError('結帳失敗，請稍後再試');
+            showError(CI.errCheckoutRetry || '');
         });
     }
 
@@ -543,7 +645,7 @@
         if (!cartItems.length) {
             loadCart();
             setTimeout(function() {
-                if (!cartItems.length) alert('購物車是空的');
+                if (!cartItems.length) alert(CI.alertCartEmpty || '');
             }, 500);
             return;
         }
@@ -555,19 +657,25 @@
 
         showError('');
         setConfirmLoading(true);
-        createPaymentIntent().then(function(data) {
+        ensureStripeReady().then(function() {
+            return createPaymentIntent();
+        }).then(function(data) {
             if (!data.success) {
                 setConfirmLoading(false);
-                showError(data.message || '無法建立支付');
+                showError(data.message || CI.errCreatePayment || '');
                 return;
             }
             paymentIntentClientSecret = data.client_secret;
             paymentIntentId = data.payment_intent_id;
             orderNumberForConfirm = data.order_number || null;
             handleStripeConfirm();
-        }).catch(function() {
+        }).catch(function(err) {
             setConfirmLoading(false);
-            showError('無法建立支付，請稍後再試');
+            if (err && err.message === 'stripe_not_configured') {
+                showError(CI.errStripeNotConfigured || '');
+                return;
+            }
+            showError(CI.errCreatePaymentRetry || '');
         });
     }
 
@@ -592,7 +700,7 @@
                             use_wallet: isUseWalletEnabled() ? '1' : '0'
                         })
                     }).then(function(r) { return r.json(); }).then(function(res) {
-                        if (!res.success) throw new Error(res.message || '建立 PayPal 訂單失敗');
+                        if (!res.success) throw new Error(res.message || CI.errPaypalCreateOrder || '');
                         orderNumberForConfirm = res.order_number || null;
                         return actions.order.create({
                             purchase_units: [{ amount: { value: res.amount, currency_code: res.currency } }]
@@ -606,16 +714,16 @@
                         return confirmOrder(payload);
                     }).then(function(data) {
                         if (data.success) {
-                            alert('訂單已確認，訂單編號：' + (data.order_number || data.order_id));
+                            alert((CI.orderConfirmedPrefix || '') + (data.order_number || data.order_id));
                             window.location.href = baseUrl + 'account/orders';
                         } else {
-                            alert(data.message || '訂單確認失敗');
+                            alert(data.message || CI.errOrderConfirm || '');
                         }
                     }).catch(function(err) {
-                        alert(err.message || 'PayPal 處理失敗');
+                        alert(err.message || CI.errPaypalProcess || '');
                     });
                 },
-                onError: function(err) { alert('PayPal 錯誤，請稍後再試'); }
+                onError: function(err) { alert(CI.alertPaypalError || ''); }
             });
             var renderPromise = paypalButtons.render('#paypal-button-container');
             if (renderPromise && typeof renderPromise.then === 'function') {
@@ -655,8 +763,6 @@
                 setTimeout(waitForDOM, 50);
                 return;
             }
-            if (stripePublishableKey) initStripe();
-            if (paypalClientId && typeof paypal !== 'undefined') initPayPal();
             loadCart();
             loadAddresses();
             togglePaymentUI();

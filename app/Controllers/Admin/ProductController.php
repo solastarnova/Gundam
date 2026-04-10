@@ -71,6 +71,9 @@ class ProductController extends BaseController
         $stock = (int)($_POST['stock'] ?? 0);
         $category = trim($_POST['category'] ?? '');
         $description = trim($_POST['description'] ?? '');
+        $listedAt = $this->parseListedAtFromPost();
+        $isRecommended = !empty($_POST['is_recommended']) ? 1 : 0;
+        $recommendedSort = max(0, min(999999, (int) ($_POST['recommended_sort'] ?? 0)));
 
         if (empty($name)) {
             $this->setError(Config::get('messages.admin.product_name_required'));
@@ -115,14 +118,15 @@ class ProductController extends BaseController
         
         try {
             if ($id > 0) {
-                $sql = "UPDATE items SET name = ?, price = ?, stock_quantity = ?, category = ?, description = ?";
-                $params = [$name, $price, $stock, $category, $description];
-                
+                $sql = "UPDATE items SET name = ?, price = ?, stock_quantity = ?, category = ?, description = ?,
+                    listed_at = ?, is_recommended = ?, recommended_sort = ?";
+                $params = [$name, $price, $stock, $category, $description, $listedAt, $isRecommended, $recommendedSort];
+
                 if ($imagePath) {
                     $sql .= ", image_path = ?";
                     $params[] = $imagePath;
                 }
-                
+
                 $sql .= " WHERE id = ?";
                 $params[] = $id;
                 
@@ -132,10 +136,20 @@ class ProductController extends BaseController
                 $this->setSuccess(Config::get('messages.admin.product_update_success'));
             } else {
                 $stmt = $this->productModel->getPdo()->prepare(
-                    "INSERT INTO items (name, price, stock_quantity, category, description, image_path) 
-                     VALUES (?, ?, ?, ?, ?, ?)"
+                    'INSERT INTO items (name, price, stock_quantity, category, description, image_path, listed_at, is_recommended, recommended_sort)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
                 );
-                $stmt->execute([$name, $price, $stock, $category, $description, $imagePath]);
+                $stmt->execute([
+                    $name,
+                    $price,
+                    $stock,
+                    $category,
+                    $description,
+                    $imagePath,
+                    $listedAt,
+                    $isRecommended,
+                    $recommendedSort,
+                ]);
                 
                 $this->setSuccess(Config::get('messages.admin.product_create_success'));
             }
@@ -146,7 +160,27 @@ class ProductController extends BaseController
         
         $this->redirect('/admin/products');
     }
-    
+
+    /**
+     * Normalize datetime-local (YYYY-MM-DDTHH:mm) or SQL datetime to MySQL datetime string.
+     */
+    private function parseListedAtFromPost(): string
+    {
+        $raw = trim((string) ($_POST['listed_at'] ?? ''));
+        if ($raw === '') {
+            return date('Y-m-d H:i:s');
+        }
+        $raw = str_replace('T', ' ', $raw);
+        if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/', $raw)) {
+            return $raw . ':00';
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $raw)) {
+            return $raw;
+        }
+
+        return date('Y-m-d H:i:s');
+    }
+
     public function delete(int $id)
     {
         if (!$this->requireAdminCsrf()) {

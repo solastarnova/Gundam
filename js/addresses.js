@@ -1,14 +1,15 @@
-// 預設地址管理（使用 window.APP_BASE）
+// Address management (window.APP_BASE, window.ADDRESS_PAGE_I18N)
 (function() {
     'use strict';
 
     const baseUrl = (window.APP_BASE || '').replace(/\/$/, '') || '';
+    const I = window.ADDRESS_PAGE_I18N || {};
 
     window.openAddModal = function() {
         const modalLabel = document.getElementById('addressModalLabel');
         const form = document.getElementById('addressForm');
         if (!modalLabel || !form) return;
-        modalLabel.textContent = '新增地址';
+        modalLabel.textContent = I.modalAdd || '';
         form.reset();
         document.getElementById('addressId').value = '';
         const isDefault = document.getElementById('isDefault');
@@ -21,7 +22,7 @@
             const response = await fetch(baseUrl + (baseUrl ? '/' : '') + 'api/address/get?id=' + encodeURIComponent(addressId));
             const data = await response.json();
             if (!data.success || !data.address) {
-                alert('無法載入地址資料');
+                alert(I.loadFailed || '');
                 return;
             }
             const address = data.address;
@@ -29,10 +30,10 @@
             const modalLabel = document.getElementById('addressModalLabel');
             const form = document.getElementById('addressForm');
             if (!modal || !modalLabel || !form) return;
-            modalLabel.textContent = '編輯地址';
+            modalLabel.textContent = I.modalEdit || '';
             document.getElementById('addressId').value = address.id;
             document.getElementById('addressLabel').value = address.address_label || '';
-            document.getElementById('addressType').value = address.address_type || '住宅';
+            document.getElementById('addressType').value = address.address_type || I.residentialDefault || '';
             document.getElementById('recipientName').value = address.recipient_name || '';
             document.getElementById('phone').value = address.phone || '';
             document.getElementById('region').value = address.region || '';
@@ -49,7 +50,7 @@
             bsModal.show();
         } catch (error) {
             console.error('Error loading address:', error);
-            alert('載入地址資料時發生錯誤');
+            alert(I.loadError || '');
         }
     };
 
@@ -60,11 +61,11 @@
         const addressId = formData.get('id');
         const data = Object.fromEntries(formData.entries());
         if (!data.recipient_name || !data.phone || !data.region || !data.district || !data.building || !data.unit) {
-            alert('請填寫所有必填欄位');
+            alert(I.alertRequired || '');
             return;
         }
         if (!data.village_estate && !data.street) {
-            alert('請填寫屋邨/屋苑名稱或街道地址');
+            alert(I.alertVillageOrStreet || '');
             return;
         }
         data.is_default = document.getElementById('isDefault').checked ? 1 : 0;
@@ -85,16 +86,16 @@
                 }
                 window.location.reload();
             } else {
-                alert(result.error || '儲存失敗');
+                alert(result.error || I.saveFailed || '');
             }
         } catch (error) {
             console.error('Error saving address:', error);
-            alert('儲存地址時發生錯誤');
+            alert(I.saveError || '');
         }
     };
 
     window.deleteAddress = async function(addressId) {
-        if (!confirm('確定要刪除此地址嗎？')) return;
+        if (!confirm(I.confirmDelete || '')) return;
         try {
             const url = baseUrl + (baseUrl ? '/' : '') + 'api/address/delete';
             const response = await fetch(url, {
@@ -106,11 +107,11 @@
             if (result.success) {
                 window.location.reload();
             } else {
-                alert(result.error || '刪除失敗');
+                alert(result.error || I.deleteFailed || '');
             }
         } catch (error) {
             console.error('Error deleting address:', error);
-            alert('刪除地址時發生錯誤');
+            alert(I.deleteError || '');
         }
     };
 
@@ -126,11 +127,11 @@
             if (result.success) {
                 window.location.reload();
             } else {
-                alert(result.error || '設定預設地址失敗');
+                alert(result.error || I.defaultFailed || '');
             }
         } catch (error) {
             console.error('Error setting default address:', error);
-            alert('設定預設地址時發生錯誤');
+            alert(I.defaultError || '');
         }
     };
 })();

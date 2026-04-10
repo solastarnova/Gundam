@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Core\Config;
+use App\Core\Constants;
 use App\Core\Controller;
 use App\Models\CartModel;
 use App\Models\OrderModel;
@@ -71,10 +72,10 @@ class PaymentController extends Controller
 
         $remainAfterWallet = max(0.0, $totalAmount - $walletToUse);
         $pointsBalance = $this->userModel->getPointsBalance($userId);
-        $pointsToUse = $usePoints ? min($pointsBalance, (int) floor($remainAfterWallet * 1000)) : 0;
+        $pointsToUse = $usePoints ? min($pointsBalance, (int) floor($remainAfterWallet * Constants::POINTS_PER_HKD)) : 0;
         $_SESSION['points_use_checkout'] = $pointsToUse;
 
-        $pointsHkdUsed = $pointsToUse / 1000;
+        $pointsHkdUsed = $pointsToUse / Constants::POINTS_PER_HKD;
         $payableAmount = $remainAfterWallet - $pointsHkdUsed;
         $amountInCents = PaymentService::convertToCents($payableAmount);
         if ($amountInCents <= 0) {
@@ -158,9 +159,9 @@ class PaymentController extends Controller
 
         $remainAfterWallet = max(0.0, $totalAmount - $walletToUse);
         $pointsBalance = $this->userModel->getPointsBalance($userId);
-        $pointsToUse = $usePoints ? min($pointsBalance, (int) floor($remainAfterWallet * 1000)) : 0;
+        $pointsToUse = $usePoints ? min($pointsBalance, (int) floor($remainAfterWallet * Constants::POINTS_PER_HKD)) : 0;
         $_SESSION['points_use_checkout'] = $pointsToUse;
-        $pointsHkdUsed = $pointsToUse / 1000;
+        $pointsHkdUsed = $pointsToUse / Constants::POINTS_PER_HKD;
 
         $payableAmount = $remainAfterWallet - $pointsHkdUsed;
         if ($payableAmount < 0) {
@@ -404,7 +405,7 @@ class PaymentController extends Controller
 
         $remainAfterWallet = max(0.0, $totalAmount - $walletUsed);
         $pointsUsed = $usePoints && isset($_SESSION['points_use_checkout']) ? (int) $_SESSION['points_use_checkout'] : 0;
-        $maxPoints = (int) floor($remainAfterWallet * 1000);
+        $maxPoints = (int) floor($remainAfterWallet * Constants::POINTS_PER_HKD);
         if ($pointsUsed < 0) {
             $pointsUsed = 0;
         }
@@ -445,7 +446,7 @@ class PaymentController extends Controller
                     $userId,
                     $pointsUsed,
                     (int) $result['order_id'],
-                    sprintf('訂單 #%s 使用積分抵扣', (string) $result['order_number'])
+                    sprintf((string) Config::get('messages.order.points_spend_note'), (string) $result['order_number'])
                 );
             }
 

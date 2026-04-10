@@ -6,6 +6,9 @@ use PDO;
 use PDOException;
 use RuntimeException;
 
+/**
+ * Shared MySQL PDO connection (singleton).
+ */
 class Database
 {
     private static ?PDO $connection = null;

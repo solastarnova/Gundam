@@ -2,8 +2,9 @@
 
 namespace App\Core;
 
-use App\Core\Config;
-
+/**
+ * Resolve view paths, layout rendering, and URL/asset helpers.
+ */
 class View
 {
     private string $basePath;
@@ -38,6 +39,14 @@ class View
 
     public function renderWithLayout(string $view, array $data = [], string $layout = 'main'): void
     {
+        if (!isset($data['html_lang'])) {
+            $data['locale'] = Config::locale();
+            $data['html_lang'] = I18n::toBcp47((string) $data['locale']);
+        }
+        if (!isset($data['currency'])) {
+            $currency = Config::get('currency', []);
+            $data['currency'] = is_array($currency) ? $currency : [];
+        }
         $data['baseUrl'] = $this->baseUrl ?: '';
         $data['asset'] = fn (string $path) => $this->asset($path);
         $data['url'] = fn (string $path = '') => $this->url($path);

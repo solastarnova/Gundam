@@ -14,7 +14,8 @@
             var id = opts && (opts.id || opts.product_id);
             if (!id) return Promise.resolve(false);
             if (!window.isLoggedIn) {
-                alert('請先登入才能收藏');
+                var J = window.APP_JS_I18N || {};
+                alert(J.wishlistLoginRequired || '');
                 window.location.href = (base() || '/') + 'login?redirect=' + encodeURIComponent(window.location.pathname || '/');
                 return Promise.resolve(false);
             }

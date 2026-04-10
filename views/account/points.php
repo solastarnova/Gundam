@@ -1,6 +1,10 @@
 <?php
+
+use App\Core\Constants;
+
 $url = $url ?? fn($p = '') => $p;
 $membershipInfo = $membershipInfo ?? [];
+$membershipRules = $membershipRules ?? ($membershipInfo['rules'] ?? []);
 $pointsLogs = $pointsLogs ?? [];
 
 $user = $membershipInfo['user'] ?? [];
@@ -8,7 +12,7 @@ $currentRule = $membershipInfo['current_rule'] ?? [];
 $nextRule = $membershipInfo['next_rule'] ?? null;
 $gapToNext = (float) ($membershipInfo['gap_to_next'] ?? 0);
 
-$currentLevelName = (string) ($currentRule['level_name'] ?? '青铜');
+$currentLevelName = (string) ($currentRule['level_name'] ?? __m('account.points.default_level_name'));
 $currentPoints = (int) ($user['points'] ?? 0);
 $totalPointsEarned = (int) ($user['total_points_earned'] ?? 0);
 $totalPointsSpent = (int) ($user['total_points_spent'] ?? 0);
@@ -18,65 +22,107 @@ $currentMinSpent = (float) ($membershipInfo['current_min_spent'] ?? ($currentRul
 
 $pointsMultiplier = (float) ($currentRule['points_multiplier'] ?? 1);
 $discountPercent = (float) ($currentRule['discount_percent'] ?? 0);
+$discountNone = __m('account.points.discount_none');
+$discountLabel = $discountPercent > 0.00001
+    ? sprintf(
+        __m('account.points.discount_label'),
+        rtrim(rtrim(number_format($discountPercent, 2, '.', ''), '0'), '.'),
+        rtrim(rtrim(number_format(100 - $discountPercent, 2, '.', ''), '0'), '.')
+    )
+    : $discountNone;
 
 $upgradeProgressPercent = (float) ($membershipInfo['progress_percent'] ?? 100.0);
+$account_nav_active = 'points';
 ?>
 <div class="container account-page my-5 pt-5">
     <div class="row account-layout">
-        <div class="col-lg-3 col-md-4">
-            <div class="sidebar account-sidebar">
-                <h5 class="px-4 mb-4 text-dark fw-bold">我的帳戶</h5>
-                <div class="nav flex-column">
-                    <a href="<?= $url('account') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-person me-2"></i> 個人資料</a>
-                    <a href="<?= $url('account/points') ?>" class="nav-link d-flex align-items-center active"><i class="bi bi-award me-2"></i> 會員中心</a>
-                    <a href="<?= $url('account/orders') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-bag me-2"></i> 訂單記錄</a>
-                    <a href="<?= $url('wishlist') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-heart me-2"></i> 喜愛清單</a>
-                    <a href="<?= $url('account/addresses') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-geo-alt me-2"></i> 預設地址</a>
-                    <a href="<?= $url('account/payment') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-credit-card me-2"></i> 付款方式</a>
-                    <a href="<?= $url('account/settings') ?>" class="nav-link d-flex align-items-center">帳戶設定</a>
-                    <a class="nav-link d-flex text-danger" href="<?= $url('logout') ?>">登出</a>
-                </div>
-            </div>
-        </div>
+        <?php include __DIR__ . '/../partials/account_sidebar.php'; ?>
 
         <div class="col-lg-9 col-md-8">
             <div class="account-main-card account-main-padding">
                 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                    <h4 class="mb-0">會員中心</h4>
+                    <h4 class="mb-0"><?= htmlspecialchars(__m('account.points.title'), ENT_QUOTES, 'UTF-8') ?></h4>
                     <span class="badge bg-light text-dark border"><?= htmlspecialchars($currentLevelName) ?></span>
                 </div>
 
                 <div class="row g-3 mb-4">
                     <div class="col-md-3 col-6">
                         <div class="border rounded p-3 h-100">
-                            <div class="text-muted small">可用積分</div>
+                            <div class="text-muted small"><?= htmlspecialchars(__m('account.points.label_available'), ENT_QUOTES, 'UTF-8') ?></div>
                             <div class="fs-5 fw-bold text-primary"><?= $currentPoints ?></div>
                         </div>
                     </div>
                     <div class="col-md-3 col-6">
                         <div class="border rounded p-3 h-100">
-                            <div class="text-muted small">累計獲得</div>
+                            <div class="text-muted small"><?= htmlspecialchars(__m('account.points.label_earned'), ENT_QUOTES, 'UTF-8') ?></div>
                             <div class="fs-6 fw-bold text-success"><?= $totalPointsEarned ?></div>
                         </div>
                     </div>
                     <div class="col-md-3 col-6">
                         <div class="border rounded p-3 h-100">
-                            <div class="text-muted small">累計使用</div>
+                            <div class="text-muted small"><?= htmlspecialchars(__m('account.points.label_spent'), ENT_QUOTES, 'UTF-8') ?></div>
                             <div class="fs-6 fw-bold text-danger"><?= $totalPointsSpent ?></div>
                         </div>
                     </div>
                     <div class="col-md-3 col-6">
                         <div class="border rounded p-3 h-100">
-                            <div class="text-muted small">倍率 / 折扣</div>
-                            <div class="fs-6 fw-bold"><?= $pointsMultiplier ?>x / <?= $discountPercent ?>%</div>
+                            <div class="text-muted small"><?= htmlspecialchars(__m('account.points.label_multiplier'), ENT_QUOTES, 'UTF-8') ?></div>
+                            <div class="fs-6 fw-bold"><?= rtrim(rtrim(number_format($pointsMultiplier, 2, '.', ''), '0'), '.') ?>x</div>
+                            <div class="text-muted small mt-2"><?= htmlspecialchars(__m('account.points.label_member_discount'), ENT_QUOTES, 'UTF-8') ?></div>
+                            <div class="fs-6 fw-bold"><?= htmlspecialchars($discountLabel, ENT_QUOTES, 'UTF-8') ?></div>
                         </div>
                     </div>
                 </div>
 
+                <div class="alert alert-light border mb-4 small">
+                    <div class="fw-semibold text-dark mb-2"><?= htmlspecialchars(__m('account.points.rules_heading'), ENT_QUOTES, 'UTF-8') ?></div>
+                    <ul class="mb-0 ps-3">
+                        <li><?= __m('account.points.rule_li_1') ?></li>
+                        <li><?= __m('account.points.rule_li_2') ?></li>
+                        <li><?= sprintf(__m('account.points.rule_li_3'), (int) Constants::POINTS_PER_HKD) ?></li>
+                        <li><?= htmlspecialchars(__m('account.points.rule_li_4'), ENT_QUOTES, 'UTF-8') ?></li>
+                    </ul>
+                </div>
+
+                <?php if (!empty($membershipRules)): ?>
+                <div class="mb-4">
+                    <h6 class="mb-2"><?= htmlspecialchars(__m('account.points.table_heading'), ENT_QUOTES, 'UTF-8') ?></h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th><?= htmlspecialchars(__m('account.points.th_level'), ENT_QUOTES, 'UTF-8') ?></th>
+                                    <th class="text-end"><?= htmlspecialchars(__m('account.points.th_threshold'), ENT_QUOTES, 'UTF-8') ?></th>
+                                    <th class="text-end"><?= htmlspecialchars(__m('account.points.th_multiplier'), ENT_QUOTES, 'UTF-8') ?></th>
+                                    <th class="text-end"><?= htmlspecialchars(__m('account.points.th_discount'), ENT_QUOTES, 'UTF-8') ?></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($membershipRules as $rule): ?>
+                                    <?php
+                                    $dp = (float) ($rule['discount_percent'] ?? 0);
+                                    $dpShow = $dp > 0.00001
+                                        ? rtrim(rtrim(number_format($dp, 2, '.', ''), '0'), '.') . '%'
+                                        : $discountNone;
+                                    $pm = (float) ($rule['points_multiplier'] ?? 1);
+                                    ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars((string) ($rule['level_name'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td class="text-end"><?= number_format((float) ($rule['min_spent'] ?? 0), 2) ?></td>
+                                        <td class="text-end"><?= rtrim(rtrim(number_format($pm, 2, '.', ''), '0'), '.') ?>x</td>
+                                        <td class="text-end"><?= htmlspecialchars($dpShow, ENT_QUOTES, 'UTF-8') ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <div class="mb-4">
                     <?php if ($nextRule): ?>
                         <div class="d-flex justify-content-between small mb-2">
-                            <span>累計消費進度（<?= htmlspecialchars((string) ($currentRule['level_name'] ?? '当前等级')) ?>）</span>
+                            <span><?= htmlspecialchars(sprintf(__m('account.points.progress_label'), (string) ($currentRule['level_name'] ?? __m('account.points.fallback_current_level'))), ENT_QUOTES, 'UTF-8') ?></span>
                             <strong>HK$ <?= number_format($totalSpent, 2) ?> / <?= number_format($nextMinSpent, 2) ?></strong>
                         </div>
                         <div class="progress" style="height: 10px;">
@@ -90,30 +136,30 @@ $upgradeProgressPercent = (float) ($membershipInfo['progress_percent'] ?? 100.0)
                             ></div>
                         </div>
                         <div class="mt-2 small text-muted">
-                            距離下一級 <strong class="text-dark"><?= htmlspecialchars((string) ($nextRule['level_name'] ?? '下一級')) ?></strong>
-                            還差 <strong class="text-dark">HK$ <?= number_format(max(0, $gapToNext), 2) ?></strong>
+                            <?= htmlspecialchars(__m('account.points.next_level_prefix'), ENT_QUOTES, 'UTF-8') ?> <strong class="text-dark"><?= htmlspecialchars((string) ($nextRule['level_name'] ?? __m('account.points.fallback_next_level')), ENT_QUOTES, 'UTF-8') ?></strong>
+                            <?= htmlspecialchars(__m('account.points.gap_prefix'), ENT_QUOTES, 'UTF-8') ?> <strong class="text-dark">HK$ <?= number_format(max(0, $gapToNext), 2) ?></strong>
                         </div>
                     <?php else: ?>
-                        <div class="alert alert-success mb-0">您目前已是最高等級，無需再滿足升級條件。</div>
+                        <div class="alert alert-success mb-0"><?= htmlspecialchars(__m('account.points.max_level_message'), ENT_QUOTES, 'UTF-8') ?></div>
                     <?php endif; ?>
 
                     <div class="mt-3 text-muted small">
-                        可抵扣金額：<strong class="text-dark"><?= htmlspecialchars($money($currentPoints / 1000), ENT_QUOTES, 'UTF-8') ?></strong>
+                        <?= htmlspecialchars(sprintf(__m('account.points.redeemable_intro'), (int) Constants::POINTS_PER_HKD), ENT_QUOTES, 'UTF-8') ?><strong class="text-dark"><?= htmlspecialchars($money($currentPoints / Constants::POINTS_PER_HKD), ENT_QUOTES, 'UTF-8') ?></strong>
                     </div>
                 </div>
 
-                <h5 class="mb-3">積分記錄</h5>
+                <h5 class="mb-3"><?= htmlspecialchars(__m('account.points.logs_heading'), ENT_QUOTES, 'UTF-8') ?></h5>
                 <?php if (empty($pointsLogs)): ?>
-                    <p class="text-muted mb-0">暫無積分變動記錄</p>
+                    <p class="text-muted mb-0"><?= htmlspecialchars(__m('account.points.logs_empty'), ENT_QUOTES, 'UTF-8') ?></p>
                 <?php else: ?>
                     <div class="table-responsive">
                         <table class="table table-hover mb-0 align-middle">
                             <thead>
                                 <tr>
-                                    <th>時間</th>
-                                    <th>類型</th>
-                                    <th>變動</th>
-                                    <th>說明</th>
+                                    <th><?= htmlspecialchars(__m('account.points.th_time'), ENT_QUOTES, 'UTF-8') ?></th>
+                                    <th><?= htmlspecialchars(__m('account.points.th_type'), ENT_QUOTES, 'UTF-8') ?></th>
+                                    <th><?= htmlspecialchars(__m('account.points.th_change'), ENT_QUOTES, 'UTF-8') ?></th>
+                                    <th><?= htmlspecialchars(__m('account.points.th_note'), ENT_QUOTES, 'UTF-8') ?></th>
                                 </tr>
                             </thead>
                             <tbody>

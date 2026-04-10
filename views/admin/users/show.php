@@ -28,10 +28,24 @@ $levels = $levels ?? [];
                     <div class="mt-2">
                         <div><strong>用戶名：</strong><?= htmlspecialchars($user['name']) ?></div>
                         <div><strong>電郵：</strong><?= htmlspecialchars($user['email']) ?></div>
-                        <div><strong>當前等級：</strong><?= htmlspecialchars((string) ($user['level_name'] ?? '無等級')) ?></div>
+                        <?php
+                        $levelNameDisplay = (string) ($user['level_name'] ?? '無等級');
+                        $isLevelLocked = array_key_exists('is_level_locked', $user) && !empty($user['is_level_locked']);
+                        ?>
+                        <div>
+                            <strong>目前狀態：</strong>
+                            等級：<?= htmlspecialchars($levelNameDisplay) ?>
+                            <?php if (array_key_exists('is_level_locked', $user)): ?>
+                                <?php if ($isLevelLocked): ?>
+                                    <span class="text-warning">（手動鎖定）</span>
+                                <?php else: ?>
+                                    <span class="text-success">（依消費自動）</span>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
                         <div><strong>累計消費：</strong><?= number_format((float) ($user['total_spent'] ?? 0), 2) ?></div>
                     </div>
-                    <form method="POST" action="<?= $url('admin/users/' . (int) $user['id'] . '/vip-level') ?>" class="mt-3 d-flex gap-2 align-items-center">
+                    <form method="POST" action="<?= $url('admin/users/' . (int) $user['id'] . '/membership-level') ?>" class="mt-3 d-flex flex-wrap gap-2 align-items-center">
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars((string) ($csrf_token ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                         <select name="membership_level" class="form-select" style="max-width: 220px;">
                             <?php foreach ($levels as $level): ?>
@@ -42,6 +56,15 @@ $levels = $levels ?? [];
                         </select>
                         <button type="submit" class="btn btn-outline-primary">更新等級</button>
                     </form>
+                    <?php if (array_key_exists('is_level_locked', $user) && $isLevelLocked): ?>
+                        <form method="POST"
+                              action="<?= $url('admin/users/' . (int) $user['id'] . '/unlock-level') ?>"
+                              class="mt-2"
+                              onsubmit="return confirm('確定恢復依累計消費自動計算等級？');">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars((string) ($csrf_token ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm">恢復自動計算</button>
+                        </form>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="col-md-6">
@@ -51,7 +74,7 @@ $levels = $levels ?? [];
                         <?php if (empty($orders)): ?>
                             <div class="text-muted">暫無訂單記錄</div>
                         <?php else: ?>
-                            <div class="small text-muted">显示最近 <?= count($orders) ?> 笔</div>
+                            <div class="small text-muted">顯示最近 <?= count($orders) ?> 筆</div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -62,10 +85,10 @@ $levels = $levels ?? [];
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th>订单号</th>
-                        <th>金额</th>
-                        <th>状态</th>
-                        <th>下单时间</th>
+                        <th>訂單號</th>
+                        <th>金額</th>
+                        <th>狀態</th>
+                        <th>下單時間</th>
                         <th>操作</th>
                     </tr>
                 </thead>
@@ -83,7 +106,7 @@ $levels = $levels ?? [];
                                 <td><?= htmlspecialchars($order['created_at'] ?? '') ?></td>
                                 <td>
                                     <a href="<?= $url('admin/orders/' . $order['id']) ?>" class="btn btn-sm btn-outline-primary">
-                                        查看
+                                        檢視
                                     </a>
                                 </td>
                             </tr>

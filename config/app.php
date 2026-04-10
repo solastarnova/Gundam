@@ -1,7 +1,14 @@
 <?php
 
-/** @see docs/CONFIG_AND_MESSAGES.md */
 return [
+    /**
+     * Message bundle: languages/{locale}/common.json, languages/{locale}/api/*.json, mail|membership.json, view/*.json.
+     * Override with APP_LOCALE in .env when additional locales exist.
+     */
+    'locale' => isset($_ENV['APP_LOCALE']) && is_string($_ENV['APP_LOCALE']) && $_ENV['APP_LOCALE'] !== ''
+        ? $_ENV['APP_LOCALE']
+        : 'zh_HK',
+
     'base_url' => '',
     'site_name' => '高達模型商城',
     'order_number_prefix' => 'ORD',
@@ -72,4 +79,6 @@ return [
             'github.com',
         ],
     ],
+
+    'home' => require __DIR__ . '/home.php',
 ];

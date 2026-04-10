@@ -1,73 +1,59 @@
 <?php
 $url = $url ?? fn($p = '') => $p;
+$account_nav_active = 'orders';
 ?>
 <div class="container account-page my-5 pt-5">
     <div class="row account-layout">
-        <div class="col-lg-3 col-md-4">
-            <div class="sidebar account-sidebar">
-                <h5 class="px-4 mb-4 text-dark fw-bold">我的帳戶</h5>
-                <div class="nav flex-column">
-                    <a href="<?= $url('account') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-person me-2"></i> 個人資料</a>
-                    <a href="<?= $url('account/points') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-award me-2"></i> 會員中心</a>
-                    <a href="<?= $url('account/orders') ?>" class="nav-link d-flex align-items-center active"><i class="bi bi-bag me-2"></i> 訂單記錄</a>
-                    <a href="<?= $url('wishlist') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-heart me-2"></i> 喜愛清單</a>
-                    <span class="nav-link d-flex align-items-center text-muted user-select-none" style="pointer-events: none; cursor: default;" title="暫未開放"><i class="bi bi-ticket-perforated me-2"></i> 優惠券</span>
-                    <a href="<?= $url('account/addresses') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-geo-alt me-2"></i> 預設地址</a>
-                    <a href="<?= $url('account/payment') ?>" class="nav-link d-flex align-items-center"><i class="bi bi-credit-card me-2"></i> 付款方式</a>
-                    <a class="nav-link d-flex" href="<?= $url('account/settings') ?>"> 帳戶設定</a>
-                    <a class="nav-link d-flex text-danger" href="<?= $url('logout') ?>" data-logout="1"> 登出</a>
-                </div>
-            </div>
-        </div>
+        <?php include __DIR__ . '/../partials/account_sidebar.php'; ?>
         <div class="col-lg-9 col-md-8">
             <div class="account-main-card account-main-padding">
                 <div class="mb-4">
-                    <h4 class="mb-4">訂單記錄</h4>
-                    <p class="page-subtitle">查看您的所有交易歷史和支付狀態</p>
+                    <h4 class="mb-4"><?= htmlspecialchars(__m('account.orders.title'), ENT_QUOTES, 'UTF-8') ?></h4>
+                    <p class="page-subtitle"><?= htmlspecialchars(__m('account.orders.subtitle'), ENT_QUOTES, 'UTF-8') ?></p>
                 </div>
                 <div class="row mb-4 g-3">
                     <div class="col-xl-3 col-md-6">
                         <div class="stat-card bg-success bg-opacity-10 border border-success border-opacity-25">
                             <div class="stat-card-value text-success" id="totalTransactions">0</div>
-                            <div class="stat-card-label">總交易筆數</div>
+                            <div class="stat-card-label"><?= htmlspecialchars(__m('account.orders.stat_total'), ENT_QUOTES, 'UTF-8') ?></div>
                         </div>
                     </div>
                     <div class="col-xl-3 col-md-6">
                         <div class="stat-card bg-primary bg-opacity-10 border border-primary border-opacity-25">
                             <div class="stat-card-value text-primary" id="totalAmount">0</div>
-                            <div class="stat-card-label">總交易金額</div>
+                            <div class="stat-card-label"><?= htmlspecialchars(__m('account.orders.stat_amount'), ENT_QUOTES, 'UTF-8') ?></div>
                         </div>
                     </div>
                     <div class="col-xl-3 col-md-6">
                         <div class="stat-card bg-info bg-opacity-10 border border-info border-opacity-25">
                             <div class="stat-card-value text-info" id="successCount">0</div>
-                            <div class="stat-card-label">成功交易</div>
+                            <div class="stat-card-label"><?= htmlspecialchars(__m('account.orders.stat_success'), ENT_QUOTES, 'UTF-8') ?></div>
                         </div>
                     </div>
                     <div class="col-xl-3 col-md-6">
                         <div class="stat-card bg-warning bg-opacity-10 border border-warning border-opacity-25">
                             <div class="stat-card-value text-warning" id="pendingCount">0</div>
-                            <div class="stat-card-label">待處理</div>
+                            <div class="stat-card-label"><?= htmlspecialchars(__m('account.orders.stat_pending'), ENT_QUOTES, 'UTF-8') ?></div>
                         </div>
                     </div>
                 </div>
                 <div class="filter-section mb-4">
                     <div class="row g-3">
                         <div class="col-lg-3 col-md-6">
-                            <label for="filterStatus" class="filter-label">支付狀態</label>
+                            <label for="filterStatus" class="filter-label"><?= htmlspecialchars(__m('account.orders.filter_status'), ENT_QUOTES, 'UTF-8') ?></label>
                             <select class="form-select" id="filterStatus" onchange="filterTransactions()">
-                                <option value="">全部狀態</option>
-                                <option value="completed">已完成</option>
-                                <option value="pending">待處理</option>
-                                <option value="cancelled">已取消</option>
-                                <option value="paid">已付款</option>
-                                <option value="shipped">已發貨</option>
+                                <option value=""><?= htmlspecialchars(__m('account.orders.filter_all'), ENT_QUOTES, 'UTF-8') ?></option>
+                                <option value="completed"><?= htmlspecialchars(__m('account.orders.status_completed'), ENT_QUOTES, 'UTF-8') ?></option>
+                                <option value="pending"><?= htmlspecialchars(__m('account.orders.status_pending'), ENT_QUOTES, 'UTF-8') ?></option>
+                                <option value="cancelled"><?= htmlspecialchars(__m('account.orders.status_cancelled'), ENT_QUOTES, 'UTF-8') ?></option>
+                                <option value="paid"><?= htmlspecialchars(__m('account.orders.status_paid'), ENT_QUOTES, 'UTF-8') ?></option>
+                                <option value="shipped"><?= htmlspecialchars(__m('account.orders.status_shipped'), ENT_QUOTES, 'UTF-8') ?></option>
                             </select>
                         </div>
                         <div class="col-lg-3 col-md-6">
-                            <label for="searchTransaction" class="filter-label">搜尋交易 ID</label>
+                            <label for="searchTransaction" class="filter-label"><?= htmlspecialchars(__m('account.orders.search_label'), ENT_QUOTES, 'UTF-8') ?></label>
                             <div class="input-group">
-                                <input type="text" class="form-control" id="searchTransaction" placeholder="輸入交易 ID" onkeyup="filterTransactions()">
+                                <input type="text" class="form-control" id="searchTransaction" placeholder="<?= htmlspecialchars(__m('account.orders.search_placeholder'), ENT_QUOTES, 'UTF-8') ?>" onkeyup="filterTransactions()">
                                 <span class="input-group-text bg-white border-start-0"><i class="bi bi-search"></i></span>
                             </div>
                         </div>
@@ -79,12 +65,12 @@ $url = $url ?? fn($p = '') => $p;
                             <table class="table table-hover transaction-table mb-0">
                                 <thead>
                                     <tr>
-                                        <th>交易 ID</th>
-                                        <th>日期</th>
-                                        <th>說明</th>
-                                        <th>金額</th>
-                                        <th>支付狀態</th>
-                                        <th>操作</th>
+                                        <th><?= htmlspecialchars(__m('account.orders.th_txn_id'), ENT_QUOTES, 'UTF-8') ?></th>
+                                        <th><?= htmlspecialchars(__m('account.orders.th_date'), ENT_QUOTES, 'UTF-8') ?></th>
+                                        <th><?= htmlspecialchars(__m('account.orders.th_desc'), ENT_QUOTES, 'UTF-8') ?></th>
+                                        <th><?= htmlspecialchars(__m('account.orders.th_amount'), ENT_QUOTES, 'UTF-8') ?></th>
+                                        <th><?= htmlspecialchars(__m('account.orders.th_pay_status'), ENT_QUOTES, 'UTF-8') ?></th>
+                                        <th><?= htmlspecialchars(__m('account.orders.th_action'), ENT_QUOTES, 'UTF-8') ?></th>
                                     </tr>
                                 </thead>
                                 <tbody id="transactionTableBody"></tbody>
@@ -92,7 +78,7 @@ $url = $url ?? fn($p = '') => $p;
                         </div>
                         <div id="emptyState" class="empty-state-table">
                             <div class="empty-state-icon">📋</div>
-                            <div class="empty-state-text">暫無交易記錄</div>
+                            <div class="empty-state-text"><?= htmlspecialchars(__m('account.orders.empty'), ENT_QUOTES, 'UTF-8') ?></div>
                         </div>
                     </div>
                 </div>
@@ -102,8 +88,19 @@ $url = $url ?? fn($p = '') => $p;
 </div>
 
 <script>
+window.ORDERS_PAGE = <?= json_encode([
+    'statusPending' => __m('account.orders.status_pending'),
+    'statusPaid' => __m('account.orders.status_paid'),
+    'statusShipped' => __m('account.orders.status_shipped'),
+    'statusCompleted' => __m('account.orders.status_completed'),
+    'statusCancelled' => __m('account.orders.status_cancelled'),
+    'itemsTpl' => __m('account.orders.items_count_tpl'),
+    'viewDetail' => __m('account.orders.view_detail'),
+    'loadErr' => __m('account.orders.console_load_error'),
+], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>;
 (function() {
     const base = window.APP_BASE || '';
+    const O = window.ORDERS_PAGE || {};
     const formatMoney = (typeof window.formatMoney === 'function')
         ? window.formatMoney
         : function(v) {
@@ -122,7 +119,13 @@ $url = $url ?? fn($p = '') => $p;
             return (cfg.symbol || '') + amount.toFixed(Number.isInteger(cfg.decimals) ? cfg.decimals : 2);
         };
     const statusClass = { pending: 'text-warning', paid: 'text-info', shipped: 'text-primary', completed: 'text-success', cancelled: 'text-danger' };
-    const statusText = { pending: '待處理', paid: '已付款', shipped: '已發貨', completed: '已完成', cancelled: '已取消' };
+    const statusText = {
+        pending: O.statusPending || '',
+        paid: O.statusPaid || '',
+        shipped: O.statusShipped || '',
+        completed: O.statusCompleted || '',
+        cancelled: O.statusCancelled || ''
+    };
     const initialOrders = <?= json_encode($orders ?? []) ?>;
     let allOrders = [];
 
@@ -181,7 +184,8 @@ $url = $url ?? fn($p = '') => $p;
                 const st = statusText[order.status] || order.status;
                 const row = document.createElement('tr');
                 row.setAttribute('data-order-id', order.id);
-                row.innerHTML = '<td>' + (order.order_number || '') + '</td><td>' + (order.created_at ? new Date(order.created_at).toLocaleDateString() : '') + '</td><td>' + (order.item_count || 0) + ' 件商品</td><td class="fw-bold">' + formatMoney(parseFloat(order.total_amount) || 0) + '</td><td><span class="' + sc + '">' + st + '</span></td><td><a href="' + base + 'account/order/' + order.id + '" class="btn btn-sm btn-outline-info">查看詳情</a></td>';
+                const desc = (O.itemsTpl || '').replace(/\{\{n\}\}/g, String(order.item_count || 0));
+                row.innerHTML = '<td>' + (order.order_number || '') + '</td><td>' + (order.created_at ? new Date(order.created_at).toLocaleDateString() : '') + '</td><td>' + desc + '</td><td class="fw-bold">' + formatMoney(parseFloat(order.total_amount) || 0) + '</td><td><span class="' + sc + '">' + st + '</span></td><td><a href="' + base + 'account/order/' + order.id + '" class="btn btn-sm btn-outline-info">' + (O.viewDetail || '') + '</a></td>';
                 tbody.appendChild(row);
             });
 
@@ -191,7 +195,7 @@ $url = $url ?? fn($p = '') => $p;
             document.getElementById('pendingCount').textContent = pendingCount;
             window.filterTransactions = filterTransactions;
         } catch (e) {
-            console.error('載入交易記錄時出錯:', e);
+            console.error((O.loadErr || '') + '', e);
         }
     }
     document.addEventListener('DOMContentLoaded', loadTransactions);

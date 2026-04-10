@@ -21,10 +21,10 @@ INSERT INTO `items` (`id`, `name`, `description`, `category`, `price`, `stock_qu
     (6, 'BANDAI 高達模型 RG 144 wing gundam ew', 'BANDAI RG 144 wing gundam ew飛翼高達模型，EW版特殊設計', 'RG', 191, 50, 'bandai-rg144-wing.jpg');
 
 INSERT INTO `membership_rules` (`id`, `level_key`, `level_name`, `min_spent`, `points_multiplier`, `discount_percent`, `sort_order`) VALUES
-    (1, 'bronze', '青铜', 0, 1.00, 0.00, 1),
-    (2, 'silver', '白银', 2000, 1.20, 3.00, 2),
-    (3, 'gold', '黄金', 5000, 1.50, 5.00, 3),
-    (4, 'platinum', '铂金', 10000, 2.00, 8.00, 4);
+    (1, 'bronze', '實習駕駛員', 0, 10.00, 0.00, 1),
+    (2, 'silver', '正式隊員', 2000, 15.00, 0.00, 2),
+    (3, 'gold', '王牌駕駛員', 5000, 25.00, 2.00, 3),
+    (4, 'platinum', '自由之翼', 10000, 40.00, 5.00, 4);
 
 INSERT INTO `users` (`id`, `name`, `email`, `firebase_uid`, `password`, `total_spent`, `points`, `total_points_earned`, `total_points_spent`, `membership_level`) VALUES
     (1, 'abandon', 'abandon@gmail.com', NULL, '$2y$10$cO1OpdbcI03CBlmMa0MMPeI6egWQVTMNnHQ68LYn8HNhfduT2yRua', 0.00, 0, 0, 0, 'bronze');

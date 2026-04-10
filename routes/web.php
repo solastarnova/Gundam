@@ -36,7 +36,6 @@ $router->get('/account/settings', 'AccountController', 'settings');
 $router->get('/account/payment', 'AccountController', 'payment');
 $router->get('/account/points', 'PointsController', 'center');
 $router->post('/account/password', 'AccountController', 'updatePassword');
-$router->post('/account/email', 'AccountController', 'updateEmail');
 $router->post('/account/phone', 'AccountController', 'updatePhone');
 $router->post('/account/review', 'AccountController', 'submitReview');
 $router->get('/account/addresses', 'AddressController', 'index');
@@ -76,6 +75,9 @@ $router->post('/api/payment/create-paypal-order', 'PaymentController', 'createPa
 $router->post('/api/payment/wallet-checkout', 'PaymentController', 'walletCheckout');
 $router->post('/api/payment/confirm', 'PaymentController', 'confirm');
 
+$router->post('/api/chat', 'ChatController', 'chat');
+$router->post('/api/chat/clear', 'ChatController', 'clearHistory');
+
 $router->get('/admin/login', 'Admin\LoginController', 'index');
 $router->post('/admin/login', 'Admin\LoginController', 'login');
 $router->get('/admin/logout', 'Admin\LoginController', 'logout');
@@ -95,6 +97,7 @@ $router->post('/admin/orders/:id/status', 'Admin\OrderController', 'updateStatus
 $router->get('/admin/users', 'Admin\UserController', 'index');
 $router->get('/admin/users/:id', 'Admin\UserController', 'show');
 $router->post('/admin/users/:id/toggle-status', 'Admin\UserController', 'toggleStatus');
-$router->post('/admin/users/:id/vip-level', 'Admin\UserController', 'updateVipLevel');
+$router->post('/admin/users/:id/membership-level', 'Admin\UserController', 'updateMembershipLevel');
+$router->post('/admin/users/:id/unlock-level', 'Admin\UserController', 'unlockLevel');
 
 return $router;

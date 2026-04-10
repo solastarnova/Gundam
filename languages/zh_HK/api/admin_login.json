@@ -1,0 +1,7 @@
+{
+    "admin_login": {
+        "csrf_invalid": "請求無效，請重新從登入頁提交。",
+        "username_password_required": "用戶名稱和密碼不能為空",
+        "username_password_wrong": "用戶名稱或密碼錯誤"
+    }
+}

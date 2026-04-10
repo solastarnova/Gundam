@@ -6,9 +6,9 @@ $errors = $errors ?? [];
 <div class="container d-flex justify-content-center align-items-center my-5">
     <div class="card shadow-sm" style="max-width: 420px; width: 100%;">
         <div class="card-body p-4">
-            <h3 class="text-center mb-3">設定新密碼</h3>
+            <h3 class="text-center mb-3"><?= htmlspecialchars(__m('auth_reset.title'), ENT_QUOTES, 'UTF-8') ?></h3>
             <p class="text-center text-muted mb-4">
-                請輸入您的新密碼並再次確認。
+                <?= htmlspecialchars(__m('auth_reset.intro'), ENT_QUOTES, 'UTF-8') ?>
             </p>
 
             <?php if (!empty($errors['general'])): ?>
@@ -17,7 +17,7 @@ $errors = $errors ?? [];
 
             <form action="<?= $url('forgot/reset') ?>" method="POST">
                 <div class="mb-3">
-                    <label for="inputPassword" class="form-label fw-semibold">新密碼</label>
+                    <label for="inputPassword" class="form-label fw-semibold"><?= htmlspecialchars(__m('auth_reset.new_password'), ENT_QUOTES, 'UTF-8') ?></label>
                     <input
                         type="password"
                         class="form-control <?= isset($errors['password']) ? 'is-invalid' : '' ?>"
@@ -33,7 +33,7 @@ $errors = $errors ?? [];
                 </div>
 
                 <div class="mb-3">
-                    <label for="inputPassword2" class="form-label fw-semibold">確認新密碼</label>
+                    <label for="inputPassword2" class="form-label fw-semibold"><?= htmlspecialchars(__m('auth_reset.confirm_password'), ENT_QUOTES, 'UTF-8') ?></label>
                     <input
                         type="password"
                         class="form-control <?= isset($errors['password_confirm']) ? 'is-invalid' : '' ?>"
@@ -49,13 +49,13 @@ $errors = $errors ?? [];
                 </div>
 
                 <div class="auth-btn-center mb-3">
-                <button class="btn btn-dark" type="submit">重設密碼</button>
+                <button class="btn btn-dark" type="submit"><?= htmlspecialchars(__m('auth_reset.submit'), ENT_QUOTES, 'UTF-8') ?></button>
             </div>
             </form>
 
             <hr class="my-3">
             <div class="text-center">
-                <a href="<?= $url('login') ?>" class="text-decoration-none small">返回登入</a>
+                <a href="<?= $url('login') ?>" class="text-decoration-none small"><?= htmlspecialchars(__m('auth_reset.back_login'), ENT_QUOTES, 'UTF-8') ?></a>
             </div>
         </div>
     </div>

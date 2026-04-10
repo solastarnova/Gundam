@@ -6,6 +6,9 @@ use App\Core\Config;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
+/**
+ * SMTP mail: verification codes and order confirmation.
+ */
 class MailService
 {
     private function getSiteName(): string

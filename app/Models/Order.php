@@ -6,6 +6,9 @@ use App\Core\Config;
 use App\Core\Model;
 use App\Services\OrderStatusService;
 
+/**
+ * Write path for orders: header + order_items rows inside optional outer transaction.
+ */
 class Order extends Model
 {
     public function create(

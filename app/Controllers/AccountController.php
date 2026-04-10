@@ -27,9 +27,7 @@ class AccountController extends Controller
 {
     $user = $this->requireUser();
     $userId = $user['id'];
-    
-    $this->userModel->refreshMembershipLevelBySpent($userId);
-    
+
     $profile = $this->userModel->findById($userId) ?? [];
     $membershipInfo = $this->userModel->getMembershipInfo($userId);
 
@@ -135,8 +133,6 @@ class AccountController extends Controller
             'profile' => $profile,
             'passwordErrors' => $this->consumeFlash('account_password_errors', []),
             'passwordSuccess' => $this->consumeFlash('account_password_success'),
-            'emailErrors' => $this->consumeFlash('account_email_errors', []),
-            'emailSuccess' => $this->consumeFlash('account_email_success'),
             'phoneErrors' => $this->consumeFlash('account_phone_errors', []),
             'phoneSuccess' => $this->consumeFlash('account_phone_success'),
             'head_extra_css' => [],
@@ -227,44 +223,6 @@ class AccountController extends Controller
         }
 
         $this->flash('account_password_success', Config::get('messages.account.password_update_success'));
-        $this->redirect($this->view->url('account/settings'));
-    }
-
-    public function updateEmail(): void
-    {
-        $this->requireUser();
-        $userId = (int) $_SESSION['user_id'];
-        $newEmail = trim((string) ($_POST['email'] ?? ''));
-        $currentPassword = (string) ($_POST['current_password'] ?? '');
-
-        $profile = $this->userModel->findById($userId);
-        $currentEmail = $profile['email'] ?? '';
-        $errors = [];
-        if ($newEmail === '') {
-            $errors['email'] = Config::get('messages.account.email_new_required');
-        } elseif (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
-            $errors['email'] = Config::get('messages.auth.email_invalid');
-        } elseif ($newEmail !== $currentEmail && $this->userModel->emailExists($newEmail)) {
-            $errors['email'] = Config::get('messages.account.email_taken_other');
-        }
-        if ($currentPassword === '') {
-            $errors['current_password'] = Config::get('messages.account.password_current_for_email');
-        } elseif (!$this->userModel->verifyPasswordForUser($userId, $currentPassword)) {
-            $errors['current_password'] = Config::get('messages.account.password_current_wrong');
-        }
-
-        if (!empty($errors)) {
-            $this->flash('account_email_errors', $errors);
-            $this->redirect($this->view->url('account/settings'));
-            return;
-        }
-
-        if ($this->userModel->updateEmail($userId, $newEmail)) {
-            $_SESSION['email'] = $newEmail;
-            $this->flash('account_email_success', Config::get('messages.account.email_update_success'));
-        } else {
-            $this->flash('account_email_errors', ['email' => Config::get('messages.account.email_update_failed')]);
-        }
         $this->redirect($this->view->url('account/settings'));
     }
 

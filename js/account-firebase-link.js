@@ -1,7 +1,8 @@
 /**
- * 帳戶設定：已登入 Firebase 的用戶以 linkWithPopup 綁定其他社群提供者。
+ * Account settings: link additional OAuth providers via linkWithPopup.
  */
 document.addEventListener('DOMContentLoaded', function () {
+    var L = window.FIREBASE_LINK_JS || {};
     if (!window.FIREBASE_SOCIAL_LINKING) {
         return;
     }
@@ -66,19 +67,20 @@ document.addEventListener('DOMContentLoaded', function () {
         el.addEventListener('click', function () {
             var user = firebase.auth().currentUser;
             if (!user) {
-                window.alert('請先登入！請從登入頁使用 Google／GitHub／Facebook 成功登入後，再回到此頁綁定。');
+                window.alert(L.needLogin || '');
                 return;
             }
 
             el.disabled = true;
             el.innerHTML =
-                '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 處理中...';
+                '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' +
+                (L.processing || '');
 
             var provider = createProvider();
             user
                 .linkWithPopup(provider)
                 .then(function () {
-                    window.alert(providerLabel + ' 帳號綁定成功！');
+                    window.alert((L.bindOk || '').replace('%s', providerLabel));
                     window.location.reload();
                 })
                 .catch(function (error) {
@@ -92,28 +94,26 @@ document.addEventListener('DOMContentLoaded', function () {
                         return;
                     }
                     if (error.code === 'auth/popup-blocked') {
-                        window.alert('請允許瀏覽器的彈出視窗，以便完成授權。');
+                        window.alert(L.popupBlocked || '');
                         return;
                     }
                     if (error.code === 'auth/provider-already-linked') {
-                        window.alert('此登入方式已綁定。');
+                        window.alert(L.alreadyLinked || '');
                         refreshSocialLinkUi();
                         return;
                     }
                     if (error.code === 'auth/credential-already-in-use') {
-                        window.alert(
-                            '錯誤：此 ' +
-                                providerLabel +
-                                ' 帳號已被其他商城用戶綁定，請換一個帳號嘗試。'
-                        );
+                        window.alert((L.credentialInUse || '').replace('%s', providerLabel));
                         return;
                     }
                     if (error.code === 'auth/email-already-in-use') {
-                        window.alert('此電郵已用於其他帳號，請使用帳號連結流程處理。');
+                        window.alert(L.emailInUse || '');
                         return;
                     }
                     console.error('Link Error:', error);
-                    window.alert('綁定失敗：' + (error.message || '未知錯誤'));
+                    window.alert(
+                        (L.bindFailedPrefix || '') + (error.message || L.unknownError || '')
+                    );
                 });
         });
     }

@@ -57,21 +57,12 @@ h1 {
     gap: 4px;
 }
 
-.price {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.final-price {
+/* Detail page: larger member price (cards use 18px in style.css) */
+.product-info .price-box .member-price {
     font-size: 28px;
-    color: #ff5000;
-    font-weight: bold;
 }
 
-.original-price {
-    color: #999;
-    text-decoration: line-through;
+.product-info .price-box .original-price {
     font-size: 14px;
 }
 

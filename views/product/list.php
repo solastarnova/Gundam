@@ -15,32 +15,32 @@ if ($maxPrice <= $minPrice) {
     <div class="row">
         <div class="col-lg-3 col-md-4">
             <div class="model-sidebar">
-                <h3 class="model-sidebar-title">模型專區</h3>
+                <h3 class="model-sidebar-title"><?= htmlspecialchars(__m('product_list.sidebar_title'), ENT_QUOTES, 'UTF-8') ?></h3>
                 <div class="product-count-info">
-                    1-<?= $productCount ?> 件產品，共 <?= $productCount ?> 件
+                    <?= htmlspecialchars(__m('product_list.count_all', $productCount, $productCount), ENT_QUOTES, 'UTF-8') ?>
                 </div>
                 <div class="filter-section">
-                    <h4 class="filter-title">分類</h4>
+                    <h4 class="filter-title"><?= htmlspecialchars(__m('product_list.filter_category'), ENT_QUOTES, 'UTF-8') ?></h4>
                     <ul class="category-list">
-                        <li><a href="#" class="filter-category active" data-category="">全部</a></li>
+                        <li><a href="#" class="filter-category active" data-category=""><?= htmlspecialchars(__m('product_list.category_all'), ENT_QUOTES, 'UTF-8') ?></a></li>
                         <?php foreach ($categories as $cat): ?>
                         <li><a href="#" class="filter-category" data-category="<?= htmlspecialchars($cat) ?>"><?= htmlspecialchars($cat) ?></a></li>
                         <?php endforeach; ?>
                     </ul>
                 </div>
                 <div class="filter-section">
-                    <h4 class="filter-title">存貨狀態</h4>
+                    <h4 class="filter-title"><?= htmlspecialchars(__m('product_list.filter_stock'), ENT_QUOTES, 'UTF-8') ?></h4>
                     <div class="filter-checkbox">
                         <input type="checkbox" id="stock-order" checked>
-                        <label for="stock-order">可訂貨</label>
+                        <label for="stock-order"><?= htmlspecialchars(__m('product_list.stock_orderable'), ENT_QUOTES, 'UTF-8') ?></label>
                     </div>
                     <div class="filter-checkbox">
                         <input type="checkbox" id="stock-available" checked>
-                        <label for="stock-available">即時開賣</label>
+                        <label for="stock-available"><?= htmlspecialchars(__m('product_list.stock_available'), ENT_QUOTES, 'UTF-8') ?></label>
                     </div>
                 </div>
                 <div class="filter-section">
-                    <h4 class="filter-title">價格範圍</h4>
+                    <h4 class="filter-title"><?= htmlspecialchars(__m('product_list.filter_price'), ENT_QUOTES, 'UTF-8') ?></h4>
                     <div class="price-filter-container">
                         <div class="price-sliders">
                             <div class="slider-track"></div>
@@ -50,12 +50,12 @@ if ($maxPrice <= $minPrice) {
                         </div>
                         <div class="price-inputs">
                             <div class="price-input-group">
-                                <label>最低:</label>
+                                <label><?= htmlspecialchars(__m('product_list.label_min'), ENT_QUOTES, 'UTF-8') ?></label>
                                 <input type="number" id="min-price-input" min="<?= (int) floor($minPrice) ?>" max="<?= (int) ceil($maxPrice) ?>" step="1" value="<?= (int) floor($minPrice) ?>">
                             </div>
                             <span class="price-separator">-</span>
                             <div class="price-input-group">
-                                <label>最高:</label>
+                                <label><?= htmlspecialchars(__m('product_list.label_max'), ENT_QUOTES, 'UTF-8') ?></label>
                                 <input type="number" id="max-price-input" min="<?= (int) floor($minPrice) ?>" max="<?= (int) ceil($maxPrice) ?>" step="1" value="<?= (int) ceil($maxPrice) ?>">
                             </div>
                         </div>
@@ -64,13 +64,13 @@ if ($maxPrice <= $minPrice) {
                             <span id="current-max-price"><?= htmlspecialchars($money((float) ceil($maxPrice)), ENT_QUOTES, 'UTF-8') ?></span>
                         </div>
                         <div class="filter-buttons">
-                            <button class="btn btn-primary btn-sm" type="button" id="btn-apply-price">應用篩選</button>
-                            <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-reset-price">重設</button>
+                            <button class="btn btn-primary btn-sm" type="button" id="btn-apply-price"><?= htmlspecialchars(__m('product_list.apply_filter'), ENT_QUOTES, 'UTF-8') ?></button>
+                            <button class="btn btn-outline-secondary btn-sm" type="button" id="btn-reset-price"><?= htmlspecialchars(__m('product_list.reset'), ENT_QUOTES, 'UTF-8') ?></button>
                         </div>
                     </div>
                 </div>
                 <div class="filter-section">
-                    <h4 class="filter-title">品牌</h4>
+                    <h4 class="filter-title"><?= htmlspecialchars(__m('product_list.filter_brand'), ENT_QUOTES, 'UTF-8') ?></h4>
                     <div class="brand-item">
                         <div class="filter-checkbox">
                             <input type="checkbox" id="brand-bandai" checked>
@@ -80,7 +80,7 @@ if ($maxPrice <= $minPrice) {
                     </div>
                 </div>
                 <div class="filter-section filter-actions">
-                    <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="btn-clear-filters">清除所有篩選</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="btn-clear-filters"><?= htmlspecialchars(__m('product_list.clear_all_filters'), ENT_QUOTES, 'UTF-8') ?></button>
                 </div>
             </div>
         </div>
@@ -88,15 +88,15 @@ if ($maxPrice <= $minPrice) {
         <div class="col-lg-9 col-md-8">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div class="d-flex align-items-center">
-                    <span class="me-2">排序:</span>
+                    <span class="me-2"><?= htmlspecialchars(__m('product_list.sort_label'), ENT_QUOTES, 'UTF-8') ?></span>
                     <select class="form-select form-select-sm sort-select-width" id="sort-select">
-                        <option value="default" selected>預設排序</option>
-                        <option value="price-low">價格從低到高</option>
-                        <option value="price-high">價格從高到低</option>
-                        <option value="name">商品名稱</option>
+                        <option value="default" selected><?= htmlspecialchars(__m('product_list.sort_default'), ENT_QUOTES, 'UTF-8') ?></option>
+                        <option value="price-low"><?= htmlspecialchars(__m('product_list.sort_price_low'), ENT_QUOTES, 'UTF-8') ?></option>
+                        <option value="price-high"><?= htmlspecialchars(__m('product_list.sort_price_high'), ENT_QUOTES, 'UTF-8') ?></option>
+                        <option value="name"><?= htmlspecialchars(__m('product_list.sort_name'), ENT_QUOTES, 'UTF-8') ?></option>
                     </select>
                 </div>
-                <span class="text-muted">顯示 <span id="display-count">1-<?= $productCount ?></span> 件產品</span>
+                <span class="text-muted"><?= htmlspecialchars(__m('product_list.display_prefix'), ENT_QUOTES, 'UTF-8') ?><span id="display-count">1-<?= $productCount ?></span><?= htmlspecialchars(__m('product_list.display_suffix'), ENT_QUOTES, 'UTF-8') ?></span>
             </div>
             <div class="row d-flex justify-content-center" id="products-container">
                 <?php foreach ($featuredProducts as $product): ?>
@@ -108,11 +108,11 @@ if ($maxPrice <= $minPrice) {
                 $imgPath = $product['image_path'] ?? 'placeholder.jpg';
                 $productLink = $url('product/' . (int)($product['id'] ?? 0));
                 $imgSrc = $asset('images/' . $imgPath);
-                $cat = $product['category'] ?? '其他';
+                $cat = $product['category'] ?? __m('product_list.category_other');
                 $inStock = (int)($product['stock_quantity'] ?? 0) > 0;
                 ?>
                 <div class="p-3 col-12 col-sm-6 col-lg-4 product-item" data-price="<?= (int) round($price) ?>" data-name="<?= htmlspecialchars($product['name'] ?? '') ?>" data-category="<?= htmlspecialchars($cat) ?>" data-stock="<?= $inStock ? '1' : '0' ?>" data-brand="Bandai">
-                    <div class="card shadow p-3 mb-4 bg-body-tertiary rounded product-card position-relative">
+                    <div class="card p-3 mb-4 bg-body-tertiary rounded product-card position-relative">
                         <?php if ($discount > 0): ?>
                         <div class="product-discount-badge">-<?= $discount ?>%</div>
                         <?php endif; ?>
@@ -129,21 +129,21 @@ if ($maxPrice <= $minPrice) {
                                 <small class="text-muted">(<?= rand(5, 15) ?>)</small>
                             </div>
                             <div class="price-section mt-3">
-                                <div class="d-flex align-items-center mb-2">
-                                    <span class="final-price"><?= htmlspecialchars($money((float) $price), ENT_QUOTES, 'UTF-8') ?></span>
+                                <div class="price-box mb-2">
+                                    <span class="member-price"><?= htmlspecialchars($money((float) $price), ENT_QUOTES, 'UTF-8') ?></span>
                                     <?php if ($original > $price): ?>
-                                    <span class="original-price ms-2"><?= htmlspecialchars($money((float) $original), ENT_QUOTES, 'UTF-8') ?></span>
+                                    <span class="original-price"><?= htmlspecialchars($money((float) $original), ENT_QUOTES, 'UTF-8') ?></span>
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <div class="stock-badge mt-3">▼ 有現貨</div>
+                            <div class="stock-badge mt-3"><?= htmlspecialchars(__m('product_list.stock_in_stock'), ENT_QUOTES, 'UTF-8') ?></div>
                             <div class="d-grid mt-3">
                                 <button type="button" class="btn btn-danger btn-add-to-cart"
                                     data-product-id="<?= (int)($product['id'] ?? 0) ?>"
                                     data-product-name="<?= htmlspecialchars($product['name'] ?? '') ?>"
                                     data-product-price="<?= htmlspecialchars($price) ?>"
                                     data-product-image="<?= htmlspecialchars($imgPath) ?>">
-                                    <i class="bi bi-cart-plus me-2"></i>加入購物車
+                                    <i class="bi bi-cart-plus me-2"></i><?= htmlspecialchars(__mu('add_to_cart'), ENT_QUOTES, 'UTF-8') ?>
                                 </button>
                             </div>
                         </div>
@@ -156,7 +156,16 @@ if ($maxPrice <= $minPrice) {
 </div>
 
 <script>
+window.VIEW_PRODUCT_LIST = <?= json_encode([
+    'countAllTpl' => __m('product_list.js_count_all_tpl'),
+    'countFilteredTpl' => __m('product_list.js_count_filtered_tpl'),
+    'alertCannotAdd' => __m('product_list.js_alert_cannot_add'),
+    'alertLoginToAdd' => __m('product_list.js_alert_login_to_add'),
+    'addedHtml' => __m('product_list.js_added_html'),
+    'alertAddFailed' => __m('product_list.js_alert_add_failed'),
+], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>;
 (function() {
+    var v = window.VIEW_PRODUCT_LIST || {};
     var base = window.APP_BASE || '';
     var currency = window.APP_CURRENCY || {};
     var formatMoney = typeof window.formatMoney === 'function'
@@ -238,8 +247,8 @@ if ($maxPrice <= $minPrice) {
         });
         updateDisplayCount(visible);
         var info = visible === productCount
-            ? '1-' + productCount + ' 件產品，共 ' + productCount + ' 件'
-            : '符合篩選: 共 ' + visible + ' 件商品';
+            ? (v.countAllTpl || '').replace(/\{\{n\}\}/g, String(productCount))
+            : (v.countFilteredTpl || '').replace(/\{\{n\}\}/g, String(visible));
         updateCountInfo(info);
     }
     function applyPriceFilter() {
@@ -311,9 +320,9 @@ if ($maxPrice <= $minPrice) {
     document.querySelectorAll('.btn-add-to-cart').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var id = parseInt(this.getAttribute('data-product-id'), 10) || 0;
-            if (id <= 0) { alert('無法加入購物車'); return; }
+            if (id <= 0) { alert(v.alertCannotAdd || ''); return; }
             if (!window.isLoggedIn) {
-                alert('請先登入才能加入購物車');
+                alert(v.alertLoginToAdd || '');
                 window.location.href = base + 'login?redirect=' + encodeURIComponent(window.location.pathname || '/');
                 return;
             }
@@ -326,7 +335,7 @@ if ($maxPrice <= $minPrice) {
                 .then(function(data) {
                     if (data.success && typeof updateCartBadge === 'function') updateCartBadge();
                     var orig = self.innerHTML;
-                    self.innerHTML = '<i class="bi bi-check me-2"></i>已加入購物車';
+                    self.innerHTML = v.addedHtml || '';
                     self.classList.replace('btn-primary', 'btn-secondary');
                     self.disabled = true;
                     setTimeout(function() {
@@ -335,7 +344,7 @@ if ($maxPrice <= $minPrice) {
                         self.disabled = false;
                     }, 2000);
                 })
-                .catch(function() { alert('加入購物車失敗，請稍後再試'); });
+                .catch(function() { alert(v.alertAddFailed || ''); });
         });
     });
 
@@ -367,6 +376,20 @@ if ($maxPrice <= $minPrice) {
 
     updateTrack();
     updatePriceDisplay();
+
+    try {
+        var params = new URLSearchParams(window.location.search);
+        var catParam = params.get('category');
+        if (catParam) {
+            document.querySelectorAll('.filter-category').forEach(function(l) {
+                if ((l.getAttribute('data-category') || '') === catParam) {
+                    document.querySelectorAll('.filter-category').forEach(function(x) { x.classList.remove('active'); });
+                    l.classList.add('active');
+                }
+            });
+        }
+    } catch (e) { /* ignore */ }
+
     applyAllFilters();
 })();
 </script>

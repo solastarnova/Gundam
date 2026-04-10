@@ -1,4 +1,5 @@
 (function () {
+    var F = window.FIREBASE_AUTH_JS || {};
     var cfg = window.FIREBASE_WEB_CONFIG;
     var endpoint = window.FIREBASE_AUTH_ENDPOINT;
     var intent = window.FIREBASE_AUTH_INTENT;
@@ -45,8 +46,7 @@
     }
 
     /**
-     * Firebase fetchSignInMethodsForEmail 回傳的是完整登入方式 id，例如 "google.com"、"github.com"
-     * （勿與 "google" 等短字串比對，否則條件永遠不成立）。
+     * fetchSignInMethodsForEmail returns full provider ids (e.g. google.com), not short names.
      * @param {string[]} methods
      */
     function pickExistingOAuthProvider(methods) {
@@ -69,8 +69,7 @@
     }
 
     /**
-     * GitHub popup 觸發 account-exists：暫存 pendingCred，先 fetchSignInMethodsForEmail 再彈出對應 OAuth（Google > Facebook），最後 link。
-     * 全程 signInWithPopup，不使用 redirect。
+     * GitHub account-exists: resolve via fetchSignInMethodsForEmail, popup existing OAuth, then link.
      */
     function handleGithubAccountExistsWithDifferentCredential(error) {
         var pendingCred = error.credential;
@@ -79,7 +78,7 @@
         }
         var email = error.email || (error.customData && error.customData.email) || '';
         if (!pendingCred || !email) {
-            window.alert((error && error.message) || '無法取得憑證或電郵，無法連結帳號。');
+            window.alert((error && error.message) || F.credEmailMissing || '');
             return;
         }
 
@@ -102,23 +101,17 @@
 
                 if (providerToLink) {
                     window.alert(
-                        '此 Email 已綁定 ' +
-                            providerName +
-                            '，請在接下來的視窗登入以連結 GitHub 帳號。'
+                        (F.emailBindsProvider || '').replace('%s', providerName)
                     );
                     return firebase.auth().signInWithPopup(providerToLink);
                 }
 
                 if (methods.includes('facebook.com') && !window.FIREBASE_ENABLE_FACEBOOK) {
-                    window.alert(
-                        '此電郵已綁定 Facebook，請於本站啟用 Facebook 登入（環境設定）後再試。'
-                    );
+                    window.alert(F.fbDisabled || '');
                     return Promise.reject(null);
                 }
                 if (methods.includes('password')) {
-                    window.alert(
-                        '此電郵已使用密碼註冊，請先以電郵密碼登入，之後再在 Firebase／帳號設定中連結 GitHub。'
-                    );
+                    window.alert(F.passwordThenGithub || '');
                     return Promise.reject(null);
                 }
 
@@ -136,7 +129,7 @@
                 if (!linkResult || !linkResult.user) {
                     return null;
                 }
-                window.alert('連結成功！現在你的 GitHub 帳號已合併。');
+                window.alert(F.githubMergeOk || '');
                 return linkResult.user.getIdToken(true);
             })
             .then(function (token) {
@@ -155,9 +148,7 @@
                     linkError.code === 'PROVIDER_NOT_SUPPORTED' ||
                     linkError.message === 'PROVIDER_NOT_SUPPORTED'
                 ) {
-                    window.alert(
-                        '此電郵的登入方式無法透過彈窗自動連結 GitHub，請改用已註冊方式登入或聯絡管理員。'
-                    );
+                    window.alert(F.githubAutoUnsupported || '');
                     return;
                 }
                 if (
@@ -167,17 +158,15 @@
                     return;
                 }
                 if (linkError.code === 'auth/credential-already-in-use') {
-                    window.alert('這個 GitHub 帳號已經被另一個獨立的 Firebase 帳號綁定了。');
+                    window.alert(F.githubInUse || '');
                     return;
                 }
-                window.alert(linkError.message || '連結失敗');
+                window.alert(linkError.message || F.linkFailed || '');
             });
     }
 
     /**
-     * Google／Facebook popup：依 fetchSignInMethodsForEmail 選既有 OAuth，再 link。
-     * @param {firebase.auth.AuthError} error
-     * @param {typeof firebase.auth.GoogleAuthProvider} AttemptedProviderClass
+     * Google/Facebook account-exists: pick existing OAuth from fetchSignInMethodsForEmail, then link.
      */
     function handleAccountExistsWithDifferentCredential(error, AttemptedProviderClass) {
         var pendingCred =
@@ -185,13 +174,13 @@
                 ? AttemptedProviderClass.credentialFromError(error)
                 : null;
         if (!pendingCred) {
-            window.alert((error && error.message) || '登入失敗');
+            window.alert((error && error.message) || F.loginFailed || '');
             return;
         }
         var email =
             (error.customData && error.customData.email) || error.email || '';
         if (!email) {
-            window.alert('無法取得電郵，無法自動連結帳號。');
+            window.alert(F.emailMissingLink || '');
             return;
         }
 
@@ -203,11 +192,9 @@
                 var provider = pickExistingOAuthProvider(m);
                 if (!provider) {
                     if (m.includes('password')) {
-                        window.alert(
-                            '此電郵已使用密碼註冊，請先以電郵密碼登入，之後再在 Firebase／帳號設定中連結第三方。'
-                        );
+                        window.alert(F.passwordThenOauth || '');
                     } else {
-                        window.alert('請先使用已註冊的登入方式登入，再連結此第三方帳號。');
+                        window.alert(F.signInFirst || '');
                     }
                     return null;
                 }
@@ -219,7 +206,7 @@
                 if (!userCred || !userCred.user) {
                     return null;
                 }
-                window.alert('帳號連結成功！以後可用此方式登入。');
+                window.alert(F.linkOk || '');
                 return userCred.user.getIdToken(true);
             })
             .then(function (token) {
@@ -235,16 +222,16 @@
                     return;
                 }
                 if (e.code === 'auth/credential-already-in-use') {
-                    window.alert('此第三方帳號已綁定其他使用者。');
+                    window.alert(F.oauthInUse || '');
                     return;
                 }
-                window.alert((e.message) || '連結帳號失敗');
+                window.alert((e.message) || F.linkAccountFailed || '');
             });
     }
 
     /**
      * @param {Promise<firebase.auth.UserCredential>} promise
-     * @param {typeof firebase.auth.GoogleAuthProvider} [attemptedProviderClass] Google／Facebook account-exists 時使用
+     * @param {typeof firebase.auth.GoogleAuthProvider} [attemptedProviderClass] Google/Facebook account-exists flow
      */
     function runPopup(promise, attemptedProviderClass) {
         promise
@@ -266,7 +253,7 @@
                     handleAccountExistsWithDifferentCredential(err, attemptedProviderClass);
                     return;
                 }
-                var msg = err.message || '登入失敗';
+                var msg = err.message || F.loginFailed || '';
                 window.alert(msg);
             });
     }
@@ -303,7 +290,7 @@
                         handleGithubAccountExistsWithDifferentCredential(err);
                         return;
                     }
-                    window.alert(err.message || '登入失敗');
+                    window.alert(err.message || F.loginFailed || '');
                 });
         });
     }

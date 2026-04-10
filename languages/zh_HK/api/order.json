@@ -1,0 +1,9 @@
+{
+    "order": {
+        "login_required": "請先登入",
+        "create_failed": "建立訂單失敗，請稍後再試",
+        "confirmed": "訂單已確認",
+        "insufficient_stock": "購買的貨品庫存不足",
+        "points_spend_note": "訂單 #%s 使用積分抵扣"
+    }
+}

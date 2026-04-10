@@ -109,7 +109,7 @@ class UserController extends BaseController
         ]);
     }
 
-    public function updateVipLevel(int $id)
+    public function updateMembershipLevel(int $id)
     {
         if (!$this->requireAdminCsrf()) {
             $this->setError(Config::get('messages.admin_login.csrf_invalid'));
@@ -129,7 +129,7 @@ class UserController extends BaseController
         if ($membershipLevel !== '') {
             $rule = $this->userModel->getMembershipRuleByLevel($membershipLevel);
             if (!$rule) {
-                $this->setError('會員等級不存在');
+                $this->setError((string) Config::get('messages.admin.membership_level_invalid'));
                 $this->redirect('/admin/users');
                 return;
             }
@@ -141,7 +141,32 @@ class UserController extends BaseController
             return;
         }
 
-        $this->setSuccess('會員等級更新成功');
+        $this->setSuccess((string) Config::get('messages.admin.membership_level_updated'));
         $this->redirect('/admin/users');
+    }
+
+    public function unlockLevel(int $id): void
+    {
+        $id = (int) $id;
+
+        if (!$this->requireAdminCsrf()) {
+            $this->setError(Config::get('messages.admin_login.csrf_invalid'));
+            $this->redirect($id > 0 ? '/admin/users/' . $id : '/admin/users');
+            return;
+        }
+
+        $user = $this->userModel->findById($id);
+        if (!$user) {
+            $this->setError(Config::get('messages.admin.user_not_found'));
+            $this->redirect('/admin/users');
+            return;
+        }
+
+        $newLevelKey = $this->userModel->unlockLevel($id);
+        $rule = $this->userModel->getMembershipRuleByLevel($newLevelKey);
+        $label = (string) ($rule['level_name'] ?? $newLevelKey);
+
+        $this->setSuccess(sprintf((string) Config::get('messages.admin.membership_unlock_success'), $label));
+        $this->redirect('/admin/users/' . $id);
     }
 }

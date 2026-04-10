@@ -60,7 +60,7 @@ $lowStockProducts = $stats['low_stock_products'] ?? [];
         <div class="content-card">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0">最近訂單</h5>
-                <a href="<?= $url('admin/orders') ?>" class="btn btn-sm btn-outline-primary">查看全部</a>
+                <a href="<?= $url('admin/orders') ?>" class="btn btn-sm btn-outline-primary">檢視全部</a>
             </div>
             
             <?php if (empty($recentOrders)): ?>
@@ -132,7 +132,7 @@ $lowStockProducts = $stats['low_stock_products'] ?? [];
                             <tr>
                                 <th>商品名稱</th>
                                 <th>分類</th>
-                                <th>當前庫存</th>
+                                <th>目前庫存</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
