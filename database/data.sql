@@ -18,7 +18,8 @@ INSERT INTO `items` (`id`, `name`, `description`, `category`, `price`, `stock_qu
     (3, 'BANDAI 高達模型 RG 144 Freedom', 'BANDAI RG 144 Freedom自由高達模型，翅膀展開效果震撼', 'RG', 191, 50, 'bandai-rg144-freedom.jpg'),
     (4, 'BANDAI 高達模型 RG 144 SEED', 'BANDAI RG 144 SEED系列高達模型，經典機體重現', 'RG', 191, 50, 'bandai-rg144-seed.jpg'),
     (5, 'BANDAI 高達模型 RG 144 sinanju 新安州', 'BANDAI RG 144 sinanju新安州模型，紅色彗星再臨', 'RG', 291, 50, 'bandai-rg144-sinanju.jpg'),
-    (6, 'BANDAI 高達模型 RG 144 wing gundam ew', 'BANDAI RG 144 wing gundam ew飛翼高達模型，EW版特殊設計', 'RG', 191, 50, 'bandai-rg144-wing.jpg');
+    (6, 'BANDAI 高達模型 RG 144 wing gundam ew', 'BANDAI RG 144 wing gundam ew飛翼高達模型，EW版特殊設計', 'RG', 191, 50, 'bandai-rg144-wing.jpg'),
+    (7, 'Bandai HG 組裝模型 - 1/144 海因托利', '來自最新鋼彈系列作品《機動戰士鋼彈：水星的魔女》，辛德雷登場！\r\n■ 零件採用卡扣式設計，組裝簡便，避免夾傷。\r\n■ 頸部和腰部的球形關節採用間距式結構，可達到前後傾斜的姿勢。\r\n■ 除了龐大的體型，還配備了幾乎與機體本身一樣高的專用武器，並具備旋轉關節。\r\n■ 左臂配備專用盾牌。盾牌的臂部可動，可向前揮動。\r\n■ 背部配備由三個噴嘴組成的背包，提供極高的機動性。', 'HG', 150, 50, '69d96560dcf8f.jpg', '2026-04-11 04:56:00', 0, 0);
 
 INSERT INTO `membership_rules` (`id`, `level_key`, `level_name`, `min_spent`, `points_multiplier`, `discount_percent`, `sort_order`) VALUES
     (1, 'bronze', '實習駕駛員', 0, 10.00, 0.00, 1),
