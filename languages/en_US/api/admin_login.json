@@ -1,0 +1,7 @@
+{
+    "admin_login": {
+        "csrf_invalid": "The request is invalid, please resubmit from the login page.",
+        "username_password_required": "Username and password cannot be empty",
+        "username_password_wrong": "Wrong username or password"
+    }
+}

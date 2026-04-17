@@ -46,6 +46,7 @@ $router->get('/faq', 'StaticController', 'faq');
 $router->get('/about', 'StaticController', 'about');
 $router->get('/privacy', 'StaticController', 'privacy');
 $router->get('/terms', 'StaticController', 'terms');
+$router->get('/language/switch', 'LanguageController', 'switch');
 
 $router->get('/api/cart/count', 'CartController', 'getCount');
 $router->get('/api/cart/items', 'CartController', 'getItems');
@@ -74,6 +75,8 @@ $router->post('/api/payment/create-intent', 'PaymentController', 'createIntent')
 $router->post('/api/payment/create-paypal-order', 'PaymentController', 'createPaypalOrder');
 $router->post('/api/payment/wallet-checkout', 'PaymentController', 'walletCheckout');
 $router->post('/api/payment/confirm', 'PaymentController', 'confirm');
+
+$router->post('/api/shipping/lalamove-quote', 'ShippingController', 'lalamoveQuote');
 
 $router->post('/api/chat', 'ChatController', 'chat');
 $router->post('/api/chat/clear', 'ChatController', 'clearHistory');

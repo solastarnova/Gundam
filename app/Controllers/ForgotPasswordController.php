@@ -35,7 +35,7 @@ class ForgotPasswordController extends Controller
         $status = $this->consumeFlash('resetpw_status', null);
         $hasEmail = isset($_SESSION['forgot_password_email']);
 
-        $this->render('auth/forgot_password', [
+        $this->render('auth/forgot-password', [
             'title' => $this->titleWithSite('forgot_password'),
             'errors' => $errors,
             'old' => $old,
@@ -164,7 +164,7 @@ class ForgotPasswordController extends Controller
         }
 
         $errors = $this->consumeFlash('reset_errors', []);
-        $this->render('auth/reset_password', [
+        $this->render('auth/reset-password', [
             'title' => $this->titleWithSite('reset_password'),
             'errors' => $errors,
             'head_extra_css' => [],

@@ -1,0 +1,33 @@
+{
+    "view": {
+        "home": {
+            "promo_alt": "The main promotion of the month %d",
+            "prev_slide": "Previous picture",
+            "next_slide": "Next",
+            "view_detail": "View Details",
+            "secondary_nav_aria": "Home page section navigation",
+            "nav_home": "Home",
+            "nav_products": "All products",
+            "nav_categories": "Scale/Series",
+            "nav_new_arrivals": "Latest arrival",
+            "nav_featured": "Recommended picks",
+            "usp_authentic_title": "Genuinely authorized",
+            "usp_authentic_text": "Original factory supply and packaging, making collection more secure.",
+            "usp_shipping_title": "Fast Dispatch",
+            "usp_shipping_text": "Order processing is transparent and shipments are arranged as soon as possible.",
+            "usp_payment_title": "Secure payment",
+            "usp_payment_text": "Mainstream payment and encryption processes ensure transactions.",
+            "usp_support_title": "Customer service support",
+            "usp_support_text": "Online assistance for assembly and order issues.",
+            "categories_title": "Scale/Series Tour",
+            "categories_empty": "The series of information is being compiled, please go to the product store to explore first.",
+            "category_box_aria": "Go to %s product list",
+            "new_arrivals_title": "Latest products",
+            "featured_title": "Recommended products",
+            "section_shop_more": "Go to shop",
+            "products_empty": "There are currently no products, please check back later.",
+            "swiper_prev": "Previous set of products",
+            "swiper_next": "Next group of products"
+        }
+    }
+}

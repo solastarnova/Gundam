@@ -6,7 +6,7 @@ use App\Core\Config;
 use App\Core\Controller;
 use App\Models\UserModel;
 use App\Models\OrderModel;
-use App\Models\Review;
+use App\Models\ReviewModel;
 use App\Services\FirebaseAdminAuth;
 use App\Services\FirebaseWebConfig;
 use App\Services\WalletService;
@@ -69,7 +69,7 @@ class AccountController extends Controller
             return;
         }
         $orderItems = $this->orderModel->getOrderItems($id);
-        $reviewModel = new Review();
+        $reviewModel = new ReviewModel();
         $canReviewItems = [];
         foreach ($orderItems as $item) {
             $itemId = (int) ($item['item_id'] ?? 0);
@@ -77,7 +77,7 @@ class AccountController extends Controller
                 $canReviewItems[$itemId] = $reviewModel->hasUnreviewedPurchase($userId, $itemId);
             }
         }
-        $this->render('account/order_detail', [
+        $this->render('account/order-detail', [
             'title' => $this->titleWithSite('account_order_detail'),
             'head_extra_css' => [],
             'order' => $order,
@@ -104,7 +104,7 @@ class AccountController extends Controller
             return;
         }
 
-        $reviewModel = new Review();
+        $reviewModel = new ReviewModel();
         if (!$reviewModel->hasUnreviewedPurchase($userId, $itemId)) {
             $this->flash('review_error', Config::get('messages.account.review_not_eligible'));
             $this->redirect($orderId > 0 ? $this->view->url('account/order/' . $orderId) : $this->view->url('account/orders'));

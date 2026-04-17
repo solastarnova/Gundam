@@ -7,6 +7,10 @@ namespace App\Core;
  */
 class Config
 {
+    public const DEFAULT_LOCALE = 'zh_HK';
+    public const DEFAULT_CURRENCY_CODE = 'HKD';
+    public const DEFAULT_PLACEHOLDER_IMAGE = 'images/placeholder.jpg';
+
     /** @var array<string, mixed>|null */
     private static ?array $data = null;
 
@@ -45,11 +49,33 @@ class Config
 
     public static function locale(): string
     {
-        $loc = self::all()['locale'] ?? 'zh_HK';
+        $sessionLocale = $_SESSION['language'] ?? $_SESSION['locale'] ?? null;
+        if (is_string($sessionLocale) && self::isValidLocale($sessionLocale)) {
+            return $sessionLocale;
+        }
 
-        return is_string($loc) && $loc !== '' && preg_match('/^[a-zA-Z0-9_]+$/', $loc) === 1
+        $loc = self::all()['locale'] ?? self::DEFAULT_LOCALE;
+
+        return is_string($loc) && self::isValidLocale($loc)
             ? $loc
-            : 'zh_HK';
+            : self::DEFAULT_LOCALE;
+    }
+
+    public static function defaultLocale(): string
+    {
+        return self::DEFAULT_LOCALE;
+    }
+
+    public static function defaultCurrencyCode(): string
+    {
+        return self::DEFAULT_CURRENCY_CODE;
+    }
+
+    public static function defaultPlaceholderImage(): string
+    {
+        $v = self::get('placeholder_image', self::DEFAULT_PLACEHOLDER_IMAGE);
+        $path = is_string($v) ? trim($v) : '';
+        return $path !== '' ? $path : self::DEFAULT_PLACEHOLDER_IMAGE;
     }
 
     /**
@@ -61,7 +87,7 @@ class Config
     {
         $root = dirname(__DIR__, 2);
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $locale)) {
-            $locale = 'zh_HK';
+            $locale = self::DEFAULT_LOCALE;
         }
 
         $loader = new LanguageLoader($root . '/languages');
@@ -76,10 +102,15 @@ class Config
      */
     public static function setMessagesForLocale(string $locale, array $messages): void
     {
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $locale)) {
+        if (!self::isValidLocale($locale)) {
             return;
         }
         self::$messagesByLocale[$locale] = $messages;
+    }
+
+    private static function isValidLocale(string $locale): bool
+    {
+        return $locale !== '' && preg_match('/^[a-zA-Z0-9_]+$/', $locale) === 1;
     }
 
     private static function getFromMessages(string $subKey, $default = null)

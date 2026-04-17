@@ -24,6 +24,7 @@ class AddressController extends Controller
         $this->render('account/addresses', [
             'title' => $this->titleWithSite('address_default'),
             'addresses' => $addresses,
+            'mapClientConfig' => $this->getMapClientConfig(),
             'head_extra_css' => [],
             'foot_extra_js' => ['js/addresses.js'],
         ]);

@@ -4,17 +4,17 @@ namespace App\Controllers;
 
 use App\Core\Config;
 use App\Core\Controller;
-use App\Models\Product;
+use App\Models\ProductModel;
 use App\Models\UserModel;
 
 class HomeController extends Controller
 {
-    private Product $productModel;
+    private ProductModel $productModel;
 
     public function __construct()
     {
         parent::__construct();
-        $this->productModel = new Product();
+        $this->productModel = new ProductModel();
     }
 
     /**
@@ -44,7 +44,7 @@ class HomeController extends Controller
 
     public function index(): void
     {
-        $placeholder = (string) Config::get('placeholder_image', 'images/placeholder.jpg');
+        $placeholder = Config::defaultPlaceholderImage();
         $homeCfg = Config::get('home', []);
         $homeCfg = is_array($homeCfg) ? $homeCfg : [];
 

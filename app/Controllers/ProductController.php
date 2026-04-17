@@ -4,8 +4,8 @@ namespace App\Controllers;
 
 use App\Core\Config;
 use App\Core\Controller;
-use App\Models\Product;
-use App\Models\Review;
+use App\Models\ProductModel;
+use App\Models\ReviewModel;
 use App\Models\UserModel;
 use App\Services\MoneyFormatter;
 
@@ -13,12 +13,12 @@ class ProductController extends Controller
 {
     private const DEFAULT_DISPLAY_RATING = 5;
 
-    private Product $productModel;
+    private ProductModel $productModel;
 
     public function __construct()
     {
         parent::__construct();
-        $this->productModel = new Product();
+        $this->productModel = new ProductModel();
     }
 
     public function list(): void
@@ -92,7 +92,7 @@ class ProductController extends Controller
 
         $siteNameEn = (string) Config::get('site_name_en', 'Gundam Shop');
 
-        $reviewModel = new Review();
+        $reviewModel = new ReviewModel();
         $itemReviews = $reviewModel->getReviewsForItem($id, 50);
         $itemReviewCount = $reviewModel->countReviewsForItem($id);
 

@@ -6,7 +6,7 @@ use App\Core\Model;
 use App\Core\Config;
 
 /**
- * Cart persistence in session (items JSON) with stock checks.
+ * Shopping cart persistence backed by database table `user_item`.
  */
 class CartModel extends Model
 {
@@ -16,12 +16,14 @@ class CartModel extends Model
 
     private string $placeholderImage;
 
-    public function __construct($pdo = null)
+    public function __construct(?\PDO $pdo = null)
     {
         parent::__construct($pdo);
         $this->maxQuantity = (int) Config::get('cart_max_quantity', 99);
-        $fullPath = (string) Config::get('placeholder_image', 'images/placeholder.jpg');
-        $this->placeholderImage = basename($fullPath) ?: 'placeholder.jpg';
+        $this->placeholderImage = basename(Config::defaultPlaceholderImage());
+        if ($this->placeholderImage === '') {
+            $this->placeholderImage = basename(Config::DEFAULT_PLACEHOLDER_IMAGE);
+        }
     }
 
     public function getMaxQuantity(): int

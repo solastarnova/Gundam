@@ -63,12 +63,9 @@
                 "link_account": "連結帳號"
             },
             "payment": {
-                "title": "付款方式",
+                "title": "錢包餘額",
                 "wallet_balance": "錢包餘額",
-                "wallet_hint": "結帳時可使用錢包抵扣部分金額（若你選擇使用）。",
-                "common_methods": "常見付款方式",
-                "card_paypal": "信用卡 / PayPal",
-                "checkout_note": "實際以結帳頁面可選項為準。"
+                "wallet_hint": "結帳時可使用錢包抵扣部分金額（若你選擇使用）。"
             },
             "addresses_page": {
                 "title": "管理收貨地址",

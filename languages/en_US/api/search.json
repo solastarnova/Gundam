@@ -1,0 +1,5 @@
+{
+    "search": {
+        "keyword_too_short": "Please enter at least %d characters to search"
+    }
+}

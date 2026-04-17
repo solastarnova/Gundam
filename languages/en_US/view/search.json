@@ -1,0 +1,13 @@
+{
+    "view": {
+        "search": {
+            "results_prefix": "Found",
+            "results_mid": "items for",
+            "results_suffix": "Related products",
+            "view_detail": "View Details",
+            "no_results_title": "No related products found",
+            "no_results_hint": "Try other keywords or check out our popular items",
+            "browse_all": "View all products"
+        }
+    }
+}

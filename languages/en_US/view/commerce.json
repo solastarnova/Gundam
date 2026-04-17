@@ -1,0 +1,42 @@
+{
+    "view": {
+        "cart": {
+            "title": "Shopping Cart",
+            "guest_prompt": "Please log in first to use the shopping cart and checkout.",
+            "go_login": "Go to Login",
+            "continue_shopping": "Continue Shopping",
+            "th_product": "Product",
+            "th_unit_price": "Unit Price",
+            "th_qty": "Qty",
+            "th_subtotal": "Subtotal",
+            "loading": "Loading...",
+            "total_label": "Total:",
+            "checkout": "Checkout",
+            "js_empty_title": "Your cart is empty.",
+            "js_browse": "Go shopping",
+            "js_load_failed": "Unable to load cart, please try again later.",
+            "js_sku_label": "Number: %s",
+            "js_sku_na": "N/A",
+            "js_remove": "Remove",
+            "js_login_required": "Please log in first to add to shopping cart",
+            "js_add_failed_generic": "Add to cart failed",
+            "js_add_failed_retry": "Failed to add to cart, please try again later"
+        },
+        "wishlist": {
+            "title": "Wishlist",
+            "subtitle": "Collect your favorite products and view and purchase them at any time",
+            "count_initial": "Total 0 items",
+            "empty_title": "Your favorite list is empty",
+            "empty_hint": "Add your favorite items to the list for easy viewing and purchase later",
+            "go_shopping": "Start Shopping",
+            "js_count_tpl": "Total {{n}} items",
+            "js_added_prefix": "Already added to cart:",
+            "js_add_failed": "Add to cart failed",
+            "js_add_failed_retry": "Failed to add to cart, please try again later",
+            "js_confirm_remove": "Are you sure you want to remove?",
+            "js_remove_failed": "Removal failed",
+            "js_remove_failed_retry": "Removal failed, please try again later",
+            "js_login_required": "Please log in first to collect"
+        }
+    }
+}

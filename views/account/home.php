@@ -6,7 +6,7 @@ $account_nav_active = 'home';
 ?>
 <div class="container account-page my-5 pt-5">
     <div class="row account-layout">
-        <?php include __DIR__ . '/../partials/account_sidebar.php'; ?>
+        <?php include __DIR__ . '/../partials/account-sidebar.php'; ?>
         <div class="col-lg-9 col-md-8">
             <div class="account-main-card account-main-padding">
                 <h4 class="mb-4"><?= htmlspecialchars(__m('account.home.title'), ENT_QUOTES, 'UTF-8') ?></h4>

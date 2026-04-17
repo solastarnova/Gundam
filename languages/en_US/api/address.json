@@ -1,0 +1,16 @@
+{
+    "address": {
+        "invalid_id": "Invalid address ID",
+        "not_found": "Address does not exist",
+        "not_found_or_forbidden": "The address does not exist or has no permission",
+        "create_success": "Address added successfully",
+        "create_failed": "Failed to add address",
+        "update_success": "Address updated successfully",
+        "update_failed": "Update address failed",
+        "delete_success": "Address deleted",
+        "delete_failed": "Failed to delete address",
+        "default_updated": "Default address has been updated",
+        "set_default_failed": "Failed to set default address",
+        "validation_error": "Please check whether the entered information is correct."
+    }
+}

@@ -36,7 +36,7 @@ $account_nav_active = 'points';
 ?>
 <div class="container account-page my-5 pt-5">
     <div class="row account-layout">
-        <?php include __DIR__ . '/../partials/account_sidebar.php'; ?>
+        <?php include __DIR__ . '/../partials/account-sidebar.php'; ?>
 
         <div class="col-lg-9 col-md-8">
             <div class="account-main-card account-main-padding">

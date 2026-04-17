@@ -4,7 +4,7 @@ namespace App\Models;
 
 use App\Core\Model;
 
-class Product extends Model
+class ProductModel extends Model
 {
     public function find(int $id): ?array
     {

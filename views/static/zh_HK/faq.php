@@ -1,4 +1,4 @@
-<div class="container-fluid mx-auto mt-5 pt-2">
+<div class="container mx-auto mt-5 pt-2">
     <div class="accordion" id="accordionExample">
         <h2 class="mt-2 mb-2 text-info">購物及售貨安排</h2>
         <?php
@@ -90,4 +90,3 @@
         <?php } ?>
     </div>
 </div>
-

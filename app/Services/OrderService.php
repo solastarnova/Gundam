@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Core\Config;
 use App\Core\Database;
 use App\Models\CartModel;
-use App\Models\Order;
+use App\Models\OrderWriteModel;
 use App\Models\OrderModel;
 use App\Models\UserModel;
 use PDOException;
@@ -15,13 +15,13 @@ use PDOException;
  */
 class OrderService
 {
-    private Order $order;
+    private OrderWriteModel $order;
     private OrderModel $orderModel;
     private CartModel $cartModel;
 
     public function __construct()
     {
-        $this->order = new Order();
+        $this->order = new OrderWriteModel();
         $this->orderModel = new OrderModel();
         $this->cartModel = new CartModel();
     }

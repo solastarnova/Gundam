@@ -11,6 +11,13 @@
         "wallet_checkout_requires_wallet": "全額錢包結帳請勾選「使用錢包餘額」。",
         "wallet_insufficient_for_total": "錢包餘額不足以支付整筆訂單金額。",
         "wallet_checkout_not_zero": "此筆訂單仍需線上支付，請使用信用卡或 PayPal。",
-        "payable_zero_use_wallet_button": "應付金額為 0，請直接按「確認訂單」以錢包全額支付，無需刷卡或 PayPal。"
+        "payable_zero_use_wallet_button": "應付金額為 0，請直接按「確認訂單」以錢包全額支付，無需刷卡或 PayPal。",
+        "lalamove_not_configured": "Lalamove 即時配送未設定（需 API 金鑰與取貨座標）。",
+        "lalamove_address_too_short": "收件地址過短，請填寫完整地址以便估算運費。",
+        "lalamove_geocode_failed": "無法將地址轉成座標，請檢查地址是否正確。",
+        "lalamove_quote_failed": "無法取得 Lalamove 運費報價，請稍後再試。",
+        "lalamove_session_stale": "運費資訊已過期，請重新整理結帳頁後再付款。",
+        "lalamove_checkout_outdated": "購物車內容已變更，請重新整理結帳頁後再取得報價並付款。",
+        "lalamove_method_requires_address": "選擇 Lalamove 時請選擇或填寫完整收件地址。"
     }
 }

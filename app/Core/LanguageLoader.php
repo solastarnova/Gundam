@@ -47,12 +47,12 @@ class LanguageLoader
     public function loadMergedBundle(string $lang): array
     {
         if (!preg_match('/^[a-zA-Z0-9_]+$/', $lang)) {
-            $lang = 'zh_HK';
+            $lang = Config::DEFAULT_LOCALE;
         }
 
         $basePath = $this->langPath . DIRECTORY_SEPARATOR . $lang;
         if (!is_dir($basePath)) {
-            $basePath = $this->langPath . DIRECTORY_SEPARATOR . 'zh_HK';
+            $basePath = $this->langPath . DIRECTORY_SEPARATOR . Config::DEFAULT_LOCALE;
         }
 
         if (!is_dir($basePath)) {

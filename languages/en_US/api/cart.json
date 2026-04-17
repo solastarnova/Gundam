@@ -1,0 +1,11 @@
+{
+    "cart": {
+        "invalid_product_id": "Invalid product ID",
+        "quantity_range": "Quantity must be between 1-%d",
+        "added": "Added to cart",
+        "invalid_item": "Invalid cart item",
+        "quantity_updated": "Quantity updated",
+        "operation_failed": "Operation failed",
+        "item_removed": "Product removed"
+    }
+}

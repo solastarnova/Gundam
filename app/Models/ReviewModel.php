@@ -4,7 +4,7 @@ namespace App\Models;
 
 use App\Core\Model;
 
-class Review extends Model
+class ReviewModel extends Model
 {
     public const STATUS_COMPLETED = 'Completed';
     public const STATUS_CONFIRMED = 'Confirmed';

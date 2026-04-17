@@ -1,4 +1,4 @@
-<div class="container-fluid mx-auto mt-5 mb-2">
+<div class="container mx-auto mt-5 mb-2">
     <h2 class="mt-4 text-info">關於我們</h2>
     <p class="text-dark mb-2">“香港購物咁方便，網購邊會有得做啊？”</p><br>
     <p class="text-dark mb-2">“上網買野咁麻煩，無人會用架啦…”</p><br>
@@ -8,4 +8,3 @@
     <p class="text-dark mb-2">踏入2018年，經歷咗幾年，累積咗一定嘅經驗之後，好慶幸市場對我哋團隊所付出嘅努力回應係正面嘅，我哋好高興終於能夠為大家帶來一個全新嘅自己—HobbyDigi.com電購網！以一個全新面貌同大家見面，繼續為大家搜羅更多最新、最實惠嘅產品，務求為各位帶來更優質嘅網上購物體驗。</p><br>
     <p class="text-dark mb-2">喺新嘅網站，我哋會繼續學習，力求進步，將購物變成輕而易舉嘅事，令HobbyDigi.com電購網成為每一位客人嘅首選！</p><br>
 </div>
-

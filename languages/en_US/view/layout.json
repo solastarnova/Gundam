@@ -1,0 +1,64 @@
+{
+    "view": {
+        "header": {
+            "search_placeholder": "Search products or ask a question",
+            "search_aria": "Search",
+            "search_submit_aria": "Search",
+            "nav_toggle_aria": "Toggle navigation",
+            "language": "Language",
+            "language_zh_hk": "Traditional Chinese",
+            "language_en_us": "English",
+            "user_default": "User",
+            "account": "Account",
+            "my_account": "My Account",
+            "reset_password": "Reset Password",
+            "logout": "Sign out",
+            "login": "Log In",
+            "register": "Sign Up"
+        },
+        "footer": {
+            "brand_text": "Gundam Model Mall",
+            "desc": "Specializing in Gundam models, figures and peripherals, we provide you with the latest and classic styles.",
+            "heading_corp": "Company",
+            "about": "About Us",
+            "faq": "FAQ",
+            "contact": "Contact Us",
+            "heading_explore": "Explore",
+            "home": "Home",
+            "more_products": "More products",
+            "faq_link": "FAQ",
+            "heading_legal": "Legal",
+            "privacy": "Privacy Policy",
+            "terms": "Terms of Service",
+            "heading_hours": "Business Hours",
+            "hours_body": "Mon–Fri: 8am–9pm<br>Sat–Sun: 8am–1am",
+            "copyright": "© %d Gundam Model Mall. All rights reserved."
+        },
+        "account_sidebar": {
+            "title": "My Account",
+            "nav_profile": "Profile",
+            "nav_membership": "Member Center",
+            "nav_orders": "Order History",
+            "nav_wishlist": "Wishlist",
+            "nav_addresses": "Default Address",
+            "nav_payment": "Wallet Balance",
+            "nav_settings": "Account Settings"
+        },
+        "main": {
+            "fab_open_aria": "Open AI Chat",
+            "fab_title": "AI Chat"
+        },
+        "chatbox": {
+            "title": "AI Chat",
+            "close_aria": "Close",
+            "welcome": "Hi! I am the AI assistant for Gundam Model Mall. How can I help you today?",
+            "placeholder": "Enter your question…",
+            "send_aria": "Send",
+            "clear": "Clear Chat",
+            "js_error_generic": "An error occurred, please try again later.",
+            "js_network_error": "Network error. Please check your connection and try again.",
+            "js_confirm_clear": "Are you sure you want to clear the conversation history?",
+            "js_clear_failed": "Failed to clear chat history. Please try again later."
+        }
+    }
+}

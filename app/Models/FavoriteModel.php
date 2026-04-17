@@ -9,7 +9,8 @@ class FavoriteModel extends Model
 {
     public function getUserFavorites(int $userId, ?int $limit = null): array
     {
-        $placeholder = (string) Config::get('placeholder_image', 'images/placeholder.jpg');
+        $placeholder = Config::defaultPlaceholderImage();
+        $placeholderBasename = basename($placeholder);
 
         $sql = "SELECT i.id, i.name, i.price, i.image_path
                 FROM user_favorites uf
@@ -24,7 +25,7 @@ class FavoriteModel extends Model
         $items = [];
         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
             $path = $row['image_path'] ? trim($row['image_path']) : '';
-            if ($path === '' || $path === 'placeholder.jpg') {
+            if ($path === '' || ($placeholderBasename !== '' && $path === $placeholderBasename)) {
                 $path = $placeholder;
             } elseif (strpos($path, 'images/') !== 0 && strpos($path, 'http') !== 0) {
                 $path = 'images/' . $path;

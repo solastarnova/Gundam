@@ -39,7 +39,7 @@ class Controller
         $data['currency'] = $currency;
         $data['money'] = fn (float $amount): string => MoneyFormatter::format($amount);
         $data['locale'] = Config::locale();
-        $data['html_lang'] = I18n::toBcp47($data['locale']);
+        $data['html_lang'] = 'en';
 
         if (isset($_SESSION['user_id'])) {
             $webCfg = FirebaseWebConfig::forJavaScript();
@@ -200,6 +200,43 @@ class Controller
     protected function titleFormat(string $key, ...$params): string
     {
         return sprintf((string) Config::get('messages.titles.' . $key), ...$params);
+    }
+
+    /**
+     * Shared map-related client URLs injected into pages.
+     *
+     * @return array{
+     *   leaflet_css:string,
+     *   leaflet_js:string,
+     *   nominatim_reverse_url:string,
+     *   maptiler_reverse_geocode_url:string,
+     *   maptiler_sdk_css:string,
+     *   maptiler_sdk_js:string,
+     *   maptiler_leaflet_js:string,
+     *   maptiler_geocoding_control_js:string,
+     *   maptiler_api_key:string
+     * }
+     */
+    protected function getMapClientConfig(): array
+    {
+        $map = Config::get('map_client', []);
+        if (!is_array($map)) {
+            $map = [];
+        }
+
+        return [
+            'leaflet_css' => (string) ($map['leaflet_css'] ?? ''),
+            'leaflet_js' => (string) ($map['leaflet_js'] ?? ''),
+            'nominatim_reverse_url' => (string) ($map['nominatim_reverse_url'] ?? ''),
+            'maptiler_reverse_geocode_url' => (string) ($map['maptiler_reverse_geocode_url'] ?? ''),
+            'maptiler_sdk_css' => (string) ($map['maptiler_sdk_css'] ?? ''),
+            'maptiler_sdk_js' => (string) ($map['maptiler_sdk_js'] ?? ''),
+            'maptiler_leaflet_js' => (string) ($map['maptiler_leaflet_js'] ?? ''),
+            'maptiler_geocoding_control_js' => (string) ($map['maptiler_geocoding_control_js'] ?? ''),
+            'maptiler_api_key' => isset($_ENV['MAPTILER_API_KEY']) && is_string($_ENV['MAPTILER_API_KEY'])
+                ? trim($_ENV['MAPTILER_API_KEY'])
+                : '',
+        ];
     }
 
     protected function isLocalEnvironment(): bool

@@ -4,16 +4,16 @@ namespace App\Controllers;
 
 use App\Core\Config;
 use App\Core\Controller;
-use App\Models\Product;
+use App\Models\ProductModel;
 
 class SearchController extends Controller
 {
-    private Product $productModel;
+    private ProductModel $productModel;
 
     public function __construct()
     {
         parent::__construct();
-        $this->productModel = new Product();
+        $this->productModel = new ProductModel();
     }
 
     public function index(): void

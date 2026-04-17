@@ -1,0 +1,23 @@
+{
+    "payment": {
+        "order_amount_invalid": "Order amount is invalid",
+        "stripe_config_error": "Stripe configuration error",
+        "missing_info": "Missing payment information",
+        "shipping_required": "Please fill in the shipping address",
+        "verify_failed": "Unable to verify payment",
+        "not_completed": "Payment not completed yet",
+        "confirm_failed": "Failed to create order, please try again later",
+        "intent_create_failed": "Unable to create payment, please try again later",
+        "wallet_checkout_requires_wallet": "For full wallet checkout, please check \"Use Wallet Balance\".",
+        "wallet_insufficient_for_total": "The wallet balance is insufficient to cover the entire order amount.",
+        "wallet_checkout_not_zero": "This order still needs to be paid online, please use credit card or PayPal.",
+        "payable_zero_use_wallet_button": "The amount payable is 0, please click \"Confirm Order\" directly to pay in full with your wallet, no need to swipe your card or PayPal.",
+        "lalamove_not_configured": "Lalamove instant delivery is not set up (requires API key and pickup coordinates).",
+        "lalamove_address_too_short": "The shipping address is too short, please fill in the complete address for shipping estimate.",
+        "lalamove_geocode_failed": "Unable to convert the address into coordinates, please check whether the address is correct.",
+        "lalamove_quote_failed": "Unable to get Lalamove shipping quote, please try again later.",
+        "lalamove_session_stale": "Shipping information has expired, please refresh the checkout page before paying.",
+        "lalamove_checkout_outdated": "The contents of the shopping cart have been changed. Please refresh the checkout page before obtaining a quote and making payment.",
+        "lalamove_method_requires_address": "Please select or fill in the complete delivery address when selecting Lalamove."
+    }
+}

@@ -41,7 +41,7 @@ class View
     {
         if (!isset($data['html_lang'])) {
             $data['locale'] = Config::locale();
-            $data['html_lang'] = I18n::toBcp47((string) $data['locale']);
+            $data['html_lang'] = 'en';
         }
         if (!isset($data['currency'])) {
             $currency = Config::get('currency', []);

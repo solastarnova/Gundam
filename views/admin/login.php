@@ -61,12 +61,6 @@ $error = $error ?? '';
                             登入
                         </button>
                     </form>
-
-                    <div class="help-links">
-                        <a href="<?= $url('') ?>">返回首頁</a>
-                        <span class="text-muted mx-2">|</span>
-                        <a href="<?= $url('faq') ?>">幫助中心</a>
-                    </div>
                 </div>
             </div>
         </div>

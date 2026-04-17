@@ -62,7 +62,7 @@ class MailService
 
         if (empty($host) || empty($username) || empty($password) || empty($fromAddress)) {
             throw new \RuntimeException(
-                Config::get('messages.mail.config_incomplete', 'MAIL_HOST, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM_ADDRESS 未設定')
+                'MAIL_HOST, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM_ADDRESS 未設定'
             );
         }
 
@@ -78,7 +78,7 @@ class MailService
         $mail->SMTPSecure = getenv('MAIL_ENCRYPTION') ?: PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = (int) (getenv('MAIL_PORT') ?: 587);
 
-        $fromName = getenv('MAIL_FROM_NAME') ?: Config::get('messages.mail.from_name', '高達模型商城');
+        $fromName = getenv('MAIL_FROM_NAME') ?: '高達模型商城';
 
         $mail->setFrom($fromAddress, $fromName);
         $mail->addReplyTo($fromAddress, $fromName);
@@ -135,7 +135,7 @@ class MailService
     ): bool {
         $mail = $this->buildMailer();
         $mail->addAddress($toEmail, $toName);
-        $mail->Subject = sprintf(Config::get('messages.mail.subject_order_confirm', '高達模型商城 - 訂單確認 %s'), $orderNumber);
+        $mail->Subject = sprintf('高達模型商城 - 訂單確認 %s', $orderNumber);
 
         $rows = '';
         foreach ($items as $item) {

@@ -8,6 +8,8 @@ use InvalidArgumentException;
 class AddressModel extends Model
 {
     private const DEFAULT_ADDRESS_TYPE = '住宅';
+    private const DEFAULT_UNIT_VALUE = '';
+    private ?bool $hasLatLngColumns = null;
 
     public static function validateHongKongAddress(array $data): bool
     {
@@ -27,7 +29,7 @@ class AddressModel extends Model
             return false;
         }
 
-        if (empty($data['building']) || empty($data['unit'])) {
+        if (empty($data['building'])) {
             return false;
         }
 
@@ -40,23 +42,52 @@ class AddressModel extends Model
 
     public static function formatAddressAsOneLine(array $addr): string
     {
+        return self::buildFullAddressLine($addr);
+    }
+
+    /**
+     * Build a normalized one-line Hong Kong address for shipping APIs.
+     */
+    public static function buildFullAddressLine(array $addr): string
+    {
+        $floor = trim((string) ($addr['floor'] ?? ''));
+        $unit = self::normalizeUnitValue($addr['unit'] ?? null);
+
         $parts = array_filter([
-            $addr['region'] ?? '',
-            $addr['district'] ?? '',
-            $addr['street'] ?? '',
-            $addr['village_estate'] ?? '',
-            $addr['building'] ?? '',
-            isset($addr['floor']) && (string) $addr['floor'] !== '' ? $addr['floor'] . '樓' : '',
-            $addr['unit'] ?? '',
-        ], fn ($v) => trim((string) $v) !== '');
+            trim((string) ($addr['region'] ?? '')),
+            trim((string) ($addr['district'] ?? '')),
+            trim((string) ($addr['village_estate'] ?? '')),
+            trim((string) ($addr['street'] ?? '')),
+            trim((string) ($addr['building'] ?? '')),
+            $floor !== '' ? self::appendSuffixIfMissing($floor, ['樓']) : '',
+            $unit !== '' ? self::appendSuffixIfMissing($unit, ['室']) : '',
+        ], fn ($v) => $v !== '');
+
         return implode(' ', $parts);
+    }
+
+    private static function appendSuffixIfMissing(string $value, array $suffixes): string
+    {
+        foreach ($suffixes as $suffix) {
+            if (mb_substr($value, -mb_strlen($suffix)) === $suffix) {
+                return $value;
+            }
+        }
+
+        return $value . $suffixes[0];
+    }
+
+    private static function normalizeUnitValue($raw): string
+    {
+        $unit = trim((string) ($raw ?? ''));
+        return $unit !== '' ? $unit : self::DEFAULT_UNIT_VALUE;
     }
 
     public function getUserAddresses(int $userId): array
     {
-        $stmt = $this->pdo->prepare("SELECT id, address_label, is_default, recipient_name, phone, address_type,
-                region, district, village_estate, street, building, floor, unit, created_at, updated_at
-            FROM user_addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC");
+        $stmt = $this->pdo->prepare(
+            "SELECT {$this->selectAddressFields()} FROM user_addresses WHERE user_id = ? ORDER BY is_default DESC, created_at DESC"
+        );
         $stmt->execute([$userId]);
         $list = [];
         while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
@@ -67,9 +98,9 @@ class AddressModel extends Model
 
     public function getDefaultAddress(int $userId): ?array
     {
-        $stmt = $this->pdo->prepare("SELECT id, address_label, is_default, recipient_name, phone, address_type,
-                region, district, village_estate, street, building, floor, unit, created_at, updated_at
-            FROM user_addresses WHERE user_id = ? AND is_default = 1 LIMIT 1");
+        $stmt = $this->pdo->prepare(
+            "SELECT {$this->selectAddressFields()} FROM user_addresses WHERE user_id = ? AND is_default = 1 LIMIT 1"
+        );
         $stmt->execute([$userId]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         return $row ?: null;
@@ -77,9 +108,9 @@ class AddressModel extends Model
 
     public function getAddressById(int $addressId, int $userId): ?array
     {
-        $stmt = $this->pdo->prepare("SELECT id, address_label, is_default, recipient_name, phone, address_type,
-                region, district, village_estate, street, building, floor, unit, created_at, updated_at
-            FROM user_addresses WHERE id = ? AND user_id = ? LIMIT 1");
+        $stmt = $this->pdo->prepare(
+            "SELECT {$this->selectAddressFields()} FROM user_addresses WHERE id = ? AND user_id = ? LIMIT 1"
+        );
         $stmt->execute([$addressId, $userId]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         return $row ?: null;
@@ -93,10 +124,7 @@ class AddressModel extends Model
         if (!empty($data['is_default'])) {
             $this->unsetDefaultAddresses($userId);
         }
-        $stmt = $this->pdo->prepare("INSERT INTO user_addresses (user_id, address_label, is_default, recipient_name, phone,
-            address_type, region, district, village_estate, street, building, floor, unit)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([
+        $params = [
             $userId,
             $data['address_label'] ?? null,
             !empty($data['is_default']) ? 1 : 0,
@@ -109,8 +137,20 @@ class AddressModel extends Model
             $data['street'] ?? null,
             $data['building'],
             $data['floor'] ?? null,
-            $data['unit']
-        ]);
+            self::normalizeUnitValue($data['unit'] ?? null),
+        ];
+        if ($this->hasLatLngColumns()) {
+            $stmt = $this->pdo->prepare("INSERT INTO user_addresses (user_id, address_label, is_default, recipient_name, phone,
+                address_type, region, district, village_estate, street, building, floor, unit, lat, lng)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $params[] = $data['lat'] ?? null;
+            $params[] = $data['lng'] ?? null;
+        } else {
+            $stmt = $this->pdo->prepare("INSERT INTO user_addresses (user_id, address_label, is_default, recipient_name, phone,
+                address_type, region, district, village_estate, street, building, floor, unit)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        }
+        $stmt->execute($params);
         return (int) $this->pdo->lastInsertId();
     }
 
@@ -122,10 +162,7 @@ class AddressModel extends Model
         if (!empty($data['is_default'])) {
             $this->unsetDefaultAddresses($userId, $addressId);
         }
-        $stmt = $this->pdo->prepare("UPDATE user_addresses SET address_label=?, is_default=?, recipient_name=?, phone=?,
-            address_type=?, region=?, district=?, village_estate=?, street=?, building=?, floor=?, unit=?, updated_at=NOW()
-            WHERE id = ? AND user_id = ?");
-        $stmt->execute([
+        $params = [
             $data['address_label'] ?? null,
             !empty($data['is_default']) ? 1 : 0,
             $data['recipient_name'],
@@ -137,11 +174,27 @@ class AddressModel extends Model
             $data['street'] ?? null,
             $data['building'],
             $data['floor'] ?? null,
-            $data['unit'],
+            self::normalizeUnitValue($data['unit'] ?? null),
             $addressId,
             $userId
-        ]);
-        return $stmt->rowCount() > 0;
+        ];
+        if ($this->hasLatLngColumns()) {
+            $stmt = $this->pdo->prepare("UPDATE user_addresses SET address_label=?, is_default=?, recipient_name=?, phone=?,
+                address_type=?, region=?, district=?, village_estate=?, street=?, building=?, floor=?, unit=?, lat=?, lng=?, updated_at=NOW()
+                WHERE id = ? AND user_id = ?");
+            array_splice($params, 12, 0, [$data['lat'] ?? null, $data['lng'] ?? null]);
+        } else {
+            $stmt = $this->pdo->prepare("UPDATE user_addresses SET address_label=?, is_default=?, recipient_name=?, phone=?,
+                address_type=?, region=?, district=?, village_estate=?, street=?, building=?, floor=?, unit=?, updated_at=NOW()
+                WHERE id = ? AND user_id = ?");
+        }
+        $stmt->execute($params);
+        if ($stmt->rowCount() > 0) {
+            return true;
+        }
+
+        // No row changed may simply mean "same values as before".
+        return $this->getAddressById($addressId, $userId) !== null;
     }
 
     public function deleteAddress(int $addressId, int $userId): bool
@@ -168,5 +221,29 @@ class AddressModel extends Model
             $stmt = $this->pdo->prepare("UPDATE user_addresses SET is_default = 0 WHERE user_id = ?");
             $stmt->execute([$userId]);
         }
+    }
+
+    private function hasLatLngColumns(): bool
+    {
+        if ($this->hasLatLngColumns !== null) {
+            return $this->hasLatLngColumns;
+        }
+        try {
+            $latStmt = $this->pdo->query("SHOW COLUMNS FROM user_addresses LIKE 'lat'");
+            $lngStmt = $this->pdo->query("SHOW COLUMNS FROM user_addresses LIKE 'lng'");
+            $this->hasLatLngColumns = ($latStmt !== false && $latStmt->fetch(\PDO::FETCH_ASSOC) !== false)
+                && ($lngStmt !== false && $lngStmt->fetch(\PDO::FETCH_ASSOC) !== false);
+        } catch (\Throwable) {
+            $this->hasLatLngColumns = false;
+        }
+        return $this->hasLatLngColumns;
+    }
+
+    private function selectAddressFields(): string
+    {
+        $base = "id, address_label, is_default, recipient_name, phone, address_type,
+                region, district, village_estate, street, building, floor, unit";
+        $coord = $this->hasLatLngColumns() ? "lat, lng" : "NULL AS lat, NULL AS lng";
+        return $base . ", " . $coord . ", created_at, updated_at";
     }
 }

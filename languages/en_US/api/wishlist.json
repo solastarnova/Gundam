@@ -1,0 +1,9 @@
+{
+    "wishlist": {
+        "invalid_product_id": "Invalid product ID",
+        "unfavorited": "Canceled favorites",
+        "favorited": "Added to favorites",
+        "removed": "Removed",
+        "operation_failed": "Operation failed"
+    }
+}

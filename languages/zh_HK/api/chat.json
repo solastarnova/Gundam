@@ -1,6 +1,6 @@
 {
     "chat": {
-        "method_not_allowed": "只支援 POST",
+        "method_not_allowed": "提交方式不正確，請重試。",
         "message_empty": "訊息不能為空",
         "server_error": "處理請求時發生錯誤，請稍後再試。",
         "cleared": "對話歷史已清除",

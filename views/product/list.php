@@ -136,7 +136,11 @@ if ($maxPrice <= $minPrice) {
                                     <?php endif; ?>
                                 </div>
                             </div>
-                            <div class="stock-badge mt-3"><?= htmlspecialchars(__m('product_list.stock_in_stock'), ENT_QUOTES, 'UTF-8') ?></div>
+                            <div class="stock-badge mt-3">
+                                <?= $inStock
+                                    ? htmlspecialchars(__m('product_list.stock_available'), ENT_QUOTES, 'UTF-8')
+                                    : htmlspecialchars(__m('product_list.stock_orderable'), ENT_QUOTES, 'UTF-8') ?>
+                            </div>
                             <div class="d-grid mt-3">
                                 <button type="button" class="btn btn-danger btn-add-to-cart"
                                     data-product-id="<?= (int)($product['id'] ?? 0) ?>"
@@ -226,7 +230,7 @@ window.VIEW_PRODUCT_LIST = <?= json_encode([
         var stockAvailable = document.getElementById('stock-available');
         var stockOrder = document.getElementById('stock-order');
         var brandBandai = document.getElementById('brand-bandai');
-        var onlyInStock = stockAvailable && stockAvailable.checked;
+        var showInStock = stockAvailable && stockAvailable.checked;
         var showOrderable = stockOrder && stockOrder.checked;
         var showBandai = !brandBandai || brandBandai.checked;
 
@@ -239,7 +243,7 @@ window.VIEW_PRODUCT_LIST = <?= json_encode([
             var brand = el.getAttribute('data-brand') || '';
             var priceOk = p >= currentMin && p <= currentMax;
             var catOk = selectedCat === '' || cat === selectedCat;
-            var stockOk = (!onlyInStock || stock) && (showOrderable || stock);
+            var stockOk = (stock && showInStock) || (!stock && showOrderable);
             var brandOk = brand !== 'Bandai' || showBandai;
             var show = priceOk && catOk && stockOk && brandOk;
             el.style.display = show ? '' : 'none';

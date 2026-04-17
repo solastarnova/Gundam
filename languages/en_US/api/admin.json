@@ -1,0 +1,25 @@
+{
+    "admin": {
+        "user_not_found": "User does not exist",
+        "update_failed": "Update failed, please try again later",
+        "user_enabled": "This user has been enabled",
+        "user_disabled": "This user has been disabled",
+        "product_not_found": "Product does not exist",
+        "product_name_required": "Product name cannot be empty",
+        "price_positive": "Price must be greater than 0",
+        "image_type_invalid": "Only supports images in JPG, PNG, and GIF formats",
+        "image_size_max": "Image size cannot exceed %s MB",
+        "product_update_success": "Product updated successfully",
+        "product_create_success": "Product added successfully",
+        "operation_failed": "Operation failed, please try again later",
+        "product_deleted": "Product has been deleted",
+        "delete_failed": "Deletion failed, please try again later",
+        "order_not_found": "Order does not exist",
+        "order_status_required": "Please select order status",
+        "order_status_invalid": "Invalid order status or update failure",
+        "order_status_updated": "Order status updated",
+        "membership_level_invalid": "Member level does not exist",
+        "membership_level_updated": "Membership level updated successfully",
+        "membership_unlock_success": "Automatic calculation based on consumption has been restored. Current level: %s"
+    }
+}

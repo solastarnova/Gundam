@@ -1,7 +1,8 @@
 {
     "common": {
         "not_logged_in": "未登入",
-        "cart_empty": "購物車是空的"
+        "cart_empty": "購物車是空的",
+        "method_not_allowed": "不支援的請求方法"
     },
     "ui": {
         "add_to_cart": "加入購物車"
@@ -17,7 +18,7 @@
         "account_orders": "訂單記錄 - %s",
         "account_order_detail": "訂單詳情 - %s",
         "account_settings": "帳戶設定 - %s",
-        "account_payment": "付款方式 - %s",
+        "account_payment": "錢包餘額 - %s",
         "checkout": "結帳付款 - %s",
         "search": "搜尋 - %s",
         "search_with_keyword": "搜尋：%s - %s",

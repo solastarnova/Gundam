@@ -6,7 +6,14 @@
     const paypalClientId = window.PAYPAL_CLIENT_ID || '';
     const stripeSdkUrl = window.STRIPE_SDK_URL || 'https://js.stripe.com/v3/';
     const paypalSdkUrl = window.PAYPAL_SDK_URL || '';
-    const shippingConfig = window.SHIPPING_CONFIG || { express_fee: 0, standard_fee: 0, free_threshold: 0 };
+    const leafletCssUrl = window.LEAFLET_CSS_URL || 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    const leafletJsUrl = window.LEAFLET_JS_URL || 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    const nominatimReverseUrl = window.NOMINATIM_REVERSE_URL || 'https://nominatim.openstreetmap.org/reverse';
+    const maptilerSdkCssUrl = window.MAPTILER_SDK_CSS || 'https://cdn.maptiler.com/maptiler-sdk-js/v4.0.1/maptiler-sdk.css';
+    const maptilerSdkJsUrl = window.MAPTILER_SDK_JS || 'https://cdn.maptiler.com/maptiler-sdk-js/v4.0.1/maptiler-sdk.umd.min.js';
+    const maptilerLeafletPluginUrl = window.MAPTILER_LEAFLET_JS || 'https://cdn.maptiler.com/leaflet-maptilersdk/v4.1.0/leaflet-maptilersdk.umd.min.js';
+    const maptilerGeocodingControlJsUrl = window.MAPTILER_GEOCODING_CONTROL_JS || 'https://cdn.maptiler.com/maptiler-geocoding-control/v3.0.0/leaflet.umd.js';
+    const maptilerReverseGeocodeUrl = window.MAPTILER_REVERSE_GEOCODE_URL || 'https://api.maptiler.com/geocoding';
     const walletBalance = parseFloat(window.WALLET_BALANCE || 0) || 0;
     const pointsBalance = parseInt(window.POINTS_BALANCE || 0, 10) || 0;
     const POINTS_PER_HKD = (function() {
@@ -17,6 +24,22 @@
         return n;
     })();
     const CI = window.CHECKOUT_I18N || {};
+    const checkoutBlocked = !!window.CHECKOUT_BLOCKED;
+    const lalamoveEnabled = !!window.LALAMOVE_CHECKOUT_ENABLED;
+    let lalamoveFee = null;
+    let lalamoveQuoteToken = 0;
+    let lalamoveQuoteTimer = null;
+    let lalamoveQuoteLoading = false;
+    let leafletLoadPromise = null;
+    let maptilerStackPromise = null;
+    const externalScriptPromises = Object.create(null);
+    let mapInstance = null;
+    let mapMarker = null;
+    let geocodingControl = null;
+    let reverseGeocodeToken = 0;
+    let hasMapSelection = false;
+    let addressEditedAfterMapPick = false;
+    let mapAutofillInProgress = false;
     const formatMoney = typeof window.formatMoney === 'function'
         ? window.formatMoney
         : function(v) {
@@ -42,6 +65,7 @@
     let paymentIntentId = null;
     let orderNumberForConfirm = null;
     let paypalButtons = null;
+    let addressModalManager = null;
     const PaymentLoader = {
         stripe: null,
         cache: Object.create(null),
@@ -91,6 +115,538 @@
         }
     };
 
+    function loadStylesheet(href) {
+        if (!href) return Promise.reject(new Error('stylesheet_href_missing'));
+        if (document.querySelector('link[data-checkout-href="' + href + '"]')) {
+            return Promise.resolve(true);
+        }
+        return new Promise(function(resolve, reject) {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = href;
+            link.setAttribute('data-checkout-href', href);
+            link.onload = function() { resolve(true); };
+            link.onerror = function() { reject(new Error('stylesheet_load_failed')); };
+            document.head.appendChild(link);
+        });
+    }
+
+    function applyMapStatusTone(statusEl, tone) {
+        if (!statusEl) return;
+        var normalized = tone || 'default';
+        statusEl.classList.remove('bg-dark', 'bg-success', 'bg-warning', 'bg-danger', 'text-dark', 'text-white');
+        if (normalized === 'success') {
+            statusEl.classList.add('bg-success', 'text-white');
+            return;
+        }
+        if (normalized === 'warning') {
+            statusEl.classList.add('bg-warning', 'text-dark');
+            return;
+        }
+        if (normalized === 'danger') {
+            statusEl.classList.add('bg-danger', 'text-white');
+            return;
+        }
+        statusEl.classList.add('bg-dark', 'text-white');
+    }
+
+    function setMapStatus(text, tone) {
+        var statusEl = document.getElementById('mapStatusText');
+        if (!statusEl) return;
+        statusEl.textContent = text || '';
+        applyMapStatusTone(statusEl, tone);
+    }
+
+    function shortenStatusAddress(text, maxLen) {
+        var normalized = String(text || '').trim();
+        var limit = Number(maxLen) || 24;
+        if (!normalized) return '';
+        if (normalized.length <= limit) return normalized;
+        return normalized.slice(0, limit) + '...';
+    }
+
+    function ensureLeafletLoaded() {
+        if (window.L && typeof window.L.map === 'function') {
+            return Promise.resolve(window.L);
+        }
+        if (leafletLoadPromise) return leafletLoadPromise;
+        leafletLoadPromise = Promise.all([
+            loadStylesheet(leafletCssUrl),
+            PaymentLoader.injectScript(leafletJsUrl, 'L')
+        ]).then(function(results) {
+            return results[1];
+        });
+        return leafletLoadPromise;
+    }
+
+    function injectExternalScript(src) {
+        if (!src) {
+            return Promise.reject(new Error('script_src_missing'));
+        }
+        if (externalScriptPromises[src]) {
+            return externalScriptPromises[src];
+        }
+        externalScriptPromises[src] = new Promise(function(resolve, reject) {
+            var script = document.createElement('script');
+            script.src = src;
+            script.async = true;
+            script.onload = function() {
+                resolve(true);
+            };
+            script.onerror = function() {
+                reject(new Error('script_load_failed'));
+            };
+            document.head.appendChild(script);
+        });
+        return externalScriptPromises[src];
+    }
+
+    /**
+     * 載入 MapTiler 向量底圖依賴（必須在 Leaflet 已載入後執行）：
+     * maptiler-sdk-js → @maptiler/leaflet-maptilersdk UMD（掛在 L.maptiler.*）
+     * @see https://github.com/maptiler/leaflet-maptilersdk
+     */
+    function loadMapTilerStack() {
+        if (window.L && window.L.maptiler && typeof window.L.maptiler.maptilerLayer === 'function') {
+            return Promise.resolve();
+        }
+        if (maptilerStackPromise) {
+            return maptilerStackPromise;
+        }
+        maptilerStackPromise = loadStylesheet(maptilerSdkCssUrl)
+            .then(function() {
+                return injectExternalScript(maptilerSdkJsUrl);
+            })
+            .then(function() {
+                return injectExternalScript(maptilerLeafletPluginUrl);
+            })
+            .then(function() {
+                if (!window.L || !window.L.maptiler || typeof window.L.maptiler.maptilerLayer !== 'function') {
+                    throw new Error('maptiler_leaflet_not_ready');
+                }
+            });
+        return maptilerStackPromise;
+    }
+
+    function loadMapTilerGeocodingControl() {
+        if (window.maptilerGeocoder && typeof window.maptilerGeocoder.GeocodingControl === 'function') {
+            return Promise.resolve();
+        }
+        return injectExternalScript(maptilerGeocodingControlJsUrl).then(function() {
+            if (!window.maptilerGeocoder || typeof window.maptilerGeocoder.GeocodingControl !== 'function') {
+                throw new Error('maptiler_geocoding_control_not_ready');
+            }
+        });
+    }
+
+    function bindGeocodingControlPick(gc) {
+        function pickFromCoords(lng, lat) {
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+            handleMapPick(lat, lng);
+        }
+
+        function extractLngLat(payload) {
+            if (!payload) return null;
+            if (Array.isArray(payload.center) && payload.center.length >= 2) {
+                return { lng: Number(payload.center[0]), lat: Number(payload.center[1]) };
+            }
+            if (payload.geometry && Array.isArray(payload.geometry.coordinates) && payload.geometry.coordinates.length >= 2) {
+                return { lng: Number(payload.geometry.coordinates[0]), lat: Number(payload.geometry.coordinates[1]) };
+            }
+            if (payload.feature) {
+                return extractLngLat(payload.feature);
+            }
+            if (payload.detail) {
+                return extractLngLat(payload.detail);
+            }
+            return null;
+        }
+
+        function onPicked(raw) {
+            var ll = extractLngLat(raw);
+            if (!ll) return;
+            pickFromCoords(ll.lng, ll.lat);
+        }
+
+        if (gc && typeof gc.on === 'function') {
+            gc.on('select', onPicked);
+            gc.on('pick', onPicked);
+            gc.on('featuresListed', function() {});
+        }
+        if (gc && typeof gc.addEventListener === 'function') {
+            gc.addEventListener('select', onPicked);
+            gc.addEventListener('pick', onPicked);
+        }
+        if (mapInstance && mapInstance.on) {
+            mapInstance.on('geocoder:select', function(ev) {
+                onPicked(ev);
+            });
+        }
+    }
+
+    function initGeocodingControl(L, maptilerKey) {
+        if (!maptilerKey || !mapInstance || geocodingControl) return;
+        loadMapTilerGeocodingControl().then(function() {
+            if (!window.maptilerGeocoder || typeof window.maptilerGeocoder.GeocodingControl !== 'function') {
+                return;
+            }
+            geocodingControl = new window.maptilerGeocoder.GeocodingControl({
+                apiKey: maptilerKey,
+                position: 'bottomright'
+            });
+            if (typeof mapInstance.addControl === 'function') {
+                mapInstance.addControl(geocodingControl);
+            }
+            bindGeocodingControlPick(geocodingControl);
+        }).catch(function(err) {
+            console.error('MapTiler GeocodingControl load failed:', err);
+        });
+    }
+
+    /** leaflet-maptilersdk：L.maptiler.maptilerLayer（向量圖磚） */
+    function addMapTilerLayerUsingLeafletPlugin(L, apiKey) {
+        var opts = { apiKey: apiKey };
+        if (L.maptiler && L.maptiler.MapStyle && L.maptiler.MapStyle.STREETS !== undefined) {
+            opts.style = L.maptiler.MapStyle.STREETS;
+        }
+        L.maptiler.maptilerLayer(opts).addTo(mapInstance);
+    }
+
+    function addOsmBasemap(L) {
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(mapInstance);
+    }
+
+    function updateMapLatLng(lat, lng) {
+        var latEl = document.getElementById('lat');
+        var lngEl = document.getElementById('lng');
+        var parsedLat = Number(lat);
+        var parsedLng = Number(lng);
+        var latValue = Number.isFinite(parsedLat) ? parsedLat.toFixed(6) : '';
+        var lngValue = Number.isFinite(parsedLng) ? parsedLng.toFixed(6) : '';
+        if (latEl) latEl.value = latValue;
+        if (lngEl) lngEl.value = lngValue;
+    }
+
+    function normalizeCoordinate(value) {
+        var parsed = Number(value);
+        if (!Number.isFinite(parsed)) return null;
+        return Number(parsed.toFixed(6));
+    }
+
+    function getAddressInputEls() {
+        return ['district', 'street', 'building', 'unit', 'villageEstate'].map(function(id) {
+            return document.getElementById(id);
+        }).filter(function(el) {
+            return !!el;
+        });
+    }
+
+    function getMapWrapperEl() {
+        return document.getElementById('mapWrapper');
+    }
+
+    function updateMapVisualState(isWarning) {
+        var mapWrapper = getMapWrapperEl();
+        if (mapWrapper) {
+            mapWrapper.classList.toggle('border-warning', !!isWarning);
+        }
+    }
+
+    function persistLastAutofillValue(el, value) {
+        if (!el) return;
+        el.dataset.lastAutofill = String(value || '');
+    }
+
+    function shouldInvalidateCoordinates(oldVal, newVal) {
+        var prev = String(oldVal || '').trim();
+        var next = String(newVal || '').trim();
+        if (!prev || !next || prev === next) return false;
+        var keyPart = prev.substring(0, 8);
+        if (keyPart && next.indexOf(keyPart) === -1) {
+            return true;
+        }
+        var lengthDelta = Math.abs(next.length - prev.length);
+        return prev.length > 0 && (lengthDelta / prev.length) > 0.5;
+    }
+
+    function invalidateStoredCoordinates() {
+        updateMapLatLng('', '');
+        hasMapSelection = false;
+        updateMapVisualState(true);
+        setMapStatus(CI.mapRelocateRequired || '', 'warning');
+    }
+
+    function autoSelectRegionByText(sourceText) {
+        var regionEl = document.getElementById('region');
+        if (!regionEl || !sourceText) return;
+        var text = String(sourceText).toLowerCase();
+        var targetKeyword = '';
+        var islandKeywords = [
+            'hong kong island', 'hk island', 'central', 'admiralty', 'wan chai',
+            'causeway bay', 'north point', 'quarry bay', 'sai ying pun',
+            'sheung wan', 'happy valley', '香港岛', '港岛', '港島', '中环', '中環',
+            '上环', '上環', '西营盘', '西營盤', '湾仔', '銅鑼灣', '铜锣湾', '北角', '太古', '筲箕湾', '筲箕灣'
+        ];
+        var kowloonKeywords = [
+            'kowloon', 'west kowloon', 'east kowloon', 'kowloon bay', 'kai tak',
+            'tsim sha tsui', 'mong kok', 'yau ma tei', 'sham shui po', 'kwun tong',
+            'wong tai sin', 'diamond hill', '九龍', '九龙', '西九龙', '西九龍', '東九龍', '东九龙',
+            '九龍灣', '九龙湾', '啟德', '启德', '尖沙咀', '旺角', '油麻地', '深水埗', '觀塘', '观塘', '黃大仙', '黄大仙', '鑽石山', '钻石山'
+        ];
+        var territoriesKeywords = [
+            'new territories', 'nt', 'tsuen wan', 'tuen mun', 'yuen long',
+            'tai po', 'sha tin', 'tseung kwan o', 'sai kung', 'kwai chung',
+            'kwai fong', 'tin shui wai', 'ma on shan', '新界', '將軍澳', '将军澳',
+            '西貢', '西贡', '葵涌', '葵芳', '天水圍', '天水围', '馬鞍山', '马鞍山',
+            '屯門', '屯门', '元朗', '荃灣', '荃湾', '大埔', '沙田'
+        ];
+
+        function includesAny(keywords) {
+            return keywords.some(function(keyword) {
+                return text.indexOf(keyword) !== -1;
+            });
+        }
+
+        if (includesAny(islandKeywords)) {
+            targetKeyword = 'island';
+        } else if (includesAny(kowloonKeywords)) {
+            targetKeyword = 'kowloon';
+        } else if (includesAny(territoriesKeywords)) {
+            targetKeyword = 'territories';
+        }
+
+        if (!targetKeyword) return;
+
+        var optionToSelect = null;
+        Array.prototype.slice.call(regionEl.options || []).forEach(function(opt) {
+            if (!opt || !opt.value) return;
+            var value = String(opt.value).toLowerCase();
+            if (targetKeyword === 'island' && (value.indexOf('island') !== -1 || value.indexOf('香港') !== -1 || value.indexOf('港島') !== -1 || value.indexOf('港岛') !== -1)) {
+                optionToSelect = opt.value;
+            } else if (targetKeyword === 'kowloon' && (value.indexOf('kowloon') !== -1 || value.indexOf('九龍') !== -1 || value.indexOf('九龙') !== -1)) {
+                optionToSelect = opt.value;
+            } else if (targetKeyword === 'territories' && (value.indexOf('territories') !== -1 || value.indexOf('新界') !== -1)) {
+                optionToSelect = opt.value;
+            }
+        });
+
+        if (optionToSelect) {
+            regionEl.value = optionToSelect;
+        }
+    }
+
+    function flashMapUpdatedFields() {
+        getAddressInputEls().forEach(function(el) {
+            el.classList.remove('checkout-map-updated');
+            // Force reflow to allow repeated animation when user clicks map multiple times.
+            void el.offsetWidth;
+            el.classList.add('checkout-map-updated');
+        });
+    }
+
+    function beginMapAutofill() {
+        mapAutofillInProgress = true;
+    }
+
+    function endMapAutofill() {
+        mapAutofillInProgress = false;
+        flashMapUpdatedFields();
+        hasMapSelection = true;
+        addressEditedAfterMapPick = false;
+        updateMapVisualState(false);
+    }
+
+    function applyAutofillFieldValue(el, value) {
+        if (!el) return;
+        var normalizedValue = String(value || '');
+        el.value = normalizedValue;
+        persistLastAutofillValue(el, normalizedValue);
+    }
+
+    function updateAddressFieldsFromNominatim(data) {
+        if (!data || !data.address) return;
+        var addr = data.address || {};
+        var district = addr.city_district || addr.suburb || addr.borough || addr.town || addr.city || addr.county || addr.state_district || '';
+        var road = addr.road || addr.pedestrian || addr.residential || addr.footway || '';
+        var houseNumber = addr.house_number || '';
+        var street = [road, houseNumber].filter(function(v) {
+            return String(v || '').trim() !== '';
+        }).join(' ');
+        var building = addr.building || addr.commercial || addr.amenity || addr.shop || '';
+        var unit = '';
+
+        var districtEl = document.getElementById('district');
+        var streetEl = document.getElementById('street');
+        var buildingEl = document.getElementById('building');
+        var unitEl = document.getElementById('unit');
+        var villageEl = document.getElementById('villageEstate');
+
+        beginMapAutofill();
+        autoSelectRegionByText([
+            data.display_name || '',
+            addr.city || '',
+            addr.county || '',
+            addr.state || '',
+            district
+        ].join(' '));
+        applyAutofillFieldValue(districtEl, district);
+        applyAutofillFieldValue(streetEl, street);
+        applyAutofillFieldValue(buildingEl, building);
+        applyAutofillFieldValue(unitEl, unit);
+        applyAutofillFieldValue(villageEl, addr.neighbourhood || addr.quarter || '');
+        endMapAutofill();
+    }
+
+    function updateAddressFieldsFromMapTiler(data) {
+        if (!data || !Array.isArray(data.features) || data.features.length === 0) return false;
+        var f = data.features[0] || {};
+        var p = f.properties || {};
+        var district = p.district || p.suburb || p.city || p.county || p.municipality || '';
+        var street = [p.street || '', p.housenumber || ''].filter(function(v) {
+            return String(v || '').trim() !== '';
+        }).join(' ');
+        var building = p.name || p.poi || '';
+        var unit = '';
+        var village = p.neighbourhood || '';
+
+        var districtEl = document.getElementById('district');
+        var streetEl = document.getElementById('street');
+        var buildingEl = document.getElementById('building');
+        var unitEl = document.getElementById('unit');
+        var villageEl = document.getElementById('villageEstate');
+
+        beginMapAutofill();
+        autoSelectRegionByText([
+            f.place_name_zh_hant || '',
+            f.place_name || '',
+            p.city || '',
+            p.county || '',
+            p.state || '',
+            district
+        ].join(' '));
+        applyAutofillFieldValue(districtEl, district);
+        applyAutofillFieldValue(streetEl, street);
+        applyAutofillFieldValue(buildingEl, building);
+        applyAutofillFieldValue(unitEl, unit);
+        applyAutofillFieldValue(villageEl, village);
+        endMapAutofill();
+        return true;
+    }
+
+    function resolveNominatim(lat, lng, token) {
+        var url = nominatimReverseUrl + '?format=jsonv2&lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lng) + '&accept-language=zh-HK';
+        return fetch(url, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        }).then(function(r) {
+            if (!r.ok) throw new Error('reverse_geocode_failed');
+            return r.json();
+        }).then(function(data) {
+            if (token !== reverseGeocodeToken) return;
+            updateAddressFieldsFromNominatim(data);
+            if (data && data.display_name) {
+                setMapStatus((CI.mapResolvedAddress || '') + ': ' + shortenStatusAddress(data.display_name, 24), 'success');
+            } else {
+                setMapStatus(CI.mapResolvedAddress || '', 'success');
+            }
+        });
+    }
+
+    function resolveMapTiler(lat, lng, token) {
+        var maptilerKey = String(window.MAPTILER_API_KEY || '').trim();
+        if (!maptilerKey) {
+            return Promise.reject(new Error('maptiler_key_missing'));
+        }
+        var url = maptilerReverseGeocodeUrl + '/' + encodeURIComponent(lng) + ',' + encodeURIComponent(lat) + '.json?key=' + encodeURIComponent(maptilerKey) + '&language=zh-Hant&limit=1';
+        return fetch(url, {
+            headers: { 'Accept': 'application/json' }
+        }).then(function(r) {
+            if (!r.ok) throw new Error('maptiler_reverse_failed');
+            return r.json();
+        }).then(function(data) {
+            if (token !== reverseGeocodeToken) return;
+            var updated = updateAddressFieldsFromMapTiler(data);
+            if (updated) {
+                var feature = data.features && data.features[0] ? data.features[0] : {};
+                var displayName = feature.place_name_zh_hant || feature.place_name || feature.text || '';
+                setMapStatus(displayName ? (CI.mapResolvedAddress || '') + ': ' + shortenStatusAddress(displayName, 24) : (CI.mapResolvedAddress || ''), 'success');
+                return;
+            }
+            throw new Error('maptiler_no_features');
+        });
+    }
+
+    function reverseGeocode(lat, lng) {
+        var token = ++reverseGeocodeToken;
+        setMapStatus(CI.mapReverseGeocoding || '');
+        resolveMapTiler(lat, lng, token).catch(function() {
+            return resolveNominatim(lat, lng, token).catch(function() {
+                if (token !== reverseGeocodeToken) return;
+                setMapStatus(CI.mapResolveFailed || '', 'danger');
+            });
+        });
+    }
+
+    function handleMapPick(lat, lng) {
+        if (!mapInstance || !window.L) return;
+        var normalizedLat = normalizeCoordinate(lat);
+        var normalizedLng = normalizeCoordinate(lng);
+        if (!Number.isFinite(normalizedLat) || !Number.isFinite(normalizedLng)) return;
+        if (!mapMarker) {
+            mapMarker = window.L.marker([normalizedLat, normalizedLng]).addTo(mapInstance);
+        } else {
+            mapMarker.setLatLng([normalizedLat, normalizedLng]);
+        }
+        mapInstance.setView([normalizedLat, normalizedLng], Math.max(mapInstance.getZoom(), 16));
+        updateMapLatLng(normalizedLat, normalizedLng);
+        reverseGeocode(normalizedLat, normalizedLng);
+    }
+
+    function initAddressMap() {
+        var mapEl = document.getElementById('checkoutAddressMap');
+        if (!mapEl) return;
+        var maptilerKey = String(window.MAPTILER_API_KEY || '').trim();
+        ensureLeafletLoaded().then(function(L) {
+            if (!mapInstance) {
+                var hkCenter = [22.3193, 114.1694];
+                mapInstance = L.map('checkoutAddressMap').setView(hkCenter, 12);
+                mapInstance.on('click', function(ev) {
+                    handleMapPick(ev.latlng.lat, ev.latlng.lng);
+                });
+                if (maptilerKey) {
+                    loadMapTilerStack().then(function() {
+                        addMapTilerLayerUsingLeafletPlugin(L, maptilerKey);
+                        initGeocodingControl(L, maptilerKey);
+                    }).catch(function(err) {
+                        console.error('MapTiler load failed:', err);
+                        addOsmBasemap(L);
+                        setMapStatus(CI.mapMaptilerFallback || '', 'warning');
+                        initGeocodingControl(L, maptilerKey);
+                    });
+                } else {
+                    addOsmBasemap(L);
+                }
+            }
+
+            if (mapInstance) {
+                mapInstance.invalidateSize();
+            }
+            setTimeout(function() {
+                if (mapInstance) {
+                    mapInstance.invalidateSize();
+                }
+            }, 200);
+            setMapStatus(CI.mapHelp || '', 'default');
+        }).catch(function(err) {
+            console.error('Leaflet load failed:', err);
+            setMapStatus(CI.mapResolveFailed || '', 'danger');
+        });
+    }
+
     function showSystemLinking(show) {
         const loader = document.getElementById('paymentSystemLoader');
         if (!loader) return;
@@ -120,6 +676,18 @@
             return radio.getAttribute('data-address-one-line').trim();
         }
         return String(window.DEFAULT_SHIPPING_ADDRESS || CI.defaultShipping || '').trim();
+    }
+
+    function getSelectedShippingCoordinates() {
+        var radio = document.querySelector('input[name="checkout_address"]:checked');
+        if (!radio) return null;
+        var lat = Number(radio.getAttribute('data-lat'));
+        var lng = Number(radio.getAttribute('data-lng'));
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+        return {
+            lat: lat.toFixed(6),
+            lng: lng.toFixed(6)
+        };
     }
 
     /**
@@ -164,7 +732,10 @@
                     var card = document.createElement('div');
                     card.className = 'col-12';
                     card.innerHTML = '<div class="form-check border rounded p-3 checkout-address-card">' +
-                        '<input class="form-check-input" type="radio" name="checkout_address" id="' + id + '" value="' + (addr.id || '') + '" data-address-one-line="' + (oneLine.replace(/"/g, '&quot;')) + '"' + (shouldCheck ? ' checked' : '') + '>' +
+                        '<input class="form-check-input" type="radio" name="checkout_address" id="' + id + '" value="' + (addr.id || '') + '" data-address-one-line="' + (oneLine.replace(/"/g, '&quot;')) + '"' +
+                        (addr.lat != null ? ' data-lat="' + String(addr.lat).replace(/"/g, '&quot;') + '"' : '') +
+                        (addr.lng != null ? ' data-lng="' + String(addr.lng).replace(/"/g, '&quot;') + '"' : '') +
+                        (shouldCheck ? ' checked' : '') + '>' +
                         '<label class="form-check-label w-100 ms-2" for="' + id + '">' +
                         (isDefault ? '<span class="badge bg-danger me-2">' + String(CI.badgeDefault || '').replace(/</g, '&lt;') + '</span>' : '') +
                         (addr.address_label ? '<strong>' + String(addr.address_label).replace(/</g, '&lt;') + '</strong><br>' : '') +
@@ -173,6 +744,9 @@
                         '</label></div>';
                     containerEl.appendChild(card);
                 });
+                if (lalamoveEnabled && !checkoutBlocked) {
+                    scheduleLalamoveQuote();
+                }
             })
             .catch(function() {
                 loadingEl.style.display = 'none';
@@ -193,6 +767,15 @@
         var isDef = document.getElementById('isDefault');
         if (isDef) isDef.checked = false;
         form.querySelectorAll('.is-invalid').forEach(function(el) { el.classList.remove('is-invalid'); });
+        updateMapLatLng('', '');
+        hasMapSelection = false;
+        addressEditedAfterMapPick = false;
+        reverseGeocodeToken += 1;
+        updateMapVisualState(false);
+        getAddressInputEls().forEach(function(el) {
+            delete el.dataset.lastAutofill;
+        });
+        setMapStatus(CI.mapHelp || '', 'default');
         if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
             var bsModal = new bootstrap.Modal(modal);
             bsModal.show();
@@ -205,13 +788,32 @@
         var formData = new FormData(form);
         var addressId = formData.get('id');
         var data = Object.fromEntries(formData.entries());
-        if (!data.recipient_name || !data.phone || !data.region || !data.district || !data.building || !data.unit) {
+        var hasAddressText = !!(
+            String(data.region || '').trim() ||
+            String(data.district || '').trim() ||
+            String(data.street || '').trim() ||
+            String(data.village_estate || '').trim() ||
+            String(data.building || '').trim()
+        );
+        var hasLatLng = String(data.lat || '').trim() !== '' && String(data.lng || '').trim() !== '';
+        if (!data.recipient_name || !data.phone || !data.region || !data.district || !data.building) {
             alert(CI.alertRequired || '');
             return;
         }
         if (!data.village_estate && !data.street) {
             alert(CI.alertVillageOrStreet || '');
             return;
+        }
+        if (hasAddressText && !hasLatLng) {
+            alert(CI.mapRequirePinForQuote || CI.mapHelp || '');
+            setMapStatus(CI.mapHelp || '', 'warning');
+            return;
+        }
+        if (hasMapSelection && addressEditedAfterMapPick) {
+            var shouldContinue = confirm(CI.mapAddressChangedConfirm || '');
+            if (!shouldContinue) {
+                return;
+            }
         }
         data.is_default = document.getElementById('isDefault') && document.getElementById('isDefault').checked ? 1 : 0;
         var payload = addressId ? Object.assign({}, data, { id: addressId }) : data;
@@ -236,15 +838,111 @@
             }
             var newId = result.address_id || addressId;
             loadAddresses(newId);
+            if (lalamoveEnabled && !checkoutBlocked && payload.lat && payload.lng) {
+                setTimeout(function() {
+                    scheduleLalamoveQuote();
+                }, 600);
+            }
         } catch (err) {
             console.error('saveCheckoutAddress:', err);
-            alert(err.message || CI.alertSaveAddressFailed || '');
+            var reason = err && err.message ? String(err.message).trim() : '';
+            if (reason) {
+                alert((CI.alertSaveAddressFailedWithReason || CI.alertSaveAddressFailed || '') + reason);
+            } else {
+                alert(CI.alertSaveAddressFailed || '');
+            }
         }
     };
 
     function getShippingMethod() {
-        const el = document.getElementById('shipping');
-        return el ? el.value : 'standard';
+        var el = document.getElementById('shipping');
+        if (el && el.value) {
+            return el.value;
+        }
+        return checkoutBlocked ? 'unavailable' : 'lalamove';
+    }
+
+    function setLalamoveNote(text, show) {
+        var note = document.getElementById('lalamoveQuoteNote');
+        if (!note) return;
+        note.style.display = show ? 'block' : 'none';
+        note.textContent = show ? (text || '') : '';
+    }
+
+    function scheduleLalamoveQuote() {
+        if (!lalamoveEnabled || checkoutBlocked) return;
+        if (!cartItems || cartItems.length === 0) {
+            lalamoveFee = null;
+            lalamoveQuoteLoading = false;
+            setLalamoveNote('', false);
+            updateSummary();
+            return;
+        }
+        if (lalamoveQuoteTimer) clearTimeout(lalamoveQuoteTimer);
+        lalamoveQuoteTimer = setTimeout(function() {
+            requestLalamoveQuote();
+        }, 550);
+    }
+
+    function requestLalamoveQuote() {
+        if (!lalamoveEnabled || checkoutBlocked) return;
+        var line = getSelectedShippingAddress();
+        var coordinates = getSelectedShippingCoordinates();
+        if (!line || String(line).trim().length < 8) {
+            lalamoveFee = null;
+            lalamoveQuoteLoading = false;
+            setLalamoveNote('', false);
+            updateSummary();
+            return;
+        }
+        var token = ++lalamoveQuoteToken;
+        lalamoveQuoteLoading = true;
+        updateSummary();
+
+        function submitQuote(useCoordinates, hasRetriedFallback) {
+            fetch(baseUrl + 'api/shipping/lalamove-quote', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    address_line: String(line).trim(),
+                    coordinates: useCoordinates ? coordinates : null
+                })
+            }).then(function(r) { return r.json(); }).then(function(data) {
+                if (token !== lalamoveQuoteToken) return;
+                if (data.success && data.shipping_fee != null) {
+                    lalamoveQuoteLoading = false;
+                    var f = parseFloat(data.shipping_fee);
+                    lalamoveFee = Number.isFinite(f) ? f : null;
+                    setLalamoveNote(CI.lalamoveDisclaimer || '', true);
+                    updateSummary();
+                    return;
+                }
+
+                if (useCoordinates && coordinates && !hasRetriedFallback) {
+                    submitQuote(false, true);
+                    return;
+                }
+
+                lalamoveQuoteLoading = false;
+                lalamoveFee = null;
+                var errPart = data.message || CI.lalamoveError || '';
+                var disc = CI.lalamoveDisclaimer || '';
+                setLalamoveNote(errPart ? (errPart + (disc ? ' ' + disc : '')) : disc, true);
+                updateSummary();
+            }).catch(function() {
+                if (token !== lalamoveQuoteToken) return;
+                if (useCoordinates && coordinates && !hasRetriedFallback) {
+                    submitQuote(false, true);
+                    return;
+                }
+                lalamoveQuoteLoading = false;
+                lalamoveFee = null;
+                setLalamoveNote(CI.lalamoveError || '', true);
+                updateSummary();
+            });
+        }
+
+        submitQuote(!!coordinates, false);
     }
 
     function isUseWalletEnabled() {
@@ -260,13 +958,11 @@
                 subtotal += (parseFloat(item.price) || 0) * qtyKey(item);
             });
         }
-        const method = getShippingMethod();
         let shippingFee = 0;
-        if (method === 'express') {
-            shippingFee = parseFloat(shippingConfig.express_fee) || 0;
-        } else {
-            const threshold = parseFloat(shippingConfig.free_threshold) || 0;
-            shippingFee = subtotal >= threshold ? 0 : (parseFloat(shippingConfig.standard_fee) || 0);
+        if (lalamoveEnabled && !checkoutBlocked) {
+            if (lalamoveFee !== null && Number.isFinite(lalamoveFee)) {
+                shippingFee = lalamoveFee;
+            }
         }
         return { subtotal, shippingFee, total: subtotal + shippingFee };
     }
@@ -296,7 +992,17 @@
         const payable = Math.max(0, totalAfterWallet - pointsHkdUsed);
 
         if (subEl) subEl.textContent = formatMoney(t.subtotal);
-        if (feeEl) feeEl.textContent = formatMoney(t.shippingFee);
+        if (feeEl) {
+            if (!lalamoveEnabled || checkoutBlocked) {
+                feeEl.textContent = '—';
+            } else if (lalamoveQuoteLoading) {
+                feeEl.textContent = CI.lalamovePending || '…';
+            } else if (lalamoveFee !== null && Number.isFinite(lalamoveFee)) {
+                feeEl.textContent = formatMoney(lalamoveFee);
+            } else {
+                feeEl.textContent = CI.lalamoveError || '—';
+            }
+        }
         if (orderTotalEl) orderTotalEl.textContent = formatMoney(t.total);
         if (walletBalanceEl) walletBalanceEl.textContent = formatMoney(walletBalance);
         if (walletUsedEl) walletUsedEl.textContent = '-' + formatMoney(walletUsed);
@@ -452,6 +1158,9 @@
                 cartItems = (data && data.items) ? data.items : [];
                 updateSummary();
                 renderOrderItems();
+                if (lalamoveEnabled && !checkoutBlocked) {
+                    scheduleLalamoveQuote();
+                }
             })
             .catch(function() { cartItems = []; updateSummary(); renderOrderItems(); });
     }
@@ -500,11 +1209,15 @@
     }
 
     function createPaymentIntent() {
+        var coords = getSelectedShippingCoordinates();
         return fetch(baseUrl + 'api/payment/create-intent', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
                 shipping_method: getShippingMethod(),
+                shipping_address: getSelectedShippingAddress(),
+                shipping_lat: coords ? coords.lat : '',
+                shipping_lng: coords ? coords.lng : '',
                 use_wallet: isUseWalletEnabled() ? '1' : '0',
                 use_points: (document.getElementById('usePoints') && document.getElementById('usePoints').checked) ? '1' : '0'
             })
@@ -512,8 +1225,11 @@
     }
 
     function confirmOrder(payload) {
+        var coords = getSelectedShippingCoordinates();
         payload.shipping_address = payload.shipping_address || getSelectedShippingAddress();
         payload.shipping_method = getShippingMethod();
+        payload.shipping_lat = coords ? coords.lat : '';
+        payload.shipping_lng = coords ? coords.lng : '';
         payload.use_wallet = isUseWalletEnabled() ? '1' : '0';
         payload.use_points = (document.getElementById('usePoints') && document.getElementById('usePoints').checked) ? '1' : '0';
         return fetch(baseUrl + 'api/payment/confirm', {
@@ -613,11 +1329,18 @@
     }
 
     function handleWalletOnlyCheckout() {
+        if (checkoutBlocked) {
+            alert(CI.deliveryUnavailable || '');
+            return;
+        }
         setConfirmLoading(true);
         showError('');
         var fd = new URLSearchParams();
+        var coords = getSelectedShippingCoordinates();
         fd.append('shipping_method', getShippingMethod());
         fd.append('shipping_address', getSelectedShippingAddress());
+        fd.append('shipping_lat', coords ? coords.lat : '');
+        fd.append('shipping_lng', coords ? coords.lng : '');
         fd.append('use_wallet', '1');
         fetch(baseUrl + 'api/payment/wallet-checkout', {
             method: 'POST',
@@ -638,9 +1361,23 @@
     }
 
     function handleConfirmClick() {
+        if (checkoutBlocked) {
+            alert(CI.deliveryUnavailable || '');
+            return;
+        }
         var method = document.querySelector('input[name="paymentMethod"]:checked');
         var value = method ? method.value : 'stripe';
         if (value === 'paypal') return;
+
+        if (lalamoveEnabled) {
+            var addrLine = getSelectedShippingAddress();
+            if (addrLine && String(addrLine).trim().length >= 8) {
+                if (lalamoveQuoteLoading || lalamoveFee === null || !Number.isFinite(lalamoveFee)) {
+                    alert(CI.lalamoveWaiting || CI.lalamovePending || '');
+                    return;
+                }
+            }
+        }
 
         if (!cartItems.length) {
             loadCart();
@@ -680,6 +1417,9 @@
     }
 
     function initPayPal() {
+        if (checkoutBlocked) {
+            return;
+        }
         if (!paypalClientId || typeof paypal === 'undefined') {
             console.warn('PayPal SDK not available');
             return;
@@ -692,11 +1432,15 @@
             paypalButtons = paypal.Buttons({
                 style: { layout: 'vertical', color: 'blue', shape: 'rect', label: 'paypal' },
                 createOrder: function(data, actions) {
+                    var coords = getSelectedShippingCoordinates();
                     return fetch(baseUrl + 'api/payment/create-paypal-order', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                         body: new URLSearchParams({
                             shipping_method: getShippingMethod(),
+                            shipping_address: getSelectedShippingAddress(),
+                            shipping_lat: coords ? coords.lat : '',
+                            shipping_lng: coords ? coords.lng : '',
                             use_wallet: isUseWalletEnabled() ? '1' : '0'
                         })
                     }).then(function(r) { return r.json(); }).then(function(res) {
@@ -745,8 +1489,6 @@
     document.querySelectorAll('input[name="paymentMethod"]').forEach(function(radio) {
         radio.addEventListener('change', togglePaymentUI);
     });
-    var shippingEl = document.getElementById('shipping');
-    if (shippingEl) shippingEl.addEventListener('change', updateSummary);
     var walletToggleEl = document.getElementById('useWalletBalance');
     if (walletToggleEl) walletToggleEl.addEventListener('change', updateSummary);
     var pointsToggleEl = document.getElementById('usePoints');
@@ -756,6 +1498,57 @@
     if (confirmBtn) confirmBtn.addEventListener('click', handleConfirmClick);
 
     function init() {
+        function initSharedAddressModal() {
+            if (typeof window.createAddressModalManager !== 'function') {
+                return false;
+            }
+            addressModalManager = window.createAddressModalManager({
+                baseUrl: window.APP_BASE || '/',
+                requireMapPin: true,
+                i18n: {
+                    modalAdd: CI.modalAddAddress || '',
+                    modalEdit: CI.modalEditAddress || '',
+                    loadFailed: CI.alertLoadAddressFailed || '',
+                    loadError: CI.alertLoadAddressFailed || '',
+                    alertRequired: CI.alertRequired || '',
+                    alertVillageOrStreet: CI.alertVillageOrStreet || '',
+                    saveFailed: CI.alertSaveAddressFailed || '',
+                    saveError: CI.alertSaveAddressFailed || '',
+                    confirmDelete: CI.alertDeleteAddressConfirm || '',
+                    deleteFailed: CI.alertDeleteAddressFailed || '',
+                    deleteError: CI.alertDeleteAddressFailed || '',
+                    defaultFailed: CI.alertSetDefaultAddressFailed || '',
+                    defaultError: CI.alertSetDefaultAddressFailed || '',
+                    residentialDefault: CI.addressTypeResidential || '',
+                    mapHelp: CI.mapHelp || '',
+                    mapLocating: CI.mapLocating || '',
+                    mapReverseGeocoding: CI.mapReverseGeocoding || '',
+                    mapResolvedAddress: CI.mapResolvedAddress || '',
+                    mapLocateUnsupported: CI.mapLocateUnsupported || '',
+                    mapLocateDenied: CI.mapLocateDenied || '',
+                    mapLocateTimeout: CI.mapLocateTimeout || '',
+                    mapLocateFailed: CI.mapLocateFailed || '',
+                    mapResolveFailed: CI.mapResolveFailed || '',
+                    mapMaptilerFallback: CI.mapMaptilerFallback || '',
+                    mapAddressEditedHint: CI.mapAddressEditedHint || '',
+                    mapAddressChangedConfirm: CI.mapAddressChangedConfirm || '',
+                    mapRelocateRequired: CI.mapRelocateRequired || '',
+                    mapRequirePinForQuote: CI.mapRequirePinForQuote || ''
+                },
+                onSaveSuccess: function(result, ctx) {
+                    var newId = (result && result.address_id) || (ctx && ctx.addressId) || null;
+                    loadAddresses(newId);
+                    if (lalamoveEnabled && !checkoutBlocked && ctx && ctx.payload && ctx.payload.lat && ctx.payload.lng) {
+                        setTimeout(function() { scheduleLalamoveQuote(); }, 600);
+                    }
+                }
+            });
+            window.openAddAddressModal = addressModalManager.openAddModal;
+            window.saveCheckoutAddress = addressModalManager.saveAddress;
+            addressModalManager.initBindings();
+            return true;
+        }
+
         function waitForDOM() {
             var orderItemsContainer = document.getElementById('orderItems');
             var stripeCardElement = document.getElementById('stripe-card-element');
@@ -767,6 +1560,16 @@
             loadAddresses();
             togglePaymentUI();
             bindCheckoutItemEvents();
+
+            var addrContainer = document.getElementById('addressCardsContainer');
+            if (addrContainer) {
+                addrContainer.addEventListener('change', function(e) {
+                    var t = e.target;
+                    if (t && t.name === 'checkout_address') {
+                        scheduleLalamoveQuote();
+                    }
+                });
+            }
 
             var useNewAddressBtn = document.getElementById('useNewAddress');
             if (useNewAddressBtn) {
@@ -785,13 +1588,22 @@
                     }
                 });
             }
-            var saveAddrBtn = document.getElementById('saveCheckoutAddressBtn');
-            if (saveAddrBtn) {
-                saveAddrBtn.addEventListener('click', function() {
-                    if (typeof window.saveCheckoutAddress === 'function') {
-                        window.saveCheckoutAddress();
-                    }
-                });
+            var usingSharedAddressModal = initSharedAddressModal();
+            if (!usingSharedAddressModal) {
+                var saveAddrBtn = document.getElementById('saveCheckoutAddressBtn');
+                if (saveAddrBtn) {
+                    saveAddrBtn.addEventListener('click', function() {
+                        if (typeof window.saveCheckoutAddress === 'function') {
+                            window.saveCheckoutAddress();
+                        }
+                    });
+                }
+                var modalEl = document.getElementById('addressModal');
+                if (modalEl) {
+                    modalEl.addEventListener('shown.bs.modal', function() {
+                        initAddressMap();
+                    });
+                }
             }
         }
         if (document.readyState === 'loading') {

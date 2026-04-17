@@ -3,10 +3,11 @@ $url = $url ?? fn($p = '') => $p;
 $asset = $asset ?? fn($p) => $p;
 $addresses = $addresses ?? [];
 $account_nav_active = 'addresses';
+$mapClientConfig = (isset($mapClientConfig) && is_array($mapClientConfig)) ? $mapClientConfig : [];
 ?>
 <div class="container account-page my-5 pt-5">
     <div class="row account-layout">
-        <?php include __DIR__ . '/../partials/account_sidebar.php'; ?>
+        <?php include __DIR__ . '/../partials/account-sidebar.php'; ?>
         <div class="col-lg-9 col-md-8">
             <div class="account-main-card account-main-padding">
                 <div class="mb-4">
@@ -34,8 +35,8 @@ $account_nav_active = 'addresses';
                                             </div>
                                             <div onclick="event.stopPropagation();">
                                                 <div class="btn-group btn-group-sm">
-                                                    <button type="button" class="btn btn-outline-dark" onclick="openEditModal(<?= (int)$address['id'] ?>)"><?= htmlspecialchars(__m('account.addresses_page.edit'), ENT_QUOTES, 'UTF-8') ?></button>
-                                                    <button type="button" class="btn btn-outline-danger" onclick="deleteAddress(<?= (int)$address['id'] ?>)"><?= htmlspecialchars(__m('account.addresses_page.delete'), ENT_QUOTES, 'UTF-8') ?></button>
+                                                    <button type="button" class="btn btn-outline-dark" onclick="event.stopPropagation(); openEditModal(<?= (int)$address['id'] ?>)"><?= htmlspecialchars(__m('account.addresses_page.edit'), ENT_QUOTES, 'UTF-8') ?></button>
+                                                    <button type="button" class="btn btn-outline-danger" onclick="event.stopPropagation(); deleteAddress(<?= (int)$address['id'] ?>)"><?= htmlspecialchars(__m('account.addresses_page.delete'), ENT_QUOTES, 'UTF-8') ?></button>
                                                 </div>
                                             </div>
                                         </div>
@@ -69,15 +70,25 @@ $account_nav_active = 'addresses';
 </div>
 
 <div class="modal fade" id="addressModal" tabindex="-1" aria-labelledby="addressModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="addressModalLabel"><?= htmlspecialchars(__m('account.addresses_js.modal_add'), ENT_QUOTES, 'UTF-8') ?></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="<?= htmlspecialchars(__m('checkout.modal_close_aria'), ENT_QUOTES, 'UTF-8') ?>"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body p-0">
                 <form id="addressForm">
                     <input type="hidden" id="addressId" name="id">
+                    <div id="mapWrapper" class="checkout-map-wrapper">
+                        <div id="checkoutAddressMap" class="checkout-address-map"></div>
+                        <button type="button" id="locateMeBtn" class="btn btn-light shadow-sm checkout-map-locate-btn" aria-label="<?= htmlspecialchars(__m('checkout.map_locate_btn'), ENT_QUOTES, 'UTF-8') ?>">
+                            <i class="fas fa-location-arrow text-primary"></i>
+                        </button>
+                        <div id="mapStatusText" class="badge bg-dark bg-opacity-75 checkout-map-status-badge"></div>
+                        <input type="hidden" id="lat" name="lat">
+                        <input type="hidden" id="lng" name="lng">
+                    </div>
+                    <div class="p-4">
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label for="addressLabel" class="form-label"><?= htmlspecialchars(__m('checkout.label_address_tag'), ENT_QUOTES, 'UTF-8') ?> <span class="text-muted"><?= htmlspecialchars(__m('checkout.optional_paren'), ENT_QUOTES, 'UTF-8') ?></span></label>
@@ -128,8 +139,8 @@ $account_nav_active = 'addresses';
                             <input type="text" class="form-control" id="floor" name="floor">
                         </div>
                         <div class="col-md-3">
-                            <label for="unit" class="form-label"><?= htmlspecialchars(__m('checkout.label_unit'), ENT_QUOTES, 'UTF-8') ?> <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="unit" name="unit" required>
+                            <label for="unit" class="form-label"><?= htmlspecialchars(__m('checkout.label_unit'), ENT_QUOTES, 'UTF-8') ?> <span class="text-muted"><?= htmlspecialchars(__m('checkout.optional_paren'), ENT_QUOTES, 'UTF-8') ?></span></label>
+                            <input type="text" class="form-control" id="unit" name="unit" placeholder="N/A">
                         </div>
                         <div class="col-12">
                             <div class="form-check">
@@ -137,17 +148,26 @@ $account_nav_active = 'addresses';
                                 <label class="form-check-label" for="isDefault"><?= htmlspecialchars(__m('checkout.label_default_address'), ENT_QUOTES, 'UTF-8') ?></label>
                             </div>
                         </div>
-                    </div>
+                    </div></div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><?= htmlspecialchars(__m('checkout.btn_cancel'), ENT_QUOTES, 'UTF-8') ?></button>
-                <button type="button" class="btn btn-dark" onclick="saveAddress()"><?= htmlspecialchars(__m('checkout.btn_save'), ENT_QUOTES, 'UTF-8') ?></button>
+                <button type="button" class="btn btn-dark" id="saveCheckoutAddressBtn"><?= htmlspecialchars(__m('checkout.btn_save'), ENT_QUOTES, 'UTF-8') ?></button>
             </div>
         </div>
     </div>
 </div>
 <script>
+window.LEAFLET_CSS_URL = <?= json_encode((string) ($mapClientConfig['leaflet_css'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
+window.LEAFLET_JS_URL = <?= json_encode((string) ($mapClientConfig['leaflet_js'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
+window.NOMINATIM_REVERSE_URL = <?= json_encode((string) ($mapClientConfig['nominatim_reverse_url'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
+window.MAPTILER_REVERSE_GEOCODE_URL = <?= json_encode((string) ($mapClientConfig['maptiler_reverse_geocode_url'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
+window.MAPTILER_API_KEY = <?= json_encode((string) ($mapClientConfig['maptiler_api_key'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
+window.MAPTILER_SDK_CSS = <?= json_encode((string) ($mapClientConfig['maptiler_sdk_css'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
+window.MAPTILER_SDK_JS = <?= json_encode((string) ($mapClientConfig['maptiler_sdk_js'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
+window.MAPTILER_LEAFLET_JS = <?= json_encode((string) ($mapClientConfig['maptiler_leaflet_js'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
+window.MAPTILER_GEOCODING_CONTROL_JS = <?= json_encode((string) ($mapClientConfig['maptiler_geocoding_control_js'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
 window.ADDRESS_PAGE_I18N = <?= json_encode([
     'modalAdd' => __m('account.addresses_js.modal_add'),
     'modalEdit' => __m('account.addresses_js.modal_edit'),
@@ -163,5 +183,20 @@ window.ADDRESS_PAGE_I18N = <?= json_encode([
     'defaultFailed' => __m('account.addresses_js.default_failed'),
     'defaultError' => __m('account.addresses_js.default_error'),
     'residentialDefault' => __m('checkout.address_type_residential'),
+    'mapHelp' => __m('checkout.map_help'),
+    'mapLocating' => __m('checkout.map_locating'),
+    'mapReverseGeocoding' => __m('checkout.map_reverse_geocoding'),
+    'mapResolvedAddress' => __m('checkout.map_resolved_address'),
+    'mapLocateUnsupported' => __m('checkout.map_locate_unsupported'),
+    'mapLocateDenied' => __m('checkout.map_locate_denied'),
+    'mapLocateTimeout' => __m('checkout.map_locate_timeout'),
+    'mapLocateFailed' => __m('checkout.map_locate_failed'),
+    'mapResolveFailed' => __m('checkout.map_resolve_failed'),
+    'mapMaptilerFallback' => __m('checkout.map_maptiler_fallback'),
+    'mapAddressEditedHint' => __m('checkout.map_address_edited_hint'),
+    'mapAddressChangedConfirm' => __m('checkout.map_address_changed_confirm'),
+    'mapRelocateRequired' => __m('checkout.js_map_relocate_required'),
+    'mapRequirePinForQuote' => __m('checkout.js_map_require_pin_for_quote'),
 ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>;
 </script>
+<script src="<?= $asset('js/address-modal.shared.js') ?>"></script>

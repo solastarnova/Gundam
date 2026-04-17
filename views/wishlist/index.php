@@ -4,7 +4,7 @@ $account_nav_active = 'wishlist';
 ?>
 <div class="container account-page my-5 pt-5">
     <div class="row account-layout">
-        <?php include __DIR__ . '/../partials/account_sidebar.php'; ?>
+        <?php include __DIR__ . '/../partials/account-sidebar.php'; ?>
         <div class="col-lg-9 col-md-8">
             <div class="account-main-card account-main-padding">
                 <div class="mb-4">
@@ -33,8 +33,6 @@ window.VIEW_WISHLIST = <?= json_encode([
     'confirmRemove' => __m('wishlist.js_confirm_remove'),
     'removeFailed' => __m('wishlist.js_remove_failed'),
     'removeFailedRetry' => __m('wishlist.js_remove_failed_retry'),
-    'shareDev' => __m('wishlist.js_share_dev'),
-    'confirmClear' => __m('wishlist.js_confirm_clear'),
 ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>;
 (function() {
     const v = window.VIEW_WISHLIST || {};
@@ -138,25 +136,6 @@ window.VIEW_WISHLIST = <?= json_encode([
             alert(v.removeFailedRetry || '');
         }
     }
-    window.shareWishlist = function() { alert(v.shareDev || ''); };
-    document.addEventListener('DOMContentLoaded', function() {
-        loadWishlist();
-        var clearBtn = document.getElementById('clearWishlistBtn');
-        if (clearBtn) clearBtn.addEventListener('click', function() {
-            if (!confirm(v.confirmClear || '')) return;
-            (async function() {
-                var base = window.APP_BASE || '';
-                var res = await fetch(base + 'api/wishlist/items');
-                var data = await res.json();
-                var items = (data && data.items) ? data.items : [];
-                for (var i = 0; i < items.length; i++) {
-                    var fd = new FormData();
-                    fd.append('product_id', items[i].id);
-                    await fetch(base + 'api/wishlist/remove', { method: 'POST', body: fd });
-                }
-                loadWishlist();
-            })();
-        });
-    });
+    document.addEventListener('DOMContentLoaded', loadWishlist);
 })();
 </script>

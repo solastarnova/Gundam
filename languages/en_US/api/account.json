@@ -1,0 +1,19 @@
+{
+    "account": {
+        "review_invalid_product": "Invalid product",
+        "review_not_eligible": "You have not purchased this product or have reviewed it",
+        "review_default_title": "User reviews",
+        "review_thanks": "Thank you for your review!",
+        "password_current_required": "Please enter your current password",
+        "password_new_required": "Please enter new password",
+        "password_new_min": "New password must be at least %d characters",
+        "password_same_as_current": "The new password cannot be the same as the current password",
+        "password_new_confirm_required": "Please enter new password again",
+        "user_not_found": "User does not exist",
+        "profile_not_found": "Account information not found, please log in again and try again.",
+        "password_update_error": "An error occurred while updating your password, please try again later.",
+        "password_update_success": "Password updated successfully",
+        "password_current_wrong": "The current password is incorrect",
+        "phone_update_success": "Mobile number has been updated"
+    }
+}

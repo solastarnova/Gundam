@@ -804,6 +804,94 @@ body {
     min-width: 2rem;
 }
 
+.checkout-address-map {
+    width: 100%;
+    min-height: 350px;
+    height: 400px;
+    background: #f6f6f6;
+}
+
+.checkout-map-wrapper {
+    position: relative;
+}
+
+.checkout-map-locate-btn {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    z-index: 450;
+    border-radius: 999px;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.checkout-map-status-badge {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    z-index: 450;
+    max-width: calc(100% - 24px);
+    white-space: normal;
+    text-align: left;
+}
+
+@media (max-width: 991.98px) {
+    .checkout-address-map {
+        height: 350px;
+    }
+}
+
+#mapWrapper {
+    border-bottom: 1px solid #dee2e6;
+}
+
+#locateMeBtn {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#mapStatusText {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    z-index: 1000;
+    font-weight: normal;
+    padding: 8px 15px;
+}
+
+#checkoutAddressMap {
+    cursor: crosshair;
+}
+
+.checkout-map-updated {
+    animation: checkout-map-updated-flash 1.2s ease;
+}
+
+@keyframes checkout-map-updated-flash {
+    0% {
+        box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.5);
+        border-color: #86b7fe;
+        background-color: #eef6ff;
+    }
+    100% {
+        box-shadow: none;
+        border-color: #ced4da;
+        background-color: #fff;
+    }
+}
+
 .social-login-minimal .btn-circular {
     display: flex;
     align-items: center;

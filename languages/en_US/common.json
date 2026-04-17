@@ -1,0 +1,49 @@
+{
+    "common": {
+        "not_logged_in": "Not logged in",
+        "cart_empty": "Your cart is empty.",
+        "method_not_allowed": "Request method is not supported"
+    },
+    "ui": {
+        "add_to_cart": "Add to Cart"
+    },
+    "errors": {
+        "page_not_found_heading": "404 - Page not found",
+        "page_not_found_body": "Sorry, the page you requested does not exist or has been removed.",
+        "back_home": "Back to Home"
+    },
+    "titles": {
+        "home": "%s",
+        "account_home": "Profile - %s",
+        "account_orders": "Orders - %s",
+        "account_order_detail": "Order Details - %s",
+        "account_settings": "Account Settings - %s",
+        "account_payment": "Wallet Balance - %s",
+        "checkout": "Checkout - %s",
+        "search": "Search - %s",
+        "search_with_keyword": "Search: %s - %s",
+        "auth_login": "Sign In - %s",
+        "auth_register": "Sign Up - %s",
+        "products_list": "Model Collection - %s",
+        "product_not_found": "Product Not Found - %s",
+        "wishlist": "Wishlist - %s",
+        "cart": "Cart - %s",
+        "address_default": "Default Address - %s",
+        "forgot_password": "Forgot Password - %s",
+        "reset_password": "Set New Password - %s",
+        "static_faq": "FAQ - %s",
+        "static_about": "About Us - %s",
+        "static_privacy": "Privacy Policy - %s",
+        "static_terms": "Terms of Service - %s",
+        "admin_products": "Product Management",
+        "admin_product_create": "Add Product",
+        "admin_product_edit": "Edit Product",
+        "admin_dashboard": "Dashboard",
+        "admin_orders": "Order Management",
+        "admin_order_detail": "Order #%s Details",
+        "admin_users": "User Management",
+        "admin_user_detail": "User Detail - %s",
+        "admin_login": "Admin Login",
+        "page_not_found": "404 - Page not found"
+    }
+}

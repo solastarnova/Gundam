@@ -3,16 +3,16 @@
 namespace App\Controllers\Admin;
 
 use App\Core\Config;
-use App\Models\Product;
+use App\Models\ProductModel;
 
 class ProductController extends BaseController
 {
-    private Product $productModel;
+    private ProductModel $productModel;
     
     public function __construct()
     {
         parent::__construct();
-        $this->productModel = new Product();
+        $this->productModel = new ProductModel();
     }
     
     public function index()

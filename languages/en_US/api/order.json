@@ -1,0 +1,6 @@
+{
+    "order": {
+        "confirmed": "Order confirmed",
+        "insufficient_stock": "The purchased item is out of stock"
+    }
+}

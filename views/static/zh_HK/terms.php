@@ -1,4 +1,4 @@
-<div class="container-fluid mx-auto mt-5 mb-2">
+<div class="container mx-auto mt-5 mb-2">
     <h2 class="mt-4 mb-2 text-info">服務條款</h2><br>
 
     <div>
@@ -48,4 +48,3 @@
         <p class="text-dark mb-1 mt-1">如果您對這些我們的以上的服務條款有任何問題或意見，您可聯絡我們：wolaiwagandomigo@gmail.com</p>
     </div>
 </div>
-

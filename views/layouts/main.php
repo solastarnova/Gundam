@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="<?= htmlspecialchars((string) ($html_lang ?? 'zh-HK'), ENT_QUOTES, 'UTF-8') ?>">
+<html lang="<?= htmlspecialchars((string) ($html_lang ?? 'en'), ENT_QUOTES, 'UTF-8') ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -62,7 +62,7 @@ window.CHATBOX_JS = <?= json_encode([
         <button type="button" class="gundam-fab-main" id="ai-chat-trigger" aria-label="<?= htmlspecialchars(__m('main.fab_open_aria'), ENT_QUOTES, 'UTF-8') ?>" title="<?= htmlspecialchars(__m('main.fab_title'), ENT_QUOTES, 'UTF-8') ?>">
             <div class="fab-scanner" aria-hidden="true"></div>
             <i class="fas fa-robot" aria-hidden="true"></i>
-            <span class="fab-text">AI SYSTEM</span>
+            <span class="fab-text">AI CHAT</span>
         </button>
     </div>
     <?= $content ?? '' ?>

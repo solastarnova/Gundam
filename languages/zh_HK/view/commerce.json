@@ -36,8 +36,6 @@
             "js_confirm_remove": "確定要移除嗎？",
             "js_remove_failed": "移除失敗",
             "js_remove_failed_retry": "移除失敗，請稍後再試",
-            "js_share_dev": "分享功能開發中",
-            "js_confirm_clear": "確定要清空喜愛清單嗎？",
             "js_login_required": "請先登入才能收藏"
         }
     }

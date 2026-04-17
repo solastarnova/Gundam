@@ -261,38 +261,23 @@ class AuthController extends Controller
         $redirectPost = trim((string) ($_POST['redirect'] ?? ''));
         $loginUrl = $this->view->url('login');
         $registerUrl = $this->view->url('register');
+        $redirectAfterAuth = $redirectPost !== '' ? $redirectPost : null;
 
-        if (isset($_SESSION['email'])) {
-            $this->redirect($this->getRedirectAfterAuth($redirectPost !== '' ? $redirectPost : null));
-
+        if ($this->handleAlreadyAuthenticatedUser($redirectAfterAuth)) {
             return;
         }
-
-        if (!FirebaseAdminAuth::isConfigured()) {
-            $this->flashFirebaseAuthError($intent, (string) Config::get('messages.auth.firebase_not_configured'));
-            $this->redirect($intent === 'signup' ? $registerUrl : $loginUrl);
-
-            return;
-        }
-
-        if (!in_array($intent, ['signin', 'signup'], true)) {
-            $this->redirect($loginUrl);
-
+        if (!$this->validateFirebaseAuthRequest($intent, $loginUrl, $registerUrl)) {
             return;
         }
 
         $profile = FirebaseAdminAuth::verifyIdToken($idToken);
         if ($profile === null) {
-            $this->flashFirebaseAuthError($intent, (string) Config::get('messages.auth.firebase_invalid'));
-            $this->redirect($intent === 'signup' ? $registerUrl : $loginUrl);
-
+            $this->redirectWithFirebaseAuthError($intent, (string) Config::get('messages.auth.firebase_invalid'), $loginUrl, $registerUrl);
             return;
         }
 
         if (!$profile->email_verified) {
-            $this->flashFirebaseAuthError($intent, (string) Config::get('messages.auth.firebase_email_unverified'));
-            $this->redirect($intent === 'signup' ? $registerUrl : $loginUrl);
-
+            $this->redirectWithFirebaseAuthError($intent, (string) Config::get('messages.auth.firebase_email_unverified'), $loginUrl, $registerUrl);
             return;
         }
 
@@ -300,74 +285,125 @@ class AuthController extends Controller
         $email = $profile->email;
         $name = $profile->name !== '' ? $profile->name : (strstr($email, '@', true) ?: $email);
 
-        $byUid = $this->userModel->findByFirebaseUid($uid);
-        if ($byUid !== null) {
-            if (!$this->firebaseEmailMatchesRow($email, $byUid)) {
-                $this->flashFirebaseAuthError($intent, (string) Config::get('messages.auth.firebase_invalid'));
-                $this->redirect($intent === 'signup' ? $registerUrl : $loginUrl);
-
-                return;
-            }
-            if (($byUid['status'] ?? 'active') === 'disabled') {
-                $this->flash('login_errors', ['general' => Config::get('messages.auth.account_disabled')]);
-                $this->redirect($loginUrl);
-
-                return;
-            }
-            $this->startUserSessionFromUser($byUid);
-            $this->redirect($this->getRedirectAfterAuth($redirectPost !== '' ? $redirectPost : null));
-
+        if ($this->handleFirebaseUidMatch($intent, $uid, $email, $loginUrl, $registerUrl, $redirectAfterAuth)) {
             return;
         }
-
-        $byEmail = $this->userModel->findByEmail($email);
-
-        if ($byEmail !== null) {
-            if ($intent === 'signup') {
-                $this->flash('register_errors', ['general' => Config::get('messages.auth.firebase_already_registered')]);
-                $this->redirect($registerUrl);
-
-                return;
-            }
-
-            $storedUid = trim((string) ($byEmail['firebase_uid'] ?? ''));
-            if ($storedUid !== '' && $storedUid !== $uid) {
-                $this->flash('login_errors', ['general' => Config::get('messages.auth.firebase_account_mismatch')]);
-                $this->redirect($loginUrl);
-
-                return;
-            }
-
-            if ($storedUid === '') {
-                if (!$this->userModel->linkFirebaseUid((int) $byEmail['id'], $uid)) {
-                    $this->flash('login_errors', ['general' => Config::get('messages.auth.firebase_invalid')]);
-                    $this->redirect($loginUrl);
-
-                    return;
-                }
-            }
-
-            if (($byEmail['status'] ?? 'active') === 'disabled') {
-                $this->flash('login_errors', ['general' => Config::get('messages.auth.account_disabled')]);
-                $this->redirect($loginUrl);
-
-                return;
-            }
-
-            $byEmail = $this->userModel->findByEmail($email) ?? $byEmail;
-            $this->startUserSessionFromUser($byEmail);
-            $this->redirect($this->getRedirectAfterAuth($redirectPost !== '' ? $redirectPost : null));
-
+        if ($this->handleFirebaseEmailMatch($intent, $uid, $email, $loginUrl, $registerUrl, $redirectAfterAuth)) {
             return;
         }
-
         if ($intent === 'signin') {
             $this->flash('login_errors', ['general' => Config::get('messages.auth.firebase_no_local_account')]);
             $this->redirect($loginUrl);
-
             return;
         }
 
+        $this->createFirebaseUserAndLogin($name, $email, $uid, $registerUrl, $redirectAfterAuth);
+    }
+
+    private function handleAlreadyAuthenticatedUser(?string $redirectAfterAuth): bool
+    {
+        if (!isset($_SESSION['email'])) {
+            return false;
+        }
+        $this->redirect($this->getRedirectAfterAuth($redirectAfterAuth));
+        return true;
+    }
+
+    private function validateFirebaseAuthRequest(string $intent, string $loginUrl, string $registerUrl): bool
+    {
+        if (!FirebaseAdminAuth::isConfigured()) {
+            $this->redirectWithFirebaseAuthError($intent, (string) Config::get('messages.auth.firebase_not_configured'), $loginUrl, $registerUrl);
+            return false;
+        }
+        if (!in_array($intent, ['signin', 'signup'], true)) {
+            $this->redirect($loginUrl);
+            return false;
+        }
+        return true;
+    }
+
+    private function redirectWithFirebaseAuthError(string $intent, string $message, string $loginUrl, string $registerUrl): void
+    {
+        $this->flashFirebaseAuthError($intent, $message);
+        $this->redirect($intent === 'signup' ? $registerUrl : $loginUrl);
+    }
+
+    private function handleFirebaseUidMatch(
+        string $intent,
+        string $uid,
+        string $email,
+        string $loginUrl,
+        string $registerUrl,
+        ?string $redirectAfterAuth
+    ): bool {
+        $byUid = $this->userModel->findByFirebaseUid($uid);
+        if ($byUid === null) {
+            return false;
+        }
+        if (!$this->firebaseEmailMatchesRow($email, $byUid)) {
+            $this->redirectWithFirebaseAuthError($intent, (string) Config::get('messages.auth.firebase_invalid'), $loginUrl, $registerUrl);
+            return true;
+        }
+        if (($byUid['status'] ?? 'active') === 'disabled') {
+            $this->flash('login_errors', ['general' => Config::get('messages.auth.account_disabled')]);
+            $this->redirect($loginUrl);
+            return true;
+        }
+        $this->startUserSessionFromUser($byUid);
+        $this->redirect($this->getRedirectAfterAuth($redirectAfterAuth));
+        return true;
+    }
+
+    private function handleFirebaseEmailMatch(
+        string $intent,
+        string $uid,
+        string $email,
+        string $loginUrl,
+        string $registerUrl,
+        ?string $redirectAfterAuth
+    ): bool {
+        $byEmail = $this->userModel->findByEmail($email);
+        if ($byEmail === null) {
+            return false;
+        }
+        if ($intent === 'signup') {
+            $this->flash('register_errors', ['general' => Config::get('messages.auth.firebase_already_registered')]);
+            $this->redirect($registerUrl);
+            return true;
+        }
+
+        $storedUid = trim((string) ($byEmail['firebase_uid'] ?? ''));
+        if ($storedUid !== '' && $storedUid !== $uid) {
+            $this->flash('login_errors', ['general' => Config::get('messages.auth.firebase_account_mismatch')]);
+            $this->redirect($loginUrl);
+            return true;
+        }
+
+        if ($storedUid === '' && !$this->userModel->linkFirebaseUid((int) $byEmail['id'], $uid)) {
+            $this->flash('login_errors', ['general' => Config::get('messages.auth.firebase_invalid')]);
+            $this->redirect($loginUrl);
+            return true;
+        }
+
+        if (($byEmail['status'] ?? 'active') === 'disabled') {
+            $this->flash('login_errors', ['general' => Config::get('messages.auth.account_disabled')]);
+            $this->redirect($loginUrl);
+            return true;
+        }
+
+        $byEmail = $this->userModel->findByEmail($email) ?? $byEmail;
+        $this->startUserSessionFromUser($byEmail);
+        $this->redirect($this->getRedirectAfterAuth($redirectAfterAuth));
+        return true;
+    }
+
+    private function createFirebaseUserAndLogin(
+        string $name,
+        string $email,
+        string $uid,
+        string $registerUrl,
+        ?string $redirectAfterAuth
+    ): void {
         try {
             $userId = (int) $this->userModel->createWithFirebaseUid($name, $email, $uid);
         } catch (\Throwable) {
@@ -377,7 +413,6 @@ class AuthController extends Controller
         if ($userId <= 0) {
             $this->flash('register_errors', ['general' => Config::get('messages.auth.register_failed')]);
             $this->redirect($registerUrl);
-
             return;
         }
 
@@ -387,9 +422,8 @@ class AuthController extends Controller
         $_SESSION['email'] = $email;
         $_SESSION['user_id'] = $userId;
         $_SESSION['user_name'] = $name;
-
         $this->flash('login_message', Config::get('messages.auth.register_success'));
-        $this->redirect($this->getRedirectAfterAuth($redirectPost !== '' ? $redirectPost : null));
+        $this->redirect($this->getRedirectAfterAuth($redirectAfterAuth));
     }
 
     public function logout(): void

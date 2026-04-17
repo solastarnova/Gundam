@@ -18,8 +18,6 @@
         "order_status_required": "請選擇訂單狀態",
         "order_status_invalid": "無效的訂單狀態或更新失敗",
         "order_status_updated": "訂單狀態已更新",
-        "order_wallet_refund_failed": "退款入錢包失敗，請稍後再試或聯絡管理員",
-        "order_stock_refund_failed": "回補庫存失敗，請稍後重試或聯絡管理員",
         "membership_level_invalid": "會員等級不存在",
         "membership_level_updated": "會員等級更新成功",
         "membership_unlock_success": "已恢復依消費自動計算，當前等級：%s"

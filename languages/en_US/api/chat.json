@@ -1,0 +1,9 @@
+{
+    "chat": {
+        "method_not_allowed": "Invalid request method. Please try again.",
+        "message_empty": "Message cannot be empty.",
+        "server_error": "An error occurred while processing the request, please try again later.",
+        "cleared": "Chat history has been cleared.",
+        "clear_failed": "Unable to clear chat history."
+    }
+}

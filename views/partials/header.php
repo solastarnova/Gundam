@@ -1,6 +1,11 @@
 <?php
 $url = $url ?? fn($p = '') => $p;
 $asset = $asset ?? fn($p) => $p;
+$currentLang = $_SESSION['language'] ?? $_SESSION['locale'] ?? 'zh_HK';
+$currentPath = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+$switchLangUrl = static function (string $lang) use ($url, $currentPath): string {
+    return $url('language/switch') . '?lang=' . rawurlencode($lang) . '&redirect=' . rawurlencode($currentPath);
+};
 ?>
 <nav class="navbar navbar-expand-sm navbar-light bg-light fixed-top shadow-sm">
   <div class="container-fluid">
@@ -25,6 +30,15 @@ $asset = $asset ?? fn($p) => $p;
         </div>
       </form>
       <ul class="navbar-nav ms-auto mb-2 mb-sm-0 align-items-sm-center">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarLangDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span class="me-1"><?= htmlspecialchars(__m('header.language'), ENT_QUOTES, 'UTF-8') ?></span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarLangDropdown">
+            <li><a class="dropdown-item<?= $currentLang === 'zh_HK' ? ' active' : '' ?>" href="<?= htmlspecialchars($switchLangUrl('zh_HK'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(__m('header.language_zh_hk'), ENT_QUOTES, 'UTF-8') ?></a></li>
+            <li><a class="dropdown-item<?= $currentLang === 'en_US' ? ' active' : '' ?>" href="<?= htmlspecialchars($switchLangUrl('en_US'), ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars(__m('header.language_en_us'), ENT_QUOTES, 'UTF-8') ?></a></li>
+          </ul>
+        </li>
         <li class="nav-item">
           <a class="nav-link position-relative" href="<?= $url('cart') ?>">
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-cart3" viewBox="0 0 16 16"><path d="M0 1.5A.5.5 0 0 1 .5 1H2a.5.5 0 0 1 .485.379L2.89 3H14.5a.5.5 0 0 1 .49.598l-1 5a.5.5 0 0 1-.465.401l-9.397.472L4.415 11H13a.5.5 0 0 1 0 1H4a.5.5 0 0 1-.491-.408L2.01 3.607 1.61 2H.5a.5.5 0 0 1-.5-.5zM3.14 5l.5 2.5H12.36l-.8-4H3.94l-.8 4zM3 8.5l.5 2.5h8.22l.6-3H3.5zM13.5 15a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm-10 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>

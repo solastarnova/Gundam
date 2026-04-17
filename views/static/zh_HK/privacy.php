@@ -1,4 +1,4 @@
-<div class="container-fluid mx-auto mt-5 mb-2">
+<div class="container mx-auto mt-5 mb-2">
     <h2 class="mt-4 mb-2 text-info">隱私條款</h2><br>
 
     <div>
@@ -59,4 +59,3 @@
         <p class="text-dark mb-1 mt-1">使用我們的網站，即表示您同意我們網站的隱私政策。</p>
     </div>
 </div>
-

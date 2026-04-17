@@ -8,6 +8,14 @@
     }
 
     firebase.initializeApp(cfg);
+    // Force browser-local auth persistence explicitly.
+    // This keeps login state across tabs/browser restarts unless user logs out.
+    firebase
+        .auth()
+        .setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+        .catch(function () {
+            // Keep legacy behavior even if persistence API fails in rare environments.
+        });
 
     function postIdToken(idToken) {
         var form = document.createElement('form');

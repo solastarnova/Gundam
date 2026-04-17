@@ -5,20 +5,20 @@ namespace App\Controllers\Admin;
 use App\Core\Config;
 use App\Models\OrderModel;
 use App\Models\UserModel;
-use App\Models\Product;
+use App\Models\ProductModel;
 
 class DashboardController extends BaseController
 {
     private OrderModel $orderModel;
     private UserModel $userModel;
-    private Product $productModel;
+    private ProductModel $productModel;
     
     public function __construct()
     {
         parent::__construct();
         $this->orderModel = new OrderModel();
         $this->userModel = new UserModel();
-        $this->productModel = new Product();
+        $this->productModel = new ProductModel();
     }
     
     public function index()

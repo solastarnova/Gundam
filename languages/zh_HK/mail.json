@@ -1,9 +1,0 @@
-{
-    "mail": {
-        "config_incomplete": "郵件配置不完整。請在 .env 檔案中設定：MAIL_HOST, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM_ADDRESS",
-        "from_name": "高達模型商城",
-        "subject_reset": "高達模型商城 - 密碼重置驗證碼",
-        "subject_register": "高達模型商城 - 註冊驗證碼",
-        "subject_order_confirm": "高達模型商城 - 訂單確認 %s"
-    }
-}

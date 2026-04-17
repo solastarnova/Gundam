@@ -1,7 +1,6 @@
 {
     "view": {
         "home": {
-            "carousel_slide": "輪播圖 %d",
             "promo_alt": "當月主打宣傳 %d",
             "prev_slide": "上一張",
             "next_slide": "下一張",
@@ -12,7 +11,6 @@
             "nav_categories": "比例 / 系列",
             "nav_new_arrivals": "最新上架",
             "nav_featured": "推薦精選",
-            "nav_news": "模型情報",
             "usp_authentic_title": "正版授權",
             "usp_authentic_text": "原廠貨源與包裝，收藏更安心。",
             "usp_shipping_title": "快速發貨",
@@ -28,10 +26,6 @@
             "featured_title": "推薦商品",
             "section_shop_more": "前往選購",
             "products_empty": "暫無商品，請稍後再來看看。",
-            "news_title": "模型情報",
-            "news_subtitle": "組裝技巧 · 選購指南 · 收藏心得",
-            "news_read_more": "閱讀全文",
-            "news_empty": "專欄內容籌備中。",
             "swiper_prev": "上一組商品",
             "swiper_next": "下一組商品"
         }

@@ -9,8 +9,14 @@ use App\Services\OrderStatusService;
 /**
  * Write path for orders: header + order_items rows inside optional outer transaction.
  */
-class Order extends Model
+class OrderWriteModel extends Model
 {
+    /**
+     * @param array{
+     *   items: array<int, array{id:int|string, qty:int|string, name?:string, price:int|float|string}>,
+     *   total: int|float|string
+     * } $cart
+     */
     public function create(
         int $userId,
         array $cart,
@@ -113,7 +119,7 @@ class Order extends Model
                     $qty,
                     floatval($item['price']),
                 ]);
-                $itemStatus = Review::STATUS_CONFIRMED;
+                $itemStatus = ReviewModel::STATUS_CONFIRMED;
                 for ($i = 0; $i < $qty; $i++) {
                     $stmtUserItem->execute([$userId, $itemId, 1, $itemStatus]);
                 }

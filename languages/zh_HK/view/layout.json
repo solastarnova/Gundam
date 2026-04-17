@@ -5,6 +5,9 @@
             "search_aria": "Search",
             "search_submit_aria": "搜尋",
             "nav_toggle_aria": "Toggle navigation",
+            "language": "語言",
+            "language_zh_hk": "繁體中文",
+            "language_en_us": "English",
             "user_default": "用戶",
             "account": "帳戶",
             "my_account": "我的帳號",
@@ -37,10 +40,8 @@
             "nav_membership": "會員中心",
             "nav_orders": "訂單記錄",
             "nav_wishlist": "喜愛清單",
-            "nav_coupons": "優惠券",
-            "nav_coupons_title": "暫未開放",
             "nav_addresses": "預設地址",
-            "nav_payment": "付款方式",
+            "nav_payment": "錢包餘額",
             "nav_settings": "帳戶設定"
         },
         "main": {

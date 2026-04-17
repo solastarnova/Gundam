@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Core\Config;
-use App\Models\Product;
+use App\Models\ProductModel;
 
 /**
  * AI chatbot service
@@ -30,7 +30,7 @@ class ChatBotService
     /** @var list<array{role: string, content: string}> */
     private array $history = [];
 
-    private Product $productModel;
+    private ProductModel $productModel;
 
     public function __construct()
     {
@@ -44,7 +44,7 @@ class ChatBotService
         $this->temperature = (float) ($cfg['temperature'] ?? 0.7);
         $this->catalogLimit = max(1, min(500, (int) ($cfg['catalog_limit'] ?? 200)));
 
-        $this->productModel = new Product();
+        $this->productModel = new ProductModel();
 
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -87,7 +87,9 @@ class ChatBotService
         $siteName = (string) Config::get('site_name', '高達模型商城');
         $currency = Config::get('currency', []);
         $symbol = is_array($currency) ? (string) ($currency['symbol'] ?? 'HK$') : 'HK$';
-        $code = is_array($currency) ? (string) ($currency['code'] ?? 'HKD') : 'HKD';
+        $code = is_array($currency)
+            ? (string) ($currency['code'] ?? Config::defaultCurrencyCode())
+            : Config::defaultCurrencyCode();
 
         $shipping = Config::get('shipping', []);
         $freeThreshold = is_array($shipping) ? (float) ($shipping['free_threshold'] ?? 500) : 500.0;

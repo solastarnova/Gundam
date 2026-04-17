@@ -15,7 +15,6 @@ $homeNews = $homeNews ?? [];
             <li class="nav-item"><a class="nav-link px-2 py-1" href="<?= $url('') ?>#home-categories"><?= htmlspecialchars(__m('home.nav_categories'), ENT_QUOTES, 'UTF-8') ?></a></li>
             <li class="nav-item"><a class="nav-link px-2 py-1" href="<?= $url('') ?>#home-new-arrivals"><?= htmlspecialchars(__m('home.nav_new_arrivals'), ENT_QUOTES, 'UTF-8') ?></a></li>
             <li class="nav-item"><a class="nav-link px-2 py-1" href="<?= $url('') ?>#home-featured"><?= htmlspecialchars(__m('home.nav_featured'), ENT_QUOTES, 'UTF-8') ?></a></li>
-            <li class="nav-item"><a class="nav-link px-2 py-1" href="<?= $url('') ?>#home-news"><?= htmlspecialchars(__m('home.nav_news'), ENT_QUOTES, 'UTF-8') ?></a></li>
         </ul>
     </div>
 </nav>
@@ -140,7 +139,7 @@ $homeNews = $homeNews ?? [];
             <div class="swiper-wrapper">
                 <?php foreach ($newArrivals as $product): ?>
                 <div class="swiper-slide h-auto">
-                    <?php include __DIR__ . '/../partials/home_product_tile.php'; ?>
+                    <?php include __DIR__ . '/../partials/home-product-tile.php'; ?>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -165,7 +164,7 @@ $homeNews = $homeNews ?? [];
             <div class="swiper-wrapper">
                 <?php foreach ($recommendedProducts as $product): ?>
                 <div class="swiper-slide h-auto">
-                    <?php include __DIR__ . '/../partials/home_product_tile.php'; ?>
+                    <?php include __DIR__ . '/../partials/home-product-tile.php'; ?>
                 </div>
                 <?php endforeach; ?>
             </div>
@@ -178,45 +177,3 @@ $homeNews = $homeNews ?? [];
     </div>
 </section>
 
-<section id="home-news" class="py-5 bg-body-tertiary border-top">
-    <div class="container">
-        <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-4">
-            <h2 class="home-section-title h4 mb-0"><?= htmlspecialchars(__m('home.news_title'), ENT_QUOTES, 'UTF-8') ?></h2>
-            <span class="small text-muted"><?= htmlspecialchars(__m('home.news_subtitle'), ENT_QUOTES, 'UTF-8') ?></span>
-        </div>
-        <?php if ($homeNews !== []): ?>
-        <div class="row g-4">
-            <?php foreach ($homeNews as $article): ?>
-            <?php
-            $title = trim((string)($article['title'] ?? ''));
-            $excerpt = trim((string)($article['excerpt'] ?? ''));
-            $path = trim((string)($article['path'] ?? 'products'));
-            if (!preg_match('#^[a-zA-Z0-9][a-zA-Z0-9/_-]*$#', $path)) {
-                $path = 'products';
-            }
-            $published = trim((string)($article['published'] ?? ''));
-            if ($title === '') {
-                continue;
-            }
-            ?>
-            <div class="col-md-4">
-                <article class="card h-100 border-0 shadow-sm home-news-card position-relative">
-                    <div class="card-body d-flex flex-column">
-                        <?php if ($published !== ''): ?>
-                        <time class="small text-muted mb-2" datetime="<?= htmlspecialchars($published, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($published, ENT_QUOTES, 'UTF-8') ?></time>
-                        <?php endif; ?>
-                        <h3 class="h5 card-title"><?= htmlspecialchars($title, ENT_QUOTES, 'UTF-8') ?></h3>
-                        <?php if ($excerpt !== ''): ?>
-                        <p class="card-text text-muted small flex-grow-1"><?= htmlspecialchars($excerpt, ENT_QUOTES, 'UTF-8') ?></p>
-                        <?php endif; ?>
-                        <a href="<?= $url($path) ?>" class="stretched-link fw-semibold small mt-auto"><?= htmlspecialchars(__m('home.news_read_more'), ENT_QUOTES, 'UTF-8') ?></a>
-                    </div>
-                </article>
-            </div>
-            <?php endforeach; ?>
-        </div>
-        <?php else: ?>
-        <p class="text-muted mb-0"><?= htmlspecialchars(__m('home.news_empty'), ENT_QUOTES, 'UTF-8') ?></p>
-        <?php endif; ?>
-    </div>
-</section>
