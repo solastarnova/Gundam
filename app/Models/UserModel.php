@@ -326,6 +326,24 @@ class UserModel extends Model
         }
     }
 
+    /**
+     * Tier title for UI: uses i18n key account.points.level.{level_key} when present, else DB level_name.
+     *
+     * @param array<string, mixed> $rule membership_rules row (needs level_key; level_name optional fallback)
+     */
+    public static function membershipLevelDisplayName(array $rule): string
+    {
+        $levelKey = trim((string) ($rule['level_key'] ?? ''));
+        $fallback = (string) ($rule['level_name'] ?? '');
+        if ($levelKey === '') {
+            return $fallback;
+        }
+        $msgKey = 'account.points.level.' . $levelKey;
+        $msg = __m($msgKey);
+
+        return $msg !== $msgKey ? $msg : $fallback;
+    }
+
     public function getMembershipInfo(int $userId): ?array
     {
         $stmt = $this->pdo->prepare(

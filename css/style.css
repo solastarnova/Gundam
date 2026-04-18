@@ -1697,3 +1697,87 @@ body {
         padding-right: 1.75rem;
     }
 }
+
+/* Member center / points hub */
+.membership-hub .hub-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #212529;
+}
+
+.membership-hub .hub-section-icon {
+    color: var(--theme-primary, #0d6efd);
+    font-size: 1.15rem;
+}
+
+.member-status-card {
+    background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+}
+
+.member-status-dl dt {
+    font-weight: 600;
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+@media (min-width: 576px) {
+    .member-status-dl dt {
+        margin-bottom: 0;
+    }
+}
+
+.member-status-dl dd {
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+}
+
+.member-status-dl dd:last-of-type {
+    margin-bottom: 0;
+}
+
+.level-progress-pct {
+    font-variant-numeric: tabular-nums;
+    min-width: 2.75rem;
+    text-align: right;
+}
+
+.level-progress-visual .progress-bar {
+    background-color: var(--theme-primary, #0d6efd);
+}
+
+.member-rules-dl dt {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #212529;
+    margin-top: 0.85rem;
+}
+
+.member-rules-dl dt:first-child {
+    margin-top: 0;
+}
+
+.member-rules-dl dd {
+    margin: 0.35rem 0 0;
+    padding-left: 0;
+    color: #495057;
+    font-size: 0.875rem;
+    line-height: 1.55;
+}
+
+.member-rules-dl dd code {
+    font-size: 0.8125rem;
+}
+
+.rank-overview-table thead th {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
