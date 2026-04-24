@@ -63,7 +63,7 @@
             "map_locate_timeout": "Location request timed out. Please check your connection or pin a location manually.",
             "map_locate_failed": "Unable to get your location. Please try again or select on the map manually.",
             "map_resolve_failed": "Unable to resolve address. Please enter address details manually.",
-            "map_maptiler_fallback": "MapTiler is unavailable. Switched to OpenStreetMap (OSM).",
+            "map_maptiler_fallback": "MapTiler is unavailable. Basemap is temporarily unavailable.",
             "map_address_edited_hint": "Address fields were edited. Shipping fee will be calculated from the pinned map location.",
             "map_address_changed_confirm": "You changed auto-filled address fields. Confirm the map pin still matches this address.",
             "label_building": "Building Name",

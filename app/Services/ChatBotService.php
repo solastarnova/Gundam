@@ -6,8 +6,7 @@ use App\Core\Config;
 use App\Models\ProductModel;
 
 /**
- * AI chatbot service
- * DeepSeek Chat Completions; conversation history stored in session.
+ * 提供 AI 聊天服務（DeepSeek），並以 Session 保存對話歷史。
  */
 class ChatBotService
 {
@@ -205,7 +204,7 @@ class ChatBotService
         return '抱歉，暫時無法處理您的問題，請稍後再試。';
     }
 
-    /** Append user + assistant messages and trim to maxHistory conversation pairs. */
+    /** 附加使用者與助手訊息，並裁切至最大歷史對話對數。 */
     private function saveToHistory(string $userMessage, string $aiResponse): void
     {
         $this->history[] = ['role' => 'user', 'content' => $userMessage];
@@ -219,7 +218,7 @@ class ChatBotService
         $_SESSION['chat_history'] = $this->history;
     }
 
-    /** Clear session-backed chat history. */
+    /** 清空 Session 中保存的聊天歷史。 */
     public function clearHistory(): void
     {
         $this->history = [];

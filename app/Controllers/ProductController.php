@@ -9,6 +9,7 @@ use App\Models\ReviewModel;
 use App\Models\UserModel;
 use App\Services\MoneyFormatter;
 
+/** 處理商品列表與商品詳情頁展示。 */
 class ProductController extends Controller
 {
     private const DEFAULT_DISPLAY_RATING = 5;
@@ -21,6 +22,7 @@ class ProductController extends Controller
         $this->productModel = new ProductModel();
     }
 
+    /** 渲染含會員價計算的商品列表。 */
     public function list(): void
     {
         $limit = (int) Config::get('product_list_limit', 50);
@@ -65,6 +67,7 @@ class ProductController extends Controller
         ]);
     }
 
+    /** 渲染含評價與有效售價的商品詳情。 */
     public function detail(int $id): void
     {
         $id = (int) $id;

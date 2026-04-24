@@ -3,7 +3,7 @@
 namespace App\Core;
 
 /**
- * Resolve view paths, layout rendering, and URL/asset helpers.
+ * 提供視圖路徑解析、版面渲染與 URL/資源輔助。
  */
 class View
 {

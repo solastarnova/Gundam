@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Core\Config;
 
 /**
- * Format amounts using currency.symbol and currency.decimals from config.
+ * 依設定中的貨幣符號與小數位格式化金額。
  */
 final class MoneyFormatter
 {

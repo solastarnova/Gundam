@@ -6,6 +6,7 @@ use App\Core\Config;
 use App\Models\OrderModel;
 use App\Models\UserModel;
 
+/** 處理後台使用者管理頁面與操作。 */
 class UserController extends BaseController
 {
     private UserModel $userModel;

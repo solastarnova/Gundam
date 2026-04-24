@@ -3,7 +3,7 @@
 namespace App\Core;
 
 /**
- * Application config and locale-aware messages (merged via App\Core\LanguageLoader).
+ * 載入應用程式設定與多語系訊息（透過 LanguageLoader 合併）。
  */
 class Config
 {
@@ -79,7 +79,7 @@ class Config
     }
 
     /**
-     * Merged messages for one locale (see LanguageLoader::loadMergedBundle for merge order).
+     * 取得指定語系的合併訊息（合併順序見 LanguageLoader::loadMergedBundle）。
      *
      * @return array<string, mixed>
      */
@@ -96,7 +96,7 @@ class Config
     }
 
     /**
-     * Replace cached messages for a locale (e.g. tests or bootstrap after custom load() tree merge).
+     * 覆寫指定語系的快取訊息（例如測試或自訂載入流程）。
      *
      * @param array<string, mixed> $messages
      */

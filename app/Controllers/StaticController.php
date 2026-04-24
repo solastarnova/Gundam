@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Core\Controller;
 
+/** 渲染多語系靜態內容頁。 */
 class StaticController extends Controller
 {
     public function faq(): void

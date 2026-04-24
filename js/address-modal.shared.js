@@ -7,14 +7,27 @@
         var I = opts.i18n || {};
         var requireMapPin = opts.requireMapPin !== false;
 
-        var leafletCssUrl = window.LEAFLET_CSS_URL || 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        var leafletJsUrl = window.LEAFLET_JS_URL || 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        var nominatimReverseUrl = window.NOMINATIM_REVERSE_URL || 'https://nominatim.openstreetmap.org/reverse';
-        var maptilerSdkCssUrl = window.MAPTILER_SDK_CSS || 'https://cdn.maptiler.com/maptiler-sdk-js/v4.0.1/maptiler-sdk.css';
-        var maptilerSdkJsUrl = window.MAPTILER_SDK_JS || 'https://cdn.maptiler.com/maptiler-sdk-js/v4.0.1/maptiler-sdk.umd.min.js';
-        var maptilerLeafletPluginUrl = window.MAPTILER_LEAFLET_JS || 'https://cdn.maptiler.com/leaflet-maptilersdk/v4.1.0/leaflet-maptilersdk.umd.min.js';
-        var maptilerGeocodingControlJsUrl = window.MAPTILER_GEOCODING_CONTROL_JS || 'https://cdn.maptiler.com/maptiler-geocoding-control/v3.0.0/leaflet.umd.js';
-        var maptilerReverseGeocodeUrl = window.MAPTILER_REVERSE_GEOCODE_URL || 'https://api.maptiler.com/geocoding';
+        var mapCfg = window.MapShared && typeof window.MapShared.getMapConfig === 'function'
+            ? window.MapShared.getMapConfig()
+            : {};
+        var leafletCssUrl = mapCfg.leafletCssUrl;
+        var leafletJsUrl = mapCfg.leafletJsUrl;
+        var nominatimReverseUrl = mapCfg.nominatimReverseUrl;
+        var maptilerSdkCssUrl = mapCfg.maptilerSdkCssUrl;
+        var maptilerSdkJsUrl = mapCfg.maptilerSdkJsUrl;
+        var maptilerLeafletPluginUrl = mapCfg.maptilerLeafletPluginUrl;
+        var maptilerGeocodingControlJsUrl = mapCfg.maptilerGeocodingControlJsUrl;
+        var maptilerReverseGeocodeUrl = mapCfg.maptilerReverseGeocodeUrl;
+        var mapAssetLoader = window.MapShared && typeof window.MapShared.createAssetLoader === 'function'
+            ? window.MapShared.createAssetLoader({
+                leafletCssUrl: leafletCssUrl,
+                leafletJsUrl: leafletJsUrl,
+                maptilerSdkCssUrl: maptilerSdkCssUrl,
+                maptilerSdkJsUrl: maptilerSdkJsUrl,
+                maptilerLeafletPluginUrl: maptilerLeafletPluginUrl,
+                maptilerGeocodingControlJsUrl: maptilerGeocodingControlJsUrl
+            }, 'address-shared')
+            : null;
 
         var leafletLoadPromise = null;
         var maptilerStackPromise = null;
@@ -34,6 +47,7 @@
             return baseUrl + String(path || '').replace(/^\/+/, '');
         }
         function loadStylesheet(href) {
+            if (mapAssetLoader) return mapAssetLoader.loadStylesheet(href);
             if (!href) return Promise.reject(new Error('stylesheet_href_missing'));
             if (document.querySelector('link[data-address-shared-href="' + href + '"]')) return Promise.resolve(true);
             return new Promise(function(resolve, reject) {
@@ -47,6 +61,7 @@
             });
         }
         function injectExternalScript(src, globalName) {
+            if (mapAssetLoader) return mapAssetLoader.injectScript(src, globalName);
             if (!src) return Promise.reject(new Error('script_src_missing'));
             if (globalName && typeof window[globalName] !== 'undefined') return Promise.resolve(window[globalName]);
             if (externalScriptPromises[src]) return externalScriptPromises[src];
@@ -61,24 +76,34 @@
             return externalScriptPromises[src];
         }
         function ensureLeafletLoaded() {
+            if (mapAssetLoader) return mapAssetLoader.ensureLeafletLoaded();
             if (window.L && typeof window.L.map === 'function') return Promise.resolve(window.L);
             if (leafletLoadPromise) return leafletLoadPromise;
             leafletLoadPromise = Promise.all([loadStylesheet(leafletCssUrl), injectExternalScript(leafletJsUrl, 'L')]).then(function(results) { return results[1]; });
             return leafletLoadPromise;
         }
         function loadMapTilerStack() {
+            if (mapAssetLoader) return mapAssetLoader.loadMapTilerStack();
             if (window.L && window.L.maptiler && typeof window.L.maptiler.maptilerLayer === 'function') return Promise.resolve();
             if (maptilerStackPromise) return maptilerStackPromise;
             maptilerStackPromise = loadStylesheet(maptilerSdkCssUrl).then(function() { return injectExternalScript(maptilerSdkJsUrl); }).then(function() { return injectExternalScript(maptilerLeafletPluginUrl); });
             return maptilerStackPromise;
         }
         function loadMapTilerGeocodingControl() {
+            if (mapAssetLoader) return mapAssetLoader.loadMapTilerGeocodingControl();
             if (window.maptilerGeocoder && typeof window.maptilerGeocoder.GeocodingControl === 'function') return Promise.resolve();
             return injectExternalScript(maptilerGeocodingControlJsUrl).then(function() {
                 if (!window.maptilerGeocoder || typeof window.maptilerGeocoder.GeocodingControl !== 'function') throw new Error('maptiler_geocoding_control_not_ready');
             });
         }
+        var mapStatusManager = window.MapShared && typeof window.MapShared.createMapStatusManager === 'function'
+            ? window.MapShared.createMapStatusManager({ statusElId: 'mapStatusText' })
+            : null;
         function setMapStatus(text, tone) {
+            if (mapStatusManager) {
+                mapStatusManager.setMapStatus(text, tone);
+                return;
+            }
             var statusEl = document.getElementById('mapStatusText');
             if (!statusEl) return;
             statusEl.textContent = text || '';
@@ -89,39 +114,70 @@
             else statusEl.classList.add('bg-dark', 'text-white');
         }
         function shortenStatusAddress(text, maxLen) {
+            if (mapStatusManager) {
+                return mapStatusManager.shortenStatusAddress(text, maxLen);
+            }
             var s = String(text || '').trim();
             var n = Number(maxLen) || 24;
             return s.length <= n ? s : (s.slice(0, n) + '...');
         }
-        function updateMapLatLng(lat, lng) {
-            var latEl = document.getElementById('lat');
-            var lngEl = document.getElementById('lng');
-            var latNum = Number(lat);
-            var lngNum = Number(lng);
-            if (latEl) latEl.value = Number.isFinite(latNum) ? latNum.toFixed(6) : '';
-            if (lngEl) lngEl.value = Number.isFinite(lngNum) ? lngNum.toFixed(6) : '';
-        }
-        function normalizeCoordinate(value) {
-            var parsed = Number(value);
-            return Number.isFinite(parsed) ? Number(parsed.toFixed(6)) : null;
-        }
-        function getAddressInputEls() {
-            return ['district', 'street', 'building', 'unit', 'villageEstate'].map(function(id) { return document.getElementById(id); }).filter(Boolean);
-        }
-        function updateMapVisualState(isWarning) {
-            var wrapper = document.getElementById('mapWrapper');
-            if (wrapper) wrapper.classList.toggle('border-warning', !!isWarning);
-        }
-        function persistLastAutofillValue(el, value) { if (el) el.dataset.lastAutofill = String(value || ''); }
-        function applyAutofillFieldValue(el, value) {
-            if (!el) return;
-            var normalized = String(value || '');
-            el.value = normalized;
-            persistLastAutofillValue(el, normalized);
-        }
+        var mapUiHelpers = window.MapShared && typeof window.MapShared.createAddressMapHelpers === 'function'
+            ? window.MapShared.createAddressMapHelpers()
+            : null;
+        var autoSelectHongKongRegion = window.MapShared && typeof window.MapShared.autoSelectHongKongRegion === 'function'
+            ? window.MapShared.autoSelectHongKongRegion
+            : null;
+        var bindSharedGeocodingPick = window.MapShared && typeof window.MapShared.bindGeocodingControlPick === 'function'
+            ? window.MapShared.bindGeocodingControlPick
+            : null;
+        var setupSharedLeafletBasemap = window.MapShared && typeof window.MapShared.setupLeafletBasemapWithFallback === 'function'
+            ? window.MapShared.setupLeafletBasemapWithFallback
+            : null;
+        var reverseGeocodeWithFallback = window.MapShared && typeof window.MapShared.reverseGeocodeWithFallback === 'function'
+            ? window.MapShared.reverseGeocodeWithFallback
+            : null;
+        var updateMapLatLng = mapUiHelpers
+            ? mapUiHelpers.updateMapLatLng
+            : function(lat, lng) {
+                var latEl = document.getElementById('lat');
+                var lngEl = document.getElementById('lng');
+                var latNum = Number(lat);
+                var lngNum = Number(lng);
+                if (latEl) latEl.value = Number.isFinite(latNum) ? latNum.toFixed(6) : '';
+                if (lngEl) lngEl.value = Number.isFinite(lngNum) ? lngNum.toFixed(6) : '';
+            };
+        var normalizeCoordinate = mapUiHelpers
+            ? mapUiHelpers.normalizeCoordinate
+            : function(value) {
+                var parsed = Number(value);
+                return Number.isFinite(parsed) ? Number(parsed.toFixed(6)) : null;
+            };
+        var getAddressInputEls = mapUiHelpers
+            ? mapUiHelpers.getAddressInputEls
+            : function() {
+                return ['district', 'street', 'building', 'unit', 'villageEstate'].map(function(id) { return document.getElementById(id); }).filter(Boolean);
+            };
+        var updateMapVisualState = mapUiHelpers
+            ? mapUiHelpers.updateMapVisualState
+            : function(isWarning) {
+                var wrapper = document.getElementById('mapWrapper');
+                if (wrapper) wrapper.classList.toggle('border-warning', !!isWarning);
+            };
+        var applyAutofillFieldValue = mapUiHelpers
+            ? mapUiHelpers.applyAutofillFieldValue
+            : function(el, value) {
+                if (!el) return;
+                var normalized = String(value || '');
+                el.value = normalized;
+                el.dataset.lastAutofill = normalized;
+            };
         function autoSelectRegionByText(text) {
             var regionEl = document.getElementById('region');
             if (!regionEl || !text) return;
+            if (autoSelectHongKongRegion) {
+                autoSelectHongKongRegion(regionEl, text);
+                return;
+            }
             var t = String(text).toLowerCase();
             var key = /hong kong island|港島|港岛|香港岛/.test(t) ? 'island' : (/kowloon|九龍|九龙/.test(t) ? 'kowloon' : (/new territories|新界/.test(t) ? 'territories' : ''));
             if (!key) return;
@@ -133,15 +189,17 @@
                 if (key === 'territories' && /territories|新界/.test(v)) regionEl.value = opt.value;
             });
         }
-        function shouldInvalidateCoordinates(oldVal, newVal) {
-            var prev = String(oldVal || '').trim();
-            var next = String(newVal || '').trim();
-            if (!prev || !next || prev === next) return false;
-            var keyPart = prev.substring(0, 8);
-            if (keyPart && next.indexOf(keyPart) === -1) return true;
-            var delta = Math.abs(next.length - prev.length);
-            return prev.length > 0 && (delta / prev.length) > 0.5;
-        }
+        var shouldInvalidateCoordinates = mapUiHelpers
+            ? mapUiHelpers.shouldInvalidateCoordinates
+            : function(oldVal, newVal) {
+                var prev = String(oldVal || '').trim();
+                var next = String(newVal || '').trim();
+                if (!prev || !next || prev === next) return false;
+                var keyPart = prev.substring(0, 8);
+                if (keyPart && next.indexOf(keyPart) === -1) return true;
+                var delta = Math.abs(next.length - prev.length);
+                return prev.length > 0 && (delta / prev.length) > 0.5;
+            };
         function invalidateStoredCoordinates() {
             updateMapLatLng('', '');
             hasMapSelection = false;
@@ -192,40 +250,55 @@
         function reverseGeocode(lat, lng) {
             var token = ++reverseGeocodeToken;
             setMapStatus(I.mapReverseGeocoding || '', 'default');
-            var key = String(window.MAPTILER_API_KEY || '').trim();
-            var maptilerReq = key ? fetch(maptilerReverseGeocodeUrl + '/' + encodeURIComponent(lng) + ',' + encodeURIComponent(lat) + '.json?key=' + encodeURIComponent(key) + '&language=zh-Hant&limit=1').then(function(r) {
-                if (!r.ok) throw new Error('maptiler_failed');
+            if (reverseGeocodeWithFallback) {
+                reverseGeocodeWithFallback({
+                    lat: lat,
+                    lng: lng,
+                    token: token,
+                    isTokenCurrent: function(currentToken) { return currentToken === reverseGeocodeToken; },
+                    maptilerReverseGeocodeUrl: maptilerReverseGeocodeUrl,
+                    nominatimReverseUrl: nominatimReverseUrl,
+                    maptilerApiKey: String(window.MAPTILER_API_KEY || '').trim(),
+                    maptilerLanguage: 'zh-Hant',
+                    nominatimLanguage: 'zh-HK',
+                    onMapTilerData: function(data) {
+                        if (!updateAddressFieldsFromMapTiler(data)) {
+                            return false;
+                        }
+                        var feature = data.features && data.features[0] ? data.features[0] : {};
+                        var displayName = feature.place_name_zh_hant || feature.place_name || feature.text || '';
+                        setMapStatus(displayName ? (I.mapResolvedAddress || '') + ': ' + shortenStatusAddress(displayName, 24) : (I.mapResolvedAddress || ''), 'success');
+                        return true;
+                    },
+                    onNominatimData: function(data) {
+                        updateAddressFieldsFromNominatim(data);
+                        var name = data && data.display_name ? String(data.display_name) : '';
+                        setMapStatus(name ? (I.mapResolvedAddress || '') + ': ' + shortenStatusAddress(name, 24) : (I.mapResolvedAddress || ''), 'success');
+                    }
+                }).catch(function() {
+                    if (token !== reverseGeocodeToken) return;
+                    setMapStatus(I.mapResolveFailed || '', 'danger');
+                });
+                return;
+            }
+            fetch(nominatimReverseUrl + '?format=jsonv2&lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lng) + '&accept-language=zh-HK').then(function(r) {
+                if (!r.ok) throw new Error('nominatim_failed');
                 return r.json();
             }).then(function(data) {
                 if (token !== reverseGeocodeToken) return;
-                if (updateAddressFieldsFromMapTiler(data)) {
-                    var feature = data.features && data.features[0] ? data.features[0] : {};
-                    var displayName = feature.place_name_zh_hant || feature.place_name || feature.text || '';
-                    setMapStatus(displayName ? (I.mapResolvedAddress || '') + ': ' + shortenStatusAddress(displayName, 24) : (I.mapResolvedAddress || ''), 'success');
-                    return;
-                }
-                throw new Error('maptiler_no_features');
-            }) : Promise.reject(new Error('maptiler_key_missing'));
-            maptilerReq.catch(function() {
-                return fetch(nominatimReverseUrl + '?format=jsonv2&lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lng) + '&accept-language=zh-HK').then(function(r) {
-                    if (!r.ok) throw new Error('nominatim_failed');
-                    return r.json();
-                }).then(function(data) {
-                    if (token !== reverseGeocodeToken) return;
-                    updateAddressFieldsFromNominatim(data);
-                    var name = data && data.display_name ? String(data.display_name) : '';
-                    setMapStatus(name ? (I.mapResolvedAddress || '') + ': ' + shortenStatusAddress(name, 24) : (I.mapResolvedAddress || ''), 'success');
-                });
+                updateAddressFieldsFromNominatim(data);
+                var name = data && data.display_name ? String(data.display_name) : '';
+                setMapStatus(name ? (I.mapResolvedAddress || '') + ': ' + shortenStatusAddress(name, 24) : (I.mapResolvedAddress || ''), 'success');
             }).catch(function() {
                 if (token !== reverseGeocodeToken) return;
                 setMapStatus(I.mapResolveFailed || '', 'danger');
             });
         }
         function handleMapPick(lat, lng) {
-            if (!mapInstance || !window.L) return;
             var nLat = normalizeCoordinate(lat);
             var nLng = normalizeCoordinate(lng);
             if (!Number.isFinite(nLat) || !Number.isFinite(nLng)) return;
+            if (!mapInstance || !window.L) return;
             if (!mapMarker) mapMarker = window.L.marker([nLat, nLng]).addTo(mapInstance);
             else mapMarker.setLatLng([nLat, nLng]);
             mapInstance.setView([nLat, nLng], Math.max(mapInstance.getZoom(), 16));
@@ -233,6 +306,16 @@
             reverseGeocode(nLat, nLng);
         }
         function bindGeocodingControlPick(gc) {
+            if (bindSharedGeocodingPick) {
+                bindSharedGeocodingPick({
+                    control: gc,
+                    map: mapInstance,
+                    onPick: function(lat, lng) {
+                        handleMapPick(lat, lng);
+                    }
+                });
+                return;
+            }
             function onPicked(raw) {
                 var payload = raw || {};
                 var center = Array.isArray(payload.center) ? payload.center : (payload.feature && payload.feature.center);
@@ -255,25 +338,29 @@
                 bindGeocodingControlPick(geocodingControl);
             }).catch(function(err) { console.error('MapTiler GeocodingControl load failed:', err); });
         }
-        function initAddressMap() {
-            var mapEl = document.getElementById('checkoutAddressMap');
-            if (!mapEl) return;
-            var maptilerKey = String(window.MAPTILER_API_KEY || '').trim();
+        function initLeafletAddressMapInternal(maptilerKey) {
             ensureLeafletLoaded().then(function(L) {
                 if (!mapInstance) {
-                    mapInstance = L.map('checkoutAddressMap').setView([22.3193, 114.1694], 12);
+                    mapInstance = L.map('checkoutAddressMap', { minZoom: 10, maxZoom: 20 }).setView([22.3193, 114.1694], 12);
                     mapInstance.on('click', function(ev) { handleMapPick(ev.latlng.lat, ev.latlng.lng); });
-                    if (maptilerKey) {
+                    if (setupSharedLeafletBasemap) {
+                        setupSharedLeafletBasemap({
+                            map: mapInstance,
+                            L: L,
+                            maptilerKey: maptilerKey,
+                            loadMapTilerStack: loadMapTilerStack,
+                            initGeocodingControl: initGeocodingControl,
+                            setMapStatus: setMapStatus,
+                            mapMaptilerFallbackText: I.mapMaptilerFallback || ''
+                        });
+                    } else if (maptilerKey) {
                         loadMapTilerStack().then(function() {
                             L.maptiler.maptilerLayer({ apiKey: maptilerKey, style: L.maptiler.MapStyle.STREETS }).addTo(mapInstance);
                             initGeocodingControl(maptilerKey);
                         }).catch(function() {
-                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors', maxZoom: 19 }).addTo(mapInstance);
                             setMapStatus(I.mapMaptilerFallback || '', 'warning');
                             initGeocodingControl(maptilerKey);
                         });
-                    } else {
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors', maxZoom: 19 }).addTo(mapInstance);
                     }
                 }
                 mapInstance.invalidateSize();
@@ -284,6 +371,11 @@
                 }
                 setMapStatus(I.mapHelp || '', 'default');
             }).catch(function() { setMapStatus(I.mapResolveFailed || '', 'danger'); });
+        }
+        function initAddressMap() {
+            var mapEl = document.getElementById('checkoutAddressMap');
+            if (!mapEl) return;
+            initLeafletAddressMapInternal(String(window.MAPTILER_API_KEY || '').trim());
         }
         function collectAddressFormData(form) {
             var formData = new FormData(form);
@@ -311,6 +403,10 @@
             updateMapVisualState(false);
             getAddressInputEls().forEach(function(el) { delete el.dataset.lastAutofill; });
             form.querySelectorAll('.is-invalid').forEach(function(el) { el.classList.remove('is-invalid'); });
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                var bsModal = new bootstrap.Modal(modal);
+                bsModal.show();
+            }
         }
 
         async function openEditModal(addressId) {
@@ -451,7 +547,9 @@
 
         function initBindings() {
             var modalEl = document.getElementById('addressModal');
-            if (modalEl) modalEl.addEventListener('shown.bs.modal', initAddressMap);
+            if (modalEl) {
+                modalEl.addEventListener('shown.bs.modal', initAddressMap);
+            }
 
             var saveBtn = document.getElementById('saveCheckoutAddressBtn');
             if (saveBtn) saveBtn.addEventListener('click', saveAddress);

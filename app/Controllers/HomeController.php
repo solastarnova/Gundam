@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Models\ProductModel;
 use App\Models\UserModel;
 
+/** 渲染商店首頁內容與區塊資料。 */
 class HomeController extends Controller
 {
     private ProductModel $productModel;
@@ -18,7 +19,7 @@ class HomeController extends Controller
     }
 
     /**
-     * Add original_price, discounted price, and discount_percent for logged-in members.
+     * 為已登入會員補齊原價、折後價與折扣百分比欄位。
      *
      * @param list<array<string, mixed>> $rows
      * @return list<array<string, mixed>>
@@ -42,6 +43,7 @@ class HomeController extends Controller
         return $rows;
     }
 
+    /** 渲染首頁推薦區與動漫商品區。 */
     public function index(): void
     {
         $placeholder = Config::defaultPlaceholderImage();

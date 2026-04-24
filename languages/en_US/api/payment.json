@@ -17,7 +17,12 @@
         "lalamove_geocode_failed": "Unable to convert the address into coordinates, please check whether the address is correct.",
         "lalamove_quote_failed": "Unable to get Lalamove shipping quote, please try again later.",
         "lalamove_session_stale": "Shipping information has expired, please refresh the checkout page before paying.",
-        "lalamove_checkout_outdated": "The contents of the shopping cart have been changed. Please refresh the checkout page before obtaining a quote and making payment.",
+        "lalamove_checkout_outdated": "Checkout data has changed. Please refresh the checkout page, get a new quote, and try again.",
+        "lalamove_snapshot_invalid": "The checkout quote token is invalid. Please get a new shipping quote.",
+        "lalamove_snapshot_expired": "The shipping quote has expired. Please get a new quote.",
+        "lalamove_checkout_cart_changed": "Your cart was updated. Please get a new shipping quote before paying.",
+        "lalamove_checkout_shipping_mismatch": "Delivery details no longer match the quoted shipment. Please reconfirm the shipping fee.",
+        "lalamove_checkout_context_invalid": "Payment data no longer matches this checkout session, or it has expired. Please refresh and try again.",
         "lalamove_method_requires_address": "Please select or fill in the complete delivery address when selecting Lalamove."
     }
 }

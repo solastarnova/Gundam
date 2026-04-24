@@ -6,6 +6,7 @@ use App\Core\Config;
 use App\Core\Controller;
 use App\Models\CartModel;
 
+/** 處理購物車頁面與購物車相關 API。 */
 class CartController extends Controller
 {
     private CartModel $cartModel;

@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Core\Config;
 
+/** 切換介面語系並進行安全跳轉。 */
 class LanguageController extends Controller
 {
     private const SUPPORTED_LOCALES = ['zh_HK', 'en_US'];

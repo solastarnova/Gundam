@@ -5,11 +5,14 @@ namespace App\Controllers;
 use App\Core\Config;
 use App\Core\Controller;
 use App\Models\CartModel;
+use App\Services\CheckoutSnapshotService;
 use App\Services\LalamoveCheckoutService;
 use RuntimeException;
 
+/** 提供結帳運費試算 API。 */
 class ShippingController extends Controller
 {
+    /** 回傳指定地址的即時 Lalamove 報價。 */
     public function lalamoveQuote(): void
     {
         $this->setupJsonApi();
@@ -76,11 +79,29 @@ class ShippingController extends Controller
 
         try {
             $quote = $svc->quoteDelivery($line, $totalQty, $coordinates);
+            $norm = CheckoutSnapshotService::normalizeCheckoutAddress($line);
+            $lat = null;
+            $lng = null;
+            if ($coordinates !== null && isset($coordinates['lat'], $coordinates['lng'])) {
+                $lat = $coordinates['lat'] !== null && $coordinates['lat'] !== '' ? (string) $coordinates['lat'] : null;
+                $lng = $coordinates['lng'] !== null && $coordinates['lng'] !== '' ? (string) $coordinates['lng'] : null;
+            }
+            $cartSig = CheckoutSnapshotService::cartSignature($cartModel, $cartItems);
+            $checkoutToken = (new CheckoutSnapshotService())->issueFromQuote(
+                $userId,
+                (float) $quote['fee'],
+                $norm,
+                trim($line),
+                $lat,
+                $lng,
+                $cartSig
+            );
             $this->json([
                 'success' => true,
                 'shipping_fee' => $quote['fee'],
                 'currency' => $quote['currency'],
                 'quotation_id' => $quote['quotation_id'],
+                'checkout_token' => $checkoutToken,
             ]);
         } catch (RuntimeException $e) {
             $this->json(['success' => false, 'message' => $e->getMessage()], 422);

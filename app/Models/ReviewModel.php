@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Core\Model;
 
+/** 處理商品評價讀寫資料存取。 */
 class ReviewModel extends Model
 {
     public const STATUS_COMPLETED = 'Completed';

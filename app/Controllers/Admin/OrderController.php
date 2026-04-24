@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Core\Config;
 use App\Models\OrderModel;
 use App\Models\UserModel;
+use App\Services\InventoryService;
 use App\Services\OrderStatusService;
 use App\Services\WalletService;
 
@@ -114,6 +115,11 @@ class OrderController extends BaseController
             $this->redirect("/admin/orders/{$id}");
             return;
         }
+        if (!OrderStatusService::canTransition($currentStatus, $status)) {
+            $this->setError("不合規的狀態轉換：從 {$currentStatus} 到 {$status}");
+            $this->redirect("/admin/orders/{$id}");
+            return;
+        }
 
         $pdo = $this->orderModel->getPdo();
         
@@ -125,8 +131,11 @@ class OrderController extends BaseController
             }
 
             // Cancel after pay/complete: restock line items and refund wallet (idempotent refund row)
-            if ($status === 'cancelled' && in_array($currentStatus, ['paid', 'completed'], true)) {
-                $this->replenishStock($id);
+            if (
+                $status === OrderStatusService::CANCELLED
+                && in_array($currentStatus, [OrderStatusService::PAID, OrderStatusService::COMPLETED], true)
+            ) {
+                InventoryService::replenishStockForOrder($pdo, $id);
 
                 $checkRefundStmt = $pdo->prepare(
                     "SELECT id FROM user_wallet_transactions WHERE order_id = ? AND type = 'refund' LIMIT 1"
@@ -155,22 +164,4 @@ class OrderController extends BaseController
         $this->redirect("/admin/orders/{$id}");
     }
 
-    /**
-     * Add order line quantities back to items.stock_quantity.
-     */
-    private function replenishStock(int $orderId): void
-    {
-        $stmt = $this->orderModel->getPdo()->prepare("
-            SELECT item_id, quantity FROM order_items WHERE order_id = ?
-        ");
-        $stmt->execute([$orderId]);
-        $items = $stmt->fetchAll();
-        
-        foreach ($items as $item) {
-            $updateStmt = $this->orderModel->getPdo()->prepare("
-                UPDATE items SET stock_quantity = stock_quantity + ? WHERE id = ?
-            ");
-            $updateStmt->execute([$item['quantity'], $item['item_id']]);
-        }
-    }
 }

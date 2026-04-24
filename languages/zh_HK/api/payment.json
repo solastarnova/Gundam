@@ -17,7 +17,12 @@
         "lalamove_geocode_failed": "無法將地址轉成座標，請檢查地址是否正確。",
         "lalamove_quote_failed": "無法取得 Lalamove 運費報價，請稍後再試。",
         "lalamove_session_stale": "運費資訊已過期，請重新整理結帳頁後再付款。",
-        "lalamove_checkout_outdated": "購物車內容已變更，請重新整理結帳頁後再取得報價並付款。",
+        "lalamove_checkout_outdated": "結帳資料已變更，請重新整理結帳頁後再取得報價並付款。",
+        "lalamove_snapshot_invalid": "結帳報價憑證無效，請重新取得運費報價。",
+        "lalamove_snapshot_expired": "運費報價已過期，請重新取得報價。",
+        "lalamove_checkout_cart_changed": "購物車內容已更新，請重新取得運費報價後再付款。",
+        "lalamove_checkout_shipping_mismatch": "送貨資訊與報價時不符，請重新確認運費。",
+        "lalamove_checkout_context_invalid": "付款與結帳資料不一致或已過期，請重新整理頁面後再試。",
         "lalamove_method_requires_address": "選擇 Lalamove 時請選擇或填寫完整收件地址。"
     }
 }

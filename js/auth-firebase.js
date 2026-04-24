@@ -53,6 +53,34 @@
         return null;
     }
 
+    function getProviderLabel(methodId) {
+        var names = F.providerNames || {};
+        if (methodId === 'google.com') {
+            return names.google || 'Google';
+        }
+        if (methodId === 'github.com') {
+            return names.github || 'GitHub';
+        }
+        if (methodId === 'facebook.com') {
+            return names.facebook || 'Facebook';
+        }
+        return names.oauth || '第三方';
+    }
+
+    function formatMessage(template, values) {
+        var out = String(template || '');
+        var vals = Array.isArray(values) ? values : [];
+        for (var i = 0; i < vals.length; i++) {
+            var idx = i + 1;
+            var v = String(vals[i] == null ? '' : vals[i]);
+            out = out.replace(new RegExp('%' + idx + '\\$s', 'g'), v);
+            if (idx === 1) {
+                out = out.replace(/%s/g, v);
+            }
+        }
+        return out;
+    }
+
     /**
      * fetchSignInMethodsForEmail returns full provider ids (e.g. google.com), not short names.
      * @param {string[]} methods
@@ -108,8 +136,9 @@
                 }
 
                 if (providerToLink) {
+                    var targetProvider = getProviderLabel('github.com');
                     window.alert(
-                        (F.emailBindsProvider || '').replace('%s', providerName)
+                        formatMessage(F.emailBindsProvider, [providerName, targetProvider])
                     );
                     return firebase.auth().signInWithPopup(providerToLink);
                 }
@@ -176,7 +205,7 @@
     /**
      * Google/Facebook account-exists: pick existing OAuth from fetchSignInMethodsForEmail, then link.
      */
-    function handleAccountExistsWithDifferentCredential(error, AttemptedProviderClass) {
+    function handleAccountExistsWithDifferentCredential(error, AttemptedProviderClass, attemptedProviderId) {
         var pendingCred =
             AttemptedProviderClass && typeof AttemptedProviderClass.credentialFromError === 'function'
                 ? AttemptedProviderClass.credentialFromError(error)
@@ -200,7 +229,9 @@
                 var provider = pickExistingOAuthProvider(m);
                 if (!provider) {
                     if (m.includes('password')) {
-                        window.alert(F.passwordThenOauth || '');
+                        window.alert(
+                            formatMessage(F.passwordThenOauth, [getProviderLabel(attemptedProviderId)])
+                        );
                     } else {
                         window.alert(F.signInFirst || '');
                     }
@@ -241,7 +272,7 @@
      * @param {Promise<firebase.auth.UserCredential>} promise
      * @param {typeof firebase.auth.GoogleAuthProvider} [attemptedProviderClass] Google/Facebook account-exists flow
      */
-    function runPopup(promise, attemptedProviderClass) {
+    function runPopup(promise, attemptedProviderClass, attemptedProviderId) {
         promise
             .then(function (cred) {
                 return cred.user.getIdToken();
@@ -258,7 +289,7 @@
                     err.code === 'auth/account-exists-with-different-credential' &&
                     attemptedProviderClass
                 ) {
-                    handleAccountExistsWithDifferentCredential(err, attemptedProviderClass);
+                    handleAccountExistsWithDifferentCredential(err, attemptedProviderClass, attemptedProviderId);
                     return;
                 }
                 var msg = err.message || F.loginFailed || '';
@@ -271,7 +302,8 @@
         gBtn.addEventListener('click', function () {
             runPopup(
                 firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider()),
-                firebase.auth.GoogleAuthProvider
+                firebase.auth.GoogleAuthProvider,
+                'google.com'
             );
         });
     }
@@ -308,8 +340,10 @@
         fBtn.addEventListener('click', function () {
             runPopup(
                 firebase.auth().signInWithPopup(new firebase.auth.FacebookAuthProvider()),
-                firebase.auth.FacebookAuthProvider
+                firebase.auth.FacebookAuthProvider,
+                'facebook.com'
             );
         });
     }
+
 })();

@@ -94,6 +94,7 @@ class AuthController extends Controller
         $_SESSION['email'] = $user['email'];
         $_SESSION['user_id'] = (int) $user['id'];
         $_SESSION['user_name'] = $user['name'];
+        $_SESSION['login_type'] = 'password';
 
         $this->redirect($this->getRedirectAfterAuth($_POST['redirect'] ?? null));
     }
@@ -249,6 +250,7 @@ class AuthController extends Controller
         $_SESSION['email'] = $email;
         $_SESSION['user_id'] = $userId;
         $_SESSION['user_name'] = $name;
+        $_SESSION['login_type'] = 'password';
 
         $this->flash('login_message', Config::get('messages.auth.register_success'));
         $this->redirect($this->getRedirectAfterAuth($_POST['redirect'] ?? null));
@@ -422,6 +424,7 @@ class AuthController extends Controller
         $_SESSION['email'] = $email;
         $_SESSION['user_id'] = $userId;
         $_SESSION['user_name'] = $name;
+        $_SESSION['login_type'] = 'firebase';
         $this->flash('login_message', Config::get('messages.auth.register_success'));
         $this->redirect($this->getRedirectAfterAuth($redirectAfterAuth));
     }
@@ -432,7 +435,7 @@ class AuthController extends Controller
             ?? $this->sanitizeRedirect($_SERVER['HTTP_REFERER'] ?? null)
             ?? null;
 
-        unset($_SESSION['user_id'], $_SESSION['email'], $_SESSION['user_name']);
+        unset($_SESSION['user_id'], $_SESSION['email'], $_SESSION['user_name'], $_SESSION['login_type']);
         unset($_SESSION['auth_redirect']);
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_regenerate_id(true);
@@ -507,6 +510,7 @@ class AuthController extends Controller
         $_SESSION['email'] = $user['email'];
         $_SESSION['user_id'] = (int) $user['id'];
         $_SESSION['user_name'] = $user['name'] ?? '';
+        $_SESSION['login_type'] = 'firebase';
     }
 
     private function getRedirectTarget(): string

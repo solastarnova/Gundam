@@ -6,6 +6,7 @@ use App\Core\Config;
 use App\Core\Controller;
 use App\Services\ChatBotService;
 
+/** 處理聊天機器人請求與會話 API。 */
 class ChatController extends Controller
 {
     private ChatBotService $chatBot;

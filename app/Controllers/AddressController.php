@@ -6,6 +6,7 @@ use App\Core\Config;
 use App\Core\Controller;
 use App\Models\AddressModel;
 
+/** 處理地址管理頁面與相關 API。 */
 class AddressController extends Controller
 {
     private AddressModel $addressModel;

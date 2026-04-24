@@ -20,6 +20,10 @@
 
     function bindAuthStateWatcher() {
         var cfg = window.FIREBASE_WEB_CONFIG;
+        var loginType = typeof window.APP_LOGIN_TYPE === 'string' ? window.APP_LOGIN_TYPE : '';
+        if (loginType !== 'firebase') {
+            return;
+        }
         if (typeof firebase === 'undefined' || !cfg || authStateWatcherBound) {
             return;
         }

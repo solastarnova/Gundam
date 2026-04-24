@@ -7,6 +7,7 @@ use App\Models\OrderModel;
 use App\Models\UserModel;
 use App\Models\ProductModel;
 
+/** 渲染後台儀表板統計與摘要。 */
 class DashboardController extends BaseController
 {
     private OrderModel $orderModel;

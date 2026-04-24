@@ -5,6 +5,7 @@ namespace App\Controllers\Admin;
 use App\Core\Config;
 use App\Models\ProductModel;
 
+/** 處理後台商品管理頁面與操作。 */
 class ProductController extends BaseController
 {
     private ProductModel $productModel;
@@ -57,6 +58,7 @@ class ProductController extends BaseController
         ]);
     }
 
+    /** 依後台表單資料新增或更新商品。 */
     public function save()
     {
         if (!$this->requireAdminCsrf()) {
@@ -161,9 +163,7 @@ class ProductController extends BaseController
         $this->redirect('/admin/products');
     }
 
-    /**
-     * Normalize datetime-local (YYYY-MM-DDTHH:mm) or SQL datetime to MySQL datetime string.
-     */
+    /** 將 datetime-local 或 SQL datetime 正規化為 MySQL datetime 字串。 */
     private function parseListedAtFromPost(): string
     {
         $raw = trim((string) ($_POST['listed_at'] ?? ''));

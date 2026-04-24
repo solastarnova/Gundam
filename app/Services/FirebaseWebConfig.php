@@ -7,6 +7,18 @@ namespace App\Services;
  */
 class FirebaseWebConfig
 {
+    /** @var list<string> */
+    private const COMPAT_SCRIPT_SRCS = [
+        'https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js',
+        'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js',
+    ];
+
+    /** @return list<string> */
+    public static function compatScriptSrcs(): array
+    {
+        return self::COMPAT_SCRIPT_SRCS;
+    }
+
     /** @return array<string, string>|null */
     public static function forJavaScript(): ?array
     {

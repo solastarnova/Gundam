@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Core\Model;
 use App\Services\OrderStatusService;
+use App\Services\InventoryService;
 
 /**
  * Order queries: storefront lists, admin list/detail helpers, status updates.
@@ -186,18 +187,7 @@ class OrderModel extends Model
     }
 
     public function replenishStockForOrder(int $orderId): void
-{
-    $stmt = $this->pdo->prepare("
-        SELECT item_id, quantity FROM order_items WHERE order_id = ?
-    ");
-    $stmt->execute([$orderId]);
-    $items = $stmt->fetchAll();
-    
-    foreach ($items as $item) {
-        $updateStmt = $this->pdo->prepare("
-            UPDATE items SET stock_quantity = stock_quantity + ? WHERE id = ?
-        ");
-        $updateStmt->execute([$item['quantity'], $item['item_id']]);
+    {
+        InventoryService::replenishStockForOrder($this->pdo, $orderId);
     }
-}
 }

@@ -6,6 +6,7 @@ use App\Core\Config;
 use App\Core\Controller;
 use App\Models\ProductModel;
 
+/** 處理前台關鍵字搜尋頁。 */
 class SearchController extends Controller
 {
     private ProductModel $productModel;

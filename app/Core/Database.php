@@ -7,7 +7,7 @@ use PDOException;
 use RuntimeException;
 
 /**
- * Shared MySQL PDO connection (singleton).
+ * 提供共享的 MySQL PDO 單例連線。
  */
 class Database
 {

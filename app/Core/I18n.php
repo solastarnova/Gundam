@@ -3,7 +3,7 @@
 namespace App\Core;
 
 /**
- * Locale helpers (BCP 47 for HTML lang, etc.).
+ * 提供語系相關輔助（例如 HTML lang 的 BCP 47 轉換）。
  */
 final class I18n
 {

@@ -7,7 +7,7 @@ use InvalidArgumentException;
 use RuntimeException;
 
 /**
- * Lalamove REST API v3 client (HMAC-SHA256).
+ * 封裝 Lalamove REST API v3 呼叫（HMAC-SHA256 簽章）。
  *
  * @see https://developers.lalamove.com/
  */

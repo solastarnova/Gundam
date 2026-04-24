@@ -1,4 +1,3 @@
-// Account address page wrapper over shared module
 (function() {
     'use strict';
     if (typeof window.createAddressModalManager !== 'function') {

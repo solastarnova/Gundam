@@ -8,7 +8,7 @@ use App\Services\FirebaseWebConfig;
 use App\Services\MoneyFormatter;
 
 /**
- * Base HTTP controller: layout render, JSON helpers, auth, validation, flash.
+ * 提供基礎 HTTP 控制器能力（版面渲染、JSON 回應、驗證與跳轉輔助）。
  */
 class Controller
 {
@@ -45,10 +45,7 @@ class Controller
             $webCfg = FirebaseWebConfig::forJavaScript();
             if ($webCfg !== null && empty($data['firebase_auth_enabled'])) {
                 $data['firebase_web_config'] = $webCfg;
-                $firebaseScripts = [
-                    'https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js',
-                    'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js',
-                ];
+                $firebaseScripts = FirebaseWebConfig::compatScriptSrcs();
                 $data['foot_script_srcs'] = array_merge(
                     $firebaseScripts,
                     (array) ($data['foot_script_srcs'] ?? [])
@@ -126,9 +123,9 @@ class Controller
     }
 
     /**
-     * Require logged-in user for JSON endpoints; sends 401 JSON when missing.
+     * API 端點要求登入，未登入時回傳 401 JSON。
      *
-     * @return bool True if session has user_id
+     * @return bool 是否已具備登入狀態
      */
     protected function requireAuthForApi(): bool
     {
@@ -203,7 +200,7 @@ class Controller
     }
 
     /**
-     * Shared map-related client URLs injected into pages.
+     * 提供頁面注入用地圖客戶端設定。
      *
      * @return array{
      *   leaflet_css:string,
@@ -241,8 +238,30 @@ class Controller
 
     protected function isLocalEnvironment(): bool
     {
-        $env = $_ENV['APP_ENV'] ?? $_SERVER['APP_ENV'] ?? 'production';
-        return in_array(strtolower($env), ['local', 'development', 'dev'], true);
+        $env = strtolower((string) ($_ENV['APP_ENV'] ?? $_SERVER['APP_ENV'] ?? 'production'));
+        if (in_array($env, ['local', 'development', 'dev'], true)) {
+            return true;
+        }
+
+        $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+        $serverName = strtolower((string) ($_SERVER['SERVER_NAME'] ?? ''));
+        $remoteAddr = strtolower((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+        $serverAddr = strtolower((string) ($_SERVER['SERVER_ADDR'] ?? ''));
+
+        $localHosts = ['localhost', '127.0.0.1', '::1'];
+        foreach ($localHosts as $local) {
+            if (
+                $host === $local
+                || str_starts_with($host, $local . ':')
+                || $serverName === $local
+                || $remoteAddr === $local
+                || $serverAddr === $local
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function validateEmail(string $email): ?string

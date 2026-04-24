@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Core\Model;
 use App\Core\Config;
 
+/** 處理願望清單與收藏商品資料存取。 */
 class FavoriteModel extends Model
 {
     public function getUserFavorites(int $userId, ?int $limit = null): array

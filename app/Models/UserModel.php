@@ -41,6 +41,9 @@ class UserModel extends Model
         if ($this->hasUsersColumn('firebase_uid')) {
             $cols[] = 'firebase_uid';
         }
+        if ($this->hasUsersColumn('has_set_password')) {
+            $cols[] = 'has_set_password';
+        }
         if ($this->hasUsersColumn('status')) {
             $cols[] = 'status';
         }
@@ -56,6 +59,9 @@ class UserModel extends Model
         $cols = ['u.id', 'u.name', 'u.email'];
         if ($this->hasUsersColumn('firebase_uid')) {
             $cols[] = 'u.firebase_uid';
+        }
+        if ($this->hasUsersColumn('has_set_password')) {
+            $cols[] = 'u.has_set_password';
         }
         if ($this->hasUsersColumn('phone')) {
             $cols[] = 'u.phone';
@@ -118,6 +124,9 @@ class UserModel extends Model
             return null;
         }
         $cols = ['id', 'name', 'email', 'password', 'firebase_uid'];
+        if ($this->hasUsersColumn('has_set_password')) {
+            $cols[] = 'has_set_password';
+        }
         if ($this->hasUsersColumn('status')) {
             $cols[] = 'status';
         }
@@ -148,10 +157,17 @@ class UserModel extends Model
             throw new \RuntimeException('users.firebase_uid column is required');
         }
         $hash = password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT);
-        $stmt = $this->pdo->prepare(
-            'INSERT INTO users (name, email, password, firebase_uid) VALUES (?, ?, ?, ?)'
-        );
-        $stmt->execute([$name, $email, $hash, $firebaseUid]);
+        if ($this->hasUsersColumn('has_set_password')) {
+            $stmt = $this->pdo->prepare(
+                'INSERT INTO users (name, email, password, firebase_uid, has_set_password) VALUES (?, ?, ?, ?, 0)'
+            );
+            $stmt->execute([$name, $email, $hash, $firebaseUid]);
+        } else {
+            $stmt = $this->pdo->prepare(
+                'INSERT INTO users (name, email, password, firebase_uid) VALUES (?, ?, ?, ?)'
+            );
+            $stmt->execute([$name, $email, $hash, $firebaseUid]);
+        }
 
         return (int) $this->pdo->lastInsertId();
     }
@@ -159,8 +175,13 @@ class UserModel extends Model
     public function create(string $name, string $email, string $password): int
     {
         $hash = password_hash($password, PASSWORD_DEFAULT);
-        $stmt = $this->pdo->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
-        $stmt->execute([$name, $email, $hash]);
+        if ($this->hasUsersColumn('has_set_password')) {
+            $stmt = $this->pdo->prepare("INSERT INTO users (name, email, password, has_set_password) VALUES (?, ?, ?, 1)");
+            $stmt->execute([$name, $email, $hash]);
+        } else {
+            $stmt = $this->pdo->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
+            $stmt->execute([$name, $email, $hash]);
+        }
         return (int) $this->pdo->lastInsertId();
     }
 
@@ -172,8 +193,13 @@ class UserModel extends Model
     public function updatePassword(int $userId, string $newPassword): bool
     {
         $hash = password_hash($newPassword, PASSWORD_DEFAULT);
-        $stmt = $this->pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
-        $stmt->execute([$hash, $userId]);
+        if ($this->hasUsersColumn('has_set_password')) {
+            $stmt = $this->pdo->prepare("UPDATE users SET password = ?, has_set_password = 1 WHERE id = ?");
+            $stmt->execute([$hash, $userId]);
+        } else {
+            $stmt = $this->pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
+            $stmt->execute([$hash, $userId]);
+        }
         return $stmt->rowCount() > 0;
     }
 

@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Core\I18n;
 use App\Models\AdminModel;
 
+/** 處理後台登入頁與管理員驗證流程。 */
 class LoginController extends Controller
 {
     private AdminModel $adminModel;

@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Controller;
 use App\Models\UserModel;
 
+/** 提供會員積分中心頁面與相關 API。 */
 class PointsController extends Controller
 {
     private UserModel $userModel;

@@ -6,6 +6,7 @@ use App\Core\Config;
 use App\Core\Controller;
 use App\Models\FavoriteModel;
 
+/** 處理願望清單頁面與 CRUD API。 */
 class WishlistController extends Controller
 {
     private FavoriteModel $favoriteModel;

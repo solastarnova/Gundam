@@ -11,6 +11,7 @@ use App\Services\FirebaseAdminAuth;
 use App\Services\FirebaseWebConfig;
 use App\Services\WalletService;
 
+/** 處理會員中心頁面與帳號相關操作。 */
 class AccountController extends Controller
 {
     private UserModel $userModel;
@@ -128,9 +129,11 @@ class AccountController extends Controller
         $user = $this->requireUser();
         $userId = (int) $_SESSION['user_id'];
         $profile = $this->userModel->findById($userId);
+        $isPasswordSetupMode = $this->canSetPasswordWithoutOld($profile);
         $this->render('account/settings', array_merge([
             'title' => $this->titleWithSite('account_settings'),
             'profile' => $profile,
+            'isPasswordSetupMode' => $isPasswordSetupMode,
             'passwordErrors' => $this->consumeFlash('account_password_errors', []),
             'passwordSuccess' => $this->consumeFlash('account_password_success'),
             'phoneErrors' => $this->consumeFlash('account_phone_errors', []),
@@ -169,6 +172,7 @@ class AccountController extends Controller
         ]);
     }
 
+    /** 驗證舊密碼後更新目前登入使用者的新密碼。 */
     public function updatePassword(): void
     {
         $this->requireUser();
@@ -176,10 +180,12 @@ class AccountController extends Controller
         $currentPassword = (string) ($_POST['current_password'] ?? '');
         $newPassword = (string) ($_POST['new_password'] ?? '');
         $confirmPassword = (string) ($_POST['confirm_password'] ?? '');
+        $profile = $this->userModel->findById($userId);
+        $isPasswordSetupMode = $this->canSetPasswordWithoutOld($profile);
 
         $errors = [];
 
-        if ($currentPassword === '') {
+        if (!$isPasswordSetupMode && $currentPassword === '') {
             $errors['current_password'] = Config::get('messages.account.password_current_required');
         }
 
@@ -188,7 +194,10 @@ class AccountController extends Controller
             $errors['new_password'] = Config::get('messages.account.password_new_required');
         } elseif (strlen($newPassword) < $minLen) {
             $errors['new_password'] = sprintf(Config::get('messages.account.password_new_min'), $minLen);
-        } elseif ($currentPassword !== '' && hash_equals($currentPassword, $newPassword)) {
+        } elseif (
+            ($currentPassword !== '' && hash_equals($currentPassword, $newPassword))
+            || ($isPasswordSetupMode && $this->userModel->verifyPasswordForUser($userId, $newPassword))
+        ) {
             $errors['new_password'] = Config::get('messages.account.password_same_as_current');
         }
 
@@ -205,16 +214,25 @@ class AccountController extends Controller
         }
 
         try {
-            $errMsg = $this->userModel->changePassword($userId, $currentPassword, $newPassword);
-            if ($errMsg !== null) {
-                if ($errMsg === Config::get('messages.account.user_not_found')) {
-                    $errors['general'] = Config::get('messages.account.profile_not_found');
-                } else {
-                    $errors['current_password'] = $errMsg;
+            if ($isPasswordSetupMode) {
+                if (!$this->userModel->updatePassword($userId, $newPassword)) {
+                    $errors['general'] = Config::get('messages.account.password_update_error');
+                    $this->flash('account_password_errors', $errors);
+                    $this->redirect($this->view->url('account/settings'));
+                    return;
                 }
-                $this->flash('account_password_errors', $errors);
-                $this->redirect($this->view->url('account/settings'));
-                return;
+            } else {
+                $errMsg = $this->userModel->changePassword($userId, $currentPassword, $newPassword);
+                if ($errMsg !== null) {
+                    if ($errMsg === Config::get('messages.account.user_not_found')) {
+                        $errors['general'] = Config::get('messages.account.profile_not_found');
+                    } else {
+                        $errors['current_password'] = $errMsg;
+                    }
+                    $this->flash('account_password_errors', $errors);
+                    $this->redirect($this->view->url('account/settings'));
+                    return;
+                }
             }
         } catch (\Throwable $e) {
             $this->flash('account_password_errors', ['general' => Config::get('messages.account.password_update_error')]);
@@ -224,6 +242,28 @@ class AccountController extends Controller
 
         $this->flash('account_password_success', Config::get('messages.account.password_update_success'));
         $this->redirect($this->view->url('account/settings'));
+    }
+
+    private function canSetPasswordWithoutOld(?array $profile): bool
+    {
+        if (!is_array($profile) || $profile === []) {
+            return false;
+        }
+
+        $firebaseUid = trim((string) ($profile['firebase_uid'] ?? ''));
+        if ($firebaseUid === '') {
+            return false;
+        }
+
+        if ((string) ($_SESSION['login_type'] ?? '') !== 'firebase') {
+            return false;
+        }
+
+        if (!array_key_exists('has_set_password', $profile)) {
+            return false;
+        }
+
+        return (int) $profile['has_set_password'] === 0;
     }
 
     public function updatePhone(): void

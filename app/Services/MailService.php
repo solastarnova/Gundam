@@ -7,7 +7,7 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
 /**
- * SMTP mail: verification codes and order confirmation.
+ * 提供 SMTP 郵件寄送（驗證碼與訂單通知）。
  */
 class MailService
 {
@@ -125,6 +125,7 @@ class MailService
         }
     }
 
+    /** 寄送在地化內容的訂單確認郵件。 */
     public function sendOrderConfirmation(
         string $toEmail,
         string $toName,

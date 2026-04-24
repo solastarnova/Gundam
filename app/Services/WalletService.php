@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Core\Database;
 
 /**
- * User wallet balance and ledger rows (must use provided PDO when inside a transaction).
+ * 處理使用者錢包餘額與帳務流水資料。
  */
 class WalletService
 {

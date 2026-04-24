@@ -46,7 +46,6 @@ $message = $message ?? null;
                         id="inputPassword"
                         name="password"
                         placeholder="Password"
-                        minlength="8"
                         required
                     >
                     <?php if (isset($errors['password'])): ?>

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Core\Model;
 
+/** 提供管理員帳號驗證資料存取。 */
 class AdminModel extends Model
 {
     public function findByUsername(string $username): ?array

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Core\Model;
 use InvalidArgumentException;
 
+/** 處理收貨地址資料存取與驗證。 */
 class AddressModel extends Model
 {
     private const DEFAULT_ADDRESS_TYPE = '住宅';
@@ -45,9 +46,7 @@ class AddressModel extends Model
         return self::buildFullAddressLine($addr);
     }
 
-    /**
-     * Build a normalized one-line Hong Kong address for shipping APIs.
-     */
+    /** 組裝適用於運費 API 的單行標準化地址。 */
     public static function buildFullAddressLine(array $addr): string
     {
         $floor = trim((string) ($addr['floor'] ?? ''));
@@ -154,6 +153,7 @@ class AddressModel extends Model
         return (int) $this->pdo->lastInsertId();
     }
 
+    /** 以驗證後資料更新既有地址。 */
     public function updateAddress(int $addressId, int $userId, array $data): bool
     {
         if (!self::validateHongKongAddress($data)) {

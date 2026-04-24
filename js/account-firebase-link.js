@@ -57,19 +57,64 @@ document.addEventListener('DOMContentLoaded', function () {
 
     firebase.auth().onAuthStateChanged(refreshSocialLinkUi);
 
-    function bindLinkButton(buttonId, createProvider, providerLabel) {
+    function getProviderLabel(providerId) {
+        var names = L.providerNames || {};
+        if (providerId === 'google.com') {
+            return names.google || 'Google';
+        }
+        if (providerId === 'github.com') {
+            return names.github || 'GitHub';
+        }
+        if (providerId === 'facebook.com') {
+            return names.facebook || 'Facebook';
+        }
+        return names.oauth || '第三方';
+    }
+
+    function handleLinkError(error, providerLabel, restoreButton, defaultHtml) {
+        if (restoreButton) {
+            restoreButton.disabled = false;
+            restoreButton.innerHTML = defaultHtml;
+        }
+        if (!error) {
+            return;
+        }
+        if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+            return;
+        }
+        if (error.code === 'auth/popup-blocked') {
+            window.alert(L.popupBlocked || '');
+            return;
+        }
+        if (error.code === 'auth/provider-already-linked') {
+            window.alert(L.alreadyLinked || '');
+            refreshSocialLinkUi();
+            return;
+        }
+        if (error.code === 'auth/credential-already-in-use') {
+            window.alert((L.credentialInUse || '').replace('%s', providerLabel));
+            return;
+        }
+        if (error.code === 'auth/email-already-in-use') {
+            window.alert(L.emailInUse || '');
+            return;
+        }
+        console.error('Link Error:', error);
+        window.alert(
+            (L.bindFailedPrefix || '') + (error.message || L.unknownError || '')
+        );
+    }
+
+    function bindLinkButton(buttonId, createProvider, providerId) {
         var el = document.getElementById(buttonId);
         if (!el) {
             return;
         }
         var defaultHtml = el.innerHTML;
+        var providerLabel = getProviderLabel(providerId);
 
         el.addEventListener('click', function () {
             var user = firebase.auth().currentUser;
-            if (!user) {
-                window.alert(L.needLogin || '');
-                return;
-            }
 
             el.disabled = true;
             el.innerHTML =
@@ -77,6 +122,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 (L.processing || '');
 
             var provider = createProvider();
+
+            if (!user) {
+                firebase
+                    .auth()
+                    .signInWithPopup(provider)
+                    .then(function () {
+                        window.alert((L.bindOk || '').replace('%s', providerLabel));
+                        window.location.reload();
+                    })
+                    .catch(function (error) {
+                        handleLinkError(error, providerLabel, el, defaultHtml);
+                    });
+                return;
+            }
+
             user
                 .linkWithPopup(provider)
                 .then(function () {
@@ -84,36 +144,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     window.location.reload();
                 })
                 .catch(function (error) {
-                    el.disabled = false;
-                    el.innerHTML = defaultHtml;
-
-                    if (!error) {
-                        return;
-                    }
-                    if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-                        return;
-                    }
-                    if (error.code === 'auth/popup-blocked') {
-                        window.alert(L.popupBlocked || '');
-                        return;
-                    }
-                    if (error.code === 'auth/provider-already-linked') {
-                        window.alert(L.alreadyLinked || '');
-                        refreshSocialLinkUi();
-                        return;
-                    }
-                    if (error.code === 'auth/credential-already-in-use') {
-                        window.alert((L.credentialInUse || '').replace('%s', providerLabel));
-                        return;
-                    }
-                    if (error.code === 'auth/email-already-in-use') {
-                        window.alert(L.emailInUse || '');
-                        return;
-                    }
-                    console.error('Link Error:', error);
-                    window.alert(
-                        (L.bindFailedPrefix || '') + (error.message || L.unknownError || '')
-                    );
+                    handleLinkError(error, providerLabel, el, defaultHtml);
                 });
         });
     }
@@ -123,14 +154,14 @@ document.addEventListener('DOMContentLoaded', function () {
         function () {
             return new firebase.auth.GoogleAuthProvider();
         },
-        'Google'
+        'google.com'
     );
     bindLinkButton(
         'btn-link-github',
         function () {
             return new firebase.auth.GithubAuthProvider();
         },
-        'GitHub'
+        'github.com'
     );
     if (window.FIREBASE_ENABLE_FACEBOOK) {
         bindLinkButton(
@@ -138,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function () {
             function () {
                 return new firebase.auth.FacebookAuthProvider();
             },
-            'Facebook'
+            'facebook.com'
         );
     }
 });

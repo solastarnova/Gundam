@@ -7,6 +7,7 @@ use App\Core\Controller;
 use App\Models\UserModel;
 use App\Services\MailService;
 
+/** 處理忘記密碼驗證與重設流程。 */
 class ForgotPasswordController extends Controller
 {
     private UserModel $userModel;
@@ -45,6 +46,7 @@ class ForgotPasswordController extends Controller
         ]);
     }
 
+    /** 驗證帳號並寄送重設密碼驗證碼。 */
     public function send(): void
     {
         if (isset($_SESSION['email'])) {
@@ -171,6 +173,7 @@ class ForgotPasswordController extends Controller
         ]);
     }
 
+    /** 驗證重設流程狀態並更新新密碼。 */
     public function resetPassword(): void
     {
         if (isset($_SESSION['email'])) {

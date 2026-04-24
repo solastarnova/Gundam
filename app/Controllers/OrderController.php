@@ -9,6 +9,7 @@ use App\Models\UserModel;
 use App\Services\LalamoveCheckoutService;
 use App\Services\WalletService;
 
+/** 彙整並輸出結帳頁所需資料。 */
 class OrderController extends Controller
 {
     private AddressModel $addressModel;
@@ -31,7 +32,11 @@ class OrderController extends Controller
             }
         }
         $stripePublishableKey = getenv('STRIPE_PUBLISHABLE_KEY') ?: '';
-        $paypalClientId = getenv('PAYPAL_CLIENT_ID') ?: '';
+        $paypalClientId = trim((string) (getenv('PAYPAL_CLIENT_ID') ?: ($_ENV['PAYPAL_CLIENT_ID'] ?? $_SERVER['PAYPAL_CLIENT_ID'] ?? '')));
+        $paypalClientSecret = trim((string) (getenv('PAYPAL_CLIENT_SECRET') ?: ($_ENV['PAYPAL_CLIENT_SECRET'] ?? $_SERVER['PAYPAL_CLIENT_SECRET'] ?? '')));
+        if ($paypalClientId === '' || $paypalClientSecret === '') {
+            $paypalClientId = '';
+        }
         $walletBalance = 0.0;
         $pointsBalance = 0;
         if ($isLoggedIn) {

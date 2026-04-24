@@ -3,14 +3,14 @@
 namespace App\Core;
 
 /**
- * Application-wide literals for membership and points (single source of truth in PHP).
+ * 集中管理會員與積分相關常數（PHP 單一真實來源）。
  */
 final class Constants
 {
-    /** Default membership tier key when none is set or empty */
+    /** 預設會員等級鍵值。 */
     public const MEMBERSHIP_LEVEL_BRONZE = 'bronze';
 
-    /** Integer points equivalent to one currency unit (earn, spend, checkout caps, UI copy) */
+    /** 一個貨幣單位對應的整數積分（用於累積、扣抵與結帳上限）。 */
     public const POINTS_PER_HKD = 1000;
 
     private function __construct()

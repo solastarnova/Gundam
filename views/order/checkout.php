@@ -101,13 +101,7 @@ $checkoutI18n = [
                         <div id="addressCardsContainer" class="row g-2" style="display: none;">
                         </div>
                         <div id="noAddressMessage" style="display: none;" class="text-center py-3">
-                            <p class="text-muted mb-2"><?= htmlspecialchars(__m('checkout.no_saved_address'), ENT_QUOTES, 'UTF-8') ?></p>
-                            <div class="d-flex flex-wrap justify-content-center gap-2">
-                                <?php if ($isLoggedIn): ?>
-                                <button type="button" class="btn btn-primary btn-sm" id="openAddAddressFromEmpty"><?= htmlspecialchars(__m('checkout.btn_add_address'), ENT_QUOTES, 'UTF-8') ?></button>
-                                <?php endif; ?>
-                                <a href="<?= $url('account/addresses') ?>" class="btn btn-outline-primary btn-sm"><?= htmlspecialchars(__m('checkout.btn_go_addresses'), ENT_QUOTES, 'UTF-8') ?></a>
-                            </div>
+                            <p class="text-muted mb-0"><?= htmlspecialchars(__m('checkout.no_saved_address'), ENT_QUOTES, 'UTF-8') ?></p>
                         </div>
                     </div>
                 </div>
@@ -137,9 +131,12 @@ $checkoutI18n = [
                     <p id="lalamoveQuoteNote" class="small text-muted mb-2" style="display: none;"></p>
                     <?php endif; ?>
                     <p class="mb-1"><?= htmlspecialchars(__m('checkout.label_subtotal'), ENT_QUOTES, 'UTF-8') ?><span id="subtotal" class="float-end"><?= htmlspecialchars($money(0.0), ENT_QUOTES, 'UTF-8') ?></span></p>
-                    <p class="mb-1"><?= htmlspecialchars(__m('checkout.label_shipping_fee'), ENT_QUOTES, 'UTF-8') ?><span id="shippingFee" class="float-end"><?= htmlspecialchars($money(0.0), ENT_QUOTES, 'UTF-8') ?></span></p>
+                    <p class="mb-1 checkout-money-row checkout-fee-row">
+                        <span><?= htmlspecialchars(__m('checkout.label_shipping_fee'), ENT_QUOTES, 'UTF-8') ?></span>
+                        <span id="shippingFee" class="checkout-money-value checkout-fee-value"><?= htmlspecialchars($money(0.0), ENT_QUOTES, 'UTF-8') ?></span>
+                    </p>
                     <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="useWalletBalance" <?= $walletBalance > 0 ? 'checked' : '' ?> <?= $walletBalance > 0 ? '' : 'disabled' ?>>
+                        <input class="form-check-input" type="checkbox" id="useWalletBalance" <?= $walletBalance > 0 ? '' : 'disabled' ?>>
                         <label class="form-check-label small" for="useWalletBalance">
                             <?= htmlspecialchars(__m('checkout.use_wallet_label'), ENT_QUOTES, 'UTF-8') ?>
                         </label>

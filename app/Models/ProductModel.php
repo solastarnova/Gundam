@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Core\Model;
 
+/** 提供商品目錄查詢相關資料存取。 */
 class ProductModel extends Model
 {
     public function find(int $id): ?array
@@ -21,9 +22,7 @@ class ProductModel extends Model
         return $stmt->fetchAll() ?: [];
     }
 
-    /**
-     * Newest items by listed_at (set in admin), then id.
-     */
+    /** 依 listed_at（後台設定）與 id 取得最新商品。 */
     public function getNewArrivals(int $limit = 8): array
     {
         $limit = max(1, $limit);
@@ -36,9 +35,7 @@ class ProductModel extends Model
         return $stmt->fetchAll() ?: [];
     }
 
-    /**
-     * Homepage recommended: flagged in admin (is_recommended), order by recommended_sort then id.
-     */
+    /** 取得首頁推薦商品（依 recommended_sort 與 id 排序）。 */
     public function getRecommendedHome(int $limit = 8): array
     {
         $limit = max(1, $limit);
@@ -73,7 +70,7 @@ class ProductModel extends Model
     }
 
     /**
-     * Product rows for AI system prompt (limit caps prompt size).
+     * 提供 AI 系統提示用商品資料（限制筆數以控制提示長度）。
      *
      * @return list<array<string, mixed>>
      */

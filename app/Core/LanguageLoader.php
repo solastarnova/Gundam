@@ -3,7 +3,7 @@
 namespace App\Core;
 
 /**
- * Loads locale JSON into a nested tree (filename / folder names as keys) or a flat merged message bundle.
+ * 載入語系 JSON，支援巢狀樹與扁平合併訊息兩種模式。
  */
 class LanguageLoader
 {
@@ -18,7 +18,7 @@ class LanguageLoader
     }
 
     /**
-     * Load one locale as a nested tree: each .json becomes a key (basename); subfolders recurse under folder name.
+     * 以巢狀樹模式載入單一語系（檔名為鍵、子資料夾遞迴）。
      *
      * @return array<string, mixed>
      */
@@ -39,8 +39,8 @@ class LanguageLoader
     }
 
     /**
-     * Load locale and deep-merge all JSON files into one bundle (same semantics as legacy Config merge).
-     * Merge order: common.json, then api/*.json (sorted), mail.json, membership.json, view/*.json (sorted), then any other JSON under the locale (sorted).
+     * 載入語系並深度合併所有 JSON（沿用舊版 Config 合併語義）。
+     * 合併順序：common.json、api/*.json（排序）、mail.json、membership.json、view/*.json（排序）、其餘 JSON（排序）。
      *
      * @return array<string, mixed>
      */
@@ -230,7 +230,7 @@ class LanguageLoader
     }
 
     /**
-     * Deep-merge associative arrays; list arrays and scalars from $over replace $base.
+     * 深度合併關聯陣列；清單陣列與純量值以 $over 覆蓋 $base。
      *
      * @param array<string, mixed> $base
      * @param array<string, mixed> $over

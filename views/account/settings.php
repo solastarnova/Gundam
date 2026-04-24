@@ -6,6 +6,7 @@ $passwordSuccess = $passwordSuccess ?? null;
 $phoneErrors = $phoneErrors ?? [];
 $phoneSuccess = $phoneSuccess ?? null;
 $wallet_balance = $wallet_balance ?? 0.0;
+$isPasswordSetupMode = !empty($isPasswordSetupMode);
 $firebase_social_linking_enabled = !empty($firebase_social_linking_enabled);
 $firebase_enable_facebook = !empty($firebase_enable_facebook);
 $account_nav_active = 'settings';
@@ -18,8 +19,8 @@ $account_nav_active = 'settings';
                 <h4 class="mb-4"><?= htmlspecialchars(__m('account.settings.title'), ENT_QUOTES, 'UTF-8') ?></h4>
 
                 <div class="mb-5">
-                    <h5 class="mb-2"><?= htmlspecialchars(__m('account.settings.password_heading'), ENT_QUOTES, 'UTF-8') ?></h5>
-                    <p class="text-muted small mb-3"><?= htmlspecialchars(__m('account.settings.password_intro'), ENT_QUOTES, 'UTF-8') ?></p>
+                    <h5 class="mb-2"><?= htmlspecialchars(__m($isPasswordSetupMode ? 'account.settings.password_setup_heading' : 'account.settings.password_heading'), ENT_QUOTES, 'UTF-8') ?></h5>
+                    <p class="text-muted small mb-3"><?= htmlspecialchars(__m($isPasswordSetupMode ? 'account.settings.password_setup_intro' : 'account.settings.password_intro'), ENT_QUOTES, 'UTF-8') ?></p>
                     <?php if ($passwordSuccess): ?>
                         <div class="alert alert-success"><?= htmlspecialchars($passwordSuccess) ?></div>
                     <?php endif; ?>
@@ -30,10 +31,12 @@ $account_nav_active = 'settings';
                         <div class="alert alert-danger"><?= htmlspecialchars($passwordErrors['current_password'] ?? $passwordErrors['new_password'] ?? $passwordErrors['confirm_password'] ?? __m('account.settings.check_input')) ?></div>
                     <?php endif; ?>
                     <form method="post" action="<?= $url('account/password') ?>" novalidate>
+                        <?php if (!$isPasswordSetupMode): ?>
                         <div class="mb-3">
                             <label for="current_password" class="form-label"><?= htmlspecialchars(__m('account.settings.current_password'), ENT_QUOTES, 'UTF-8') ?></label>
                             <input type="password" class="form-control <?= isset($passwordErrors['current_password']) ? 'is-invalid' : '' ?>" id="current_password" name="current_password" required>
                         </div>
+                        <?php endif; ?>
                         <div class="mb-3">
                             <label for="new_password" class="form-label"><?= htmlspecialchars(__m('account.settings.new_password'), ENT_QUOTES, 'UTF-8') ?></label>
                             <input type="password" class="form-control <?= isset($passwordErrors['new_password']) ? 'is-invalid' : '' ?>" id="new_password" name="new_password" required minlength="8">
@@ -43,7 +46,7 @@ $account_nav_active = 'settings';
                             <label for="confirm_password" class="form-label"><?= htmlspecialchars(__m('account.settings.confirm_password'), ENT_QUOTES, 'UTF-8') ?></label>
                             <input type="password" class="form-control <?= isset($passwordErrors['confirm_password']) ? 'is-invalid' : '' ?>" id="confirm_password" name="confirm_password" required minlength="8">
                         </div>
-                        <button type="submit" class="btn btn-dark"><?= htmlspecialchars(__m('account.settings.update_password'), ENT_QUOTES, 'UTF-8') ?></button>
+                        <button type="submit" class="btn btn-dark"><?= htmlspecialchars(__m($isPasswordSetupMode ? 'account.settings.set_password' : 'account.settings.update_password'), ENT_QUOTES, 'UTF-8') ?></button>
                     </form>
                 </div>
 

@@ -5,10 +5,16 @@ namespace App\Services;
 use App\Core\Config;
 
 /**
- * Order status whitelist and transition matrix from config.
+ * 管理訂單狀態白名單與狀態轉移規則。
  */
 class OrderStatusService
 {
+    public const PENDING = 'pending';
+    public const PAID = 'paid';
+    public const SHIPPED = 'shipped';
+    public const COMPLETED = 'completed';
+    public const CANCELLED = 'cancelled';
+
     public static function allowed(): array
     {
         $allowed = Config::get('order_status.allowed', []);

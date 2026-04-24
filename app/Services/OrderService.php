@@ -11,7 +11,7 @@ use App\Models\UserModel;
 use PDOException;
 
 /**
- * Cart-to-order flow: numbering, persistence, wallet deduction, spend/points side effects.
+ * 處理購物車轉訂單流程（編號、入庫、錢包扣款與積分副作用）。
  */
 class OrderService
 {
@@ -43,6 +43,7 @@ class OrderService
         return $prefix . $date . substr(bin2hex(random_bytes(4)), 0, 8);
     }
 
+    /** 將購物車快照寫入訂單主檔、明細與付款相關資料。 */
     public function createOrderFromCart(
         int $userId,
         array $cartItems,
@@ -54,7 +55,8 @@ class OrderService
         bool $clearCart = true,
         ?string $paymentProvider = null,
         ?string $paymentReference = null,
-        ?float $walletAmountUsed = null
+        ?float $walletAmountUsed = null,
+        ?int $pointsAmountUsed = null
     ): array {
         if (empty($cartItems)) {
             throw new \InvalidArgumentException('購物車是空的');
@@ -72,6 +74,8 @@ class OrderService
 
         try {
             $walletUsed = $walletAmountUsed !== null ? max(0.0, $walletAmountUsed) : 0.0;
+            $pointsUsed = $pointsAmountUsed !== null ? max(0, $pointsAmountUsed) : 0;
+            $userModel = new UserModel($pdo);
 
             $orderId = $this->order->create(
                 $userId,
@@ -89,14 +93,20 @@ class OrderService
                 $desc = sprintf('訂單 #%s 使用錢包支付', $orderNumber);
                 WalletService::deductWithinTransaction($pdo, $userId, $walletUsed, 'payment', $orderId, $desc);
             }
-
-            // paid/completed: bump total_spent and refresh membership; completed also awards points below
-            if (in_array($status, ['paid', 'completed'], true)) {
-                $this->increaseTotalSpent($userId, $totalAmount);
-                (new UserModel($pdo))->refreshMembershipLevelBySpent($userId);
+            if ($pointsUsed > 0) {
+                $desc = sprintf('訂單 #%s 使用積分折抵', $orderNumber);
+                if (!$userModel->spendPoints($userId, $pointsUsed, $orderId, $desc)) {
+                    throw new \RuntimeException('points_deduct_failed');
+                }
             }
 
-            if ($status === 'completed') {
+            // paid/completed: bump total_spent and refresh membership; completed also awards points below
+            if (in_array($status, [OrderStatusService::PAID, OrderStatusService::COMPLETED], true)) {
+                $this->increaseTotalSpent($userId, $totalAmount);
+                $userModel->refreshMembershipLevelBySpent($userId);
+            }
+
+            if ($status === OrderStatusService::COMPLETED) {
                 $this->awardPointsForOrder($userId, $orderId, $totalAmount);
             }
 

@@ -5,7 +5,7 @@ namespace App\Core;
 use PDO;
 
 /**
- * Active-record style base: injectable PDO, defaults to Database::getConnection().
+ * 提供可注入 PDO 的基礎模型類別（預設使用 Database::getConnection()）。
  */
 class Model
 {

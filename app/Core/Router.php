@@ -3,7 +3,7 @@
 namespace App\Core;
 
 /**
- * HTTP router: match request URI to routes and dispatch to App\Controllers\*.
+ * 依請求 URI 比對路由並分派到對應控制器。
  */
 class Router
 {

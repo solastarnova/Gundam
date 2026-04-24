@@ -8,7 +8,7 @@ use Stripe\Exception\ApiErrorException;
 use RuntimeException;
 
 /**
- * Stripe PaymentIntent wrapper.
+ * 封裝 Stripe PaymentIntent 操作。
  */
 class PaymentService
 {

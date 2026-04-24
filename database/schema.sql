@@ -42,6 +42,7 @@ CREATE TABLE `users` (
   `name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `firebase_uid` varchar(128) DEFAULT NULL,
+  `has_set_password` tinyint(1) NOT NULL DEFAULT 1 COMMENT '0=Firebase only random hash, 1=local password set',
   `phone` varchar(50) DEFAULT NULL,
   `password` varchar(255) NOT NULL,
   `password_reset_hash` varchar(255) DEFAULT NULL,

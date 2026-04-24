@@ -117,13 +117,22 @@ window.FIREBASE_LINK_JS = <?= json_encode([
 <?php if (isset($_SESSION['user_id'])): ?>
 <script>
 window.LOGOUT_URL = <?= json_encode($url('logout'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>;
+window.APP_LOGIN_TYPE = <?= json_encode((string) ($_SESSION['login_type'] ?? ''), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>;
 </script>
 <?php endif; ?>
 <?php foreach ((array)($foot_script_srcs ?? []) as $src): ?>
 <script src="<?= htmlspecialchars((string) $src, ENT_QUOTES, 'UTF-8') ?>"></script>
 <?php endforeach; ?>
 <?php foreach ((array)($foot_extra_js ?? []) as $src): ?>
-<script src="<?= $asset($src) ?>"></script>
+<?php
+    $srcPath = ltrim((string) $src, '/');
+    $srcUrl = $asset($srcPath);
+    $absPath = dirname(__DIR__, 2) . '/' . $srcPath;
+    if (is_file($absPath)) {
+        $srcUrl .= '?v=' . (string) filemtime($absPath);
+    }
+?>
+<script src="<?= htmlspecialchars($srcUrl, ENT_QUOTES, 'UTF-8') ?>"></script>
 <?php endforeach; ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="<?= $asset('js/chatbox.js') ?>"></script>
