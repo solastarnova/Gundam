@@ -103,6 +103,8 @@ CREATE TABLE `user_addresses` (
   `building` varchar(255) NOT NULL,
   `floor` varchar(50) DEFAULT NULL,
   `unit` varchar(50) NOT NULL,
+  `lat` decimal(10,8) DEFAULT NULL,
+  `lng` decimal(11,8) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),

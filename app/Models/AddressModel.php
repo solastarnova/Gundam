@@ -10,7 +10,6 @@ class AddressModel extends Model
 {
     private const DEFAULT_ADDRESS_TYPE = '住宅';
     private const DEFAULT_UNIT_VALUE = '';
-    private ?bool $hasLatLngColumns = null;
 
     public static function validateHongKongAddress(array $data): bool
     {
@@ -138,17 +137,11 @@ class AddressModel extends Model
             $data['floor'] ?? null,
             self::normalizeUnitValue($data['unit'] ?? null),
         ];
-        if ($this->hasLatLngColumns()) {
-            $stmt = $this->pdo->prepare("INSERT INTO user_addresses (user_id, address_label, is_default, recipient_name, phone,
-                address_type, region, district, village_estate, street, building, floor, unit, lat, lng)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $params[] = $data['lat'] ?? null;
-            $params[] = $data['lng'] ?? null;
-        } else {
-            $stmt = $this->pdo->prepare("INSERT INTO user_addresses (user_id, address_label, is_default, recipient_name, phone,
-                address_type, region, district, village_estate, street, building, floor, unit)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        }
+        $stmt = $this->pdo->prepare("INSERT INTO user_addresses (user_id, address_label, is_default, recipient_name, phone,
+            address_type, region, district, village_estate, street, building, floor, unit, lat, lng)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $params[] = $data['lat'] ?? null;
+        $params[] = $data['lng'] ?? null;
         $stmt->execute($params);
         return (int) $this->pdo->lastInsertId();
     }
@@ -178,16 +171,10 @@ class AddressModel extends Model
             $addressId,
             $userId
         ];
-        if ($this->hasLatLngColumns()) {
-            $stmt = $this->pdo->prepare("UPDATE user_addresses SET address_label=?, is_default=?, recipient_name=?, phone=?,
-                address_type=?, region=?, district=?, village_estate=?, street=?, building=?, floor=?, unit=?, lat=?, lng=?, updated_at=NOW()
-                WHERE id = ? AND user_id = ?");
-            array_splice($params, 12, 0, [$data['lat'] ?? null, $data['lng'] ?? null]);
-        } else {
-            $stmt = $this->pdo->prepare("UPDATE user_addresses SET address_label=?, is_default=?, recipient_name=?, phone=?,
-                address_type=?, region=?, district=?, village_estate=?, street=?, building=?, floor=?, unit=?, updated_at=NOW()
-                WHERE id = ? AND user_id = ?");
-        }
+        $stmt = $this->pdo->prepare("UPDATE user_addresses SET address_label=?, is_default=?, recipient_name=?, phone=?,
+            address_type=?, region=?, district=?, village_estate=?, street=?, building=?, floor=?, unit=?, lat=?, lng=?, updated_at=NOW()
+            WHERE id = ? AND user_id = ?");
+        array_splice($params, 12, 0, [$data['lat'] ?? null, $data['lng'] ?? null]);
         $stmt->execute($params);
         if ($stmt->rowCount() > 0) {
             return true;
@@ -223,27 +210,11 @@ class AddressModel extends Model
         }
     }
 
-    private function hasLatLngColumns(): bool
-    {
-        if ($this->hasLatLngColumns !== null) {
-            return $this->hasLatLngColumns;
-        }
-        try {
-            $latStmt = $this->pdo->query("SHOW COLUMNS FROM user_addresses LIKE 'lat'");
-            $lngStmt = $this->pdo->query("SHOW COLUMNS FROM user_addresses LIKE 'lng'");
-            $this->hasLatLngColumns = ($latStmt !== false && $latStmt->fetch(\PDO::FETCH_ASSOC) !== false)
-                && ($lngStmt !== false && $lngStmt->fetch(\PDO::FETCH_ASSOC) !== false);
-        } catch (\Throwable) {
-            $this->hasLatLngColumns = false;
-        }
-        return $this->hasLatLngColumns;
-    }
-
     private function selectAddressFields(): string
     {
         $base = "id, address_label, is_default, recipient_name, phone, address_type,
                 region, district, village_estate, street, building, floor, unit";
-        $coord = $this->hasLatLngColumns() ? "lat, lng" : "NULL AS lat, NULL AS lng";
+        $coord = "lat, lng";
         return $base . ", " . $coord . ", created_at, updated_at";
     }
 }

@@ -7,47 +7,9 @@ use App\Core\Model;
 
 class UserModel extends Model
 {
-    /** @var array<string, bool>|null */
-    private static ?array $usersColumns = null;
-
-    private function ensureUsersColumnsLoaded(): void
-    {
-        if (self::$usersColumns !== null) {
-            return;
-        }
-        self::$usersColumns = [];
-        try {
-            $stmt = $this->pdo->query("SHOW COLUMNS FROM users");
-            while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-                $name = (string) ($row['Field'] ?? '');
-                if ($name !== '') {
-                    self::$usersColumns[$name] = true;
-                }
-            }
-        } catch (\Throwable $e) {
-            self::$usersColumns = [];
-        }
-    }
-
-    private function hasUsersColumn(string $column): bool
-    {
-        $this->ensureUsersColumnsLoaded();
-        return self::$usersColumns[$column] ?? false;
-    }
-
     public function findByEmail(string $email): ?array
     {
-        $cols = ['id', 'name', 'email', 'password'];
-        if ($this->hasUsersColumn('firebase_uid')) {
-            $cols[] = 'firebase_uid';
-        }
-        if ($this->hasUsersColumn('has_set_password')) {
-            $cols[] = 'has_set_password';
-        }
-        if ($this->hasUsersColumn('status')) {
-            $cols[] = 'status';
-        }
-        $sql = "SELECT " . implode(', ', $cols) . " FROM users WHERE email = ? LIMIT 1";
+        $sql = "SELECT id, name, email, password, firebase_uid, has_set_password, status FROM users WHERE email = ? LIMIT 1";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$email]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -56,43 +18,12 @@ class UserModel extends Model
 
     public function findById(int $id): ?array
     {
-        $cols = ['u.id', 'u.name', 'u.email'];
-        if ($this->hasUsersColumn('firebase_uid')) {
-            $cols[] = 'u.firebase_uid';
-        }
-        if ($this->hasUsersColumn('has_set_password')) {
-            $cols[] = 'u.has_set_password';
-        }
-        if ($this->hasUsersColumn('phone')) {
-            $cols[] = 'u.phone';
-        }
-        if ($this->hasUsersColumn('status')) {
-            $cols[] = 'u.status';
-        }
-        if ($this->hasUsersColumn('created_at')) {
-            $cols[] = 'u.created_at';
-        }
-        if ($this->hasUsersColumn('total_spent')) {
-            $cols[] = 'u.total_spent';
-        }
-        if ($this->hasUsersColumn('last_level_up_time')) {
-            $cols[] = 'u.last_level_up_time';
-        }
-        if ($this->hasUsersColumn('membership_level')) {
-            $cols[] = 'u.membership_level';
-            $cols[] = 'mr.level_name';
-            $cols[] = 'mr.discount_percent';
-            $cols[] = 'mr.points_multiplier';
-        }
-        if ($this->hasUsersColumn('is_level_locked')) {
-            $cols[] = 'u.is_level_locked';
-        }
-
-        $sql = "SELECT " . implode(', ', $cols) . " FROM users u";
-        if ($this->hasUsersColumn('membership_level')) {
-            $sql .= ' LEFT JOIN membership_rules mr ON mr.level_key = u.membership_level';
-        }
-        $sql .= ' WHERE u.id = ? LIMIT 1';
+        $sql = 'SELECT u.id, u.name, u.email, u.firebase_uid, u.has_set_password, u.phone, u.status, u.created_at,'
+            . ' u.total_spent, u.last_level_up_time, u.membership_level, u.is_level_locked,'
+            . ' mr.level_name, mr.discount_percent, mr.points_multiplier'
+            . ' FROM users u'
+            . ' LEFT JOIN membership_rules mr ON mr.level_key = u.membership_level'
+            . ' WHERE u.id = ? LIMIT 1';
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$id]);
@@ -102,9 +33,6 @@ class UserModel extends Model
 
     public function updateStatus(int $id, string $status): bool
     {
-        if (!$this->hasUsersColumn('status')) {
-            return false;
-        }
         if (!in_array($status, ['active', 'disabled'], true)) {
             return false;
         }
@@ -120,17 +48,10 @@ class UserModel extends Model
 
     public function findByFirebaseUid(string $firebaseUid): ?array
     {
-        if ($firebaseUid === '' || !$this->hasUsersColumn('firebase_uid')) {
+        if ($firebaseUid === '') {
             return null;
         }
-        $cols = ['id', 'name', 'email', 'password', 'firebase_uid'];
-        if ($this->hasUsersColumn('has_set_password')) {
-            $cols[] = 'has_set_password';
-        }
-        if ($this->hasUsersColumn('status')) {
-            $cols[] = 'status';
-        }
-        $sql = 'SELECT ' . implode(', ', $cols) . ' FROM users WHERE firebase_uid = ? LIMIT 1';
+        $sql = 'SELECT id, name, email, password, firebase_uid, has_set_password, status FROM users WHERE firebase_uid = ? LIMIT 1';
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$firebaseUid]);
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -140,7 +61,7 @@ class UserModel extends Model
 
     public function linkFirebaseUid(int $userId, string $firebaseUid): bool
     {
-        if ($firebaseUid === '' || !$this->hasUsersColumn('firebase_uid')) {
+        if ($firebaseUid === '') {
             return false;
         }
         $stmt = $this->pdo->prepare(
@@ -153,21 +74,11 @@ class UserModel extends Model
 
     public function createWithFirebaseUid(string $name, string $email, string $firebaseUid): int
     {
-        if (!$this->hasUsersColumn('firebase_uid')) {
-            throw new \RuntimeException('users.firebase_uid column is required');
-        }
         $hash = password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT);
-        if ($this->hasUsersColumn('has_set_password')) {
-            $stmt = $this->pdo->prepare(
-                'INSERT INTO users (name, email, password, firebase_uid, has_set_password) VALUES (?, ?, ?, ?, 0)'
-            );
-            $stmt->execute([$name, $email, $hash, $firebaseUid]);
-        } else {
-            $stmt = $this->pdo->prepare(
-                'INSERT INTO users (name, email, password, firebase_uid) VALUES (?, ?, ?, ?)'
-            );
-            $stmt->execute([$name, $email, $hash, $firebaseUid]);
-        }
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO users (name, email, password, firebase_uid, has_set_password) VALUES (?, ?, ?, ?, 0)'
+        );
+        $stmt->execute([$name, $email, $hash, $firebaseUid]);
 
         return (int) $this->pdo->lastInsertId();
     }
@@ -175,13 +86,8 @@ class UserModel extends Model
     public function create(string $name, string $email, string $password): int
     {
         $hash = password_hash($password, PASSWORD_DEFAULT);
-        if ($this->hasUsersColumn('has_set_password')) {
-            $stmt = $this->pdo->prepare("INSERT INTO users (name, email, password, has_set_password) VALUES (?, ?, ?, 1)");
-            $stmt->execute([$name, $email, $hash]);
-        } else {
-            $stmt = $this->pdo->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
-            $stmt->execute([$name, $email, $hash]);
-        }
+        $stmt = $this->pdo->prepare("INSERT INTO users (name, email, password, has_set_password) VALUES (?, ?, ?, 1)");
+        $stmt->execute([$name, $email, $hash]);
         return (int) $this->pdo->lastInsertId();
     }
 
@@ -193,13 +99,8 @@ class UserModel extends Model
     public function updatePassword(int $userId, string $newPassword): bool
     {
         $hash = password_hash($newPassword, PASSWORD_DEFAULT);
-        if ($this->hasUsersColumn('has_set_password')) {
-            $stmt = $this->pdo->prepare("UPDATE users SET password = ?, has_set_password = 1 WHERE id = ?");
-            $stmt->execute([$hash, $userId]);
-        } else {
-            $stmt = $this->pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
-            $stmt->execute([$hash, $userId]);
-        }
+        $stmt = $this->pdo->prepare("UPDATE users SET password = ?, has_set_password = 1 WHERE id = ?");
+        $stmt->execute([$hash, $userId]);
         return $stmt->rowCount() > 0;
     }
 
@@ -214,9 +115,6 @@ class UserModel extends Model
 
     public function updatePhone(int $userId, string $phone): bool
     {
-        if (!$this->hasUsersColumn('phone')) {
-            return false;
-        }
         $stmt = $this->pdo->prepare("UPDATE users SET phone = ? WHERE id = ?");
         $stmt->execute([$phone, $userId]);
         return $stmt->rowCount() > 0;
@@ -266,7 +164,7 @@ class UserModel extends Model
             $params[] = "%{$search}%";
         }
 
-        if ($membershipLevel !== '' && $this->hasUsersColumn('membership_level')) {
+        if ($membershipLevel !== '') {
             $whereParts[] = 'u.membership_level = ?';
             $params[] = $membershipLevel;
         }
@@ -278,14 +176,8 @@ class UserModel extends Model
         $stmt->execute($params);
         $total = (int) $stmt->fetchColumn();
 
-        $selectCols = ['u.*'];
-        $join = '';
-        if ($this->hasUsersColumn('membership_level')) {
-            $selectCols[] = 'mr.level_name';
-            $selectCols[] = 'mr.discount_percent';
-            $selectCols[] = 'mr.points_multiplier';
-            $join = ' LEFT JOIN membership_rules mr ON mr.level_key = u.membership_level';
-        }
+        $selectCols = ['u.*', 'mr.level_name', 'mr.discount_percent', 'mr.points_multiplier'];
+        $join = ' LEFT JOIN membership_rules mr ON mr.level_key = u.membership_level';
 
         $sql = 'SELECT ' . implode(', ', $selectCols) . ' FROM users u' . $join . $where . ' ORDER BY u.id DESC LIMIT ? OFFSET ?';
         $stmt = $this->pdo->prepare($sql);
@@ -303,10 +195,6 @@ class UserModel extends Model
 
     public function updateMembershipLevel(int $id, ?string $membershipLevel): bool
     {
-        if (!$this->hasUsersColumn('membership_level')) {
-            return false;
-        }
-
         $level = trim((string) $membershipLevel);
         if ($level === '') {
             $level = Constants::MEMBERSHIP_LEVEL_BRONZE;
@@ -318,13 +206,9 @@ class UserModel extends Model
             return false;
         }
 
-        if ($this->hasUsersColumn('is_level_locked')) {
-            $stmt = $this->pdo->prepare(
-                'UPDATE users SET membership_level = ?, is_level_locked = 1, last_level_up_time = NOW() WHERE id = ?'
-            );
-        } else {
-            $stmt = $this->pdo->prepare('UPDATE users SET membership_level = ?, last_level_up_time = NOW() WHERE id = ?');
-        }
+        $stmt = $this->pdo->prepare(
+            'UPDATE users SET membership_level = ?, is_level_locked = 1, last_level_up_time = NOW() WHERE id = ?'
+        );
         $stmt->execute([$level, $id]);
 
         return true;
@@ -519,13 +403,9 @@ class UserModel extends Model
             return Constants::MEMBERSHIP_LEVEL_BRONZE;
         }
 
-        if (!$this->hasUsersColumn('membership_level')) {
-            return Constants::MEMBERSHIP_LEVEL_BRONZE;
-        }
-
         $currentLevel = (string) ($user['membership_level'] ?? Constants::MEMBERSHIP_LEVEL_BRONZE);
 
-        if ($this->hasUsersColumn('is_level_locked') && !empty($user['is_level_locked'])) {
+        if (!empty($user['is_level_locked'])) {
             return $currentLevel;
         }
 
@@ -550,13 +430,9 @@ class UserModel extends Model
         }
 
         if ($targetIndex > $currentIndex) {
-            if ($this->hasUsersColumn('last_level_up_time')) {
-                $stmt = $this->pdo->prepare(
-                    'UPDATE users SET membership_level = ?, last_level_up_time = NOW() WHERE id = ?'
-                );
-            } else {
-                $stmt = $this->pdo->prepare('UPDATE users SET membership_level = ? WHERE id = ?');
-            }
+            $stmt = $this->pdo->prepare(
+                'UPDATE users SET membership_level = ?, last_level_up_time = NOW() WHERE id = ?'
+            );
             $stmt->execute([$spentBasedLevel, $userId]);
 
             return $spentBasedLevel;
@@ -580,10 +456,8 @@ class UserModel extends Model
             return Constants::MEMBERSHIP_LEVEL_BRONZE;
         }
 
-        if ($this->hasUsersColumn('is_level_locked')) {
-            $stmt = $this->pdo->prepare('UPDATE users SET is_level_locked = 0 WHERE id = ?');
-            $stmt->execute([$userId]);
-        }
+        $stmt = $this->pdo->prepare('UPDATE users SET is_level_locked = 0 WHERE id = ?');
+        $stmt->execute([$userId]);
 
         return $this->refreshMembershipLevelBySpent($userId);
     }

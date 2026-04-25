@@ -90,16 +90,12 @@ class ChatBotService
             ? (string) ($currency['code'] ?? Config::defaultCurrencyCode())
             : Config::defaultCurrencyCode();
 
-        $shipping = Config::get('shipping', []);
-        $freeThreshold = is_array($shipping) ? (float) ($shipping['free_threshold'] ?? 500) : 500.0;
-        $expressFee = is_array($shipping) ? (float) ($shipping['express_fee'] ?? 80) : 80.0;
-        $standardFee = is_array($shipping) ? (float) ($shipping['standard_fee'] ?? 50) : 50.0;
         $region = (string) Config::get('default_shipping_region', '香港');
 
         $prompt = "你是「{$siteName}」的 AI 客服助手，請以友善、專業的**繁體中文**回答。\n\n";
         $prompt .= "網站概要：販售高達／鋼普拉等模型商品。\n";
         $prompt .= "幣別：{$code}（顯示可用 {$symbol}）。\n";
-        $prompt .= "配送（{$region}）：標準運費 {$standardFee} {$code}；快速運費 {$expressFee} {$code}；訂單滿 {$freeThreshold} {$code} 免標準運費（實際以結帳頁為準）。\n\n";
+        $prompt .= "配送（{$region}）：運費於結帳時依收貨地址即時報價，請以結帳頁顯示為準。\n\n";
 
         $products = $this->productModel->getCatalogForChat($this->catalogLimit);
         if ($products !== []) {
@@ -141,7 +137,7 @@ class ChatBotService
         $prompt .= "回答規則：\n";
         $prompt .= "- 回覆請盡量控制在 100 字內（繁體中文），先給重點答案。\n";
         $prompt .= "- 若資訊較多，先給最重要 1-2 點，避免長篇。\n";
-        $prompt .= "- 運費、免運門檻請以上述為準，並提醒以結帳頁為準。\n";
+        $prompt .= "- 運費請明確提醒使用者：以結帳頁即時報價為準。\n";
         $prompt .= "- 商品資訊以上述列表為主；若不在列表中，請禮貌說明並建議使用者至網站搜尋或聯絡人工客服。\n";
         $prompt .= "- 勿回答與本商城無關的內容；遇訂單爭議、退款等請建議聯絡客服。\n";
 
