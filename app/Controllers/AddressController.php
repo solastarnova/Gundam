@@ -64,6 +64,72 @@ class AddressController extends Controller
         $this->json(['success' => true, 'address' => $address]);
     }
 
+    /**
+     * 反向地址解析代理：由後端呼叫 Nominatim，避免瀏覽器跨域限制導致前端 fallback 失效。
+     */
+    public function reverseGeocode(): void
+    {
+        $this->setupJsonApi();
+
+        $lat = trim((string) ($_GET['lat'] ?? ''));
+        $lon = trim((string) ($_GET['lon'] ?? ''));
+        if ($lat === '' || $lon === '' || !is_numeric($lat) || !is_numeric($lon)) {
+            $this->json(['success' => false, 'error' => 'invalid_coordinates', 'message' => 'invalid_coordinates'], 400);
+            return;
+        }
+
+        $nominatimUrl = (string) Config::get('map_client.nominatim_reverse_url', 'https://nominatim.openstreetmap.org/reverse');
+        if ($nominatimUrl === '') {
+            $nominatimUrl = 'https://nominatim.openstreetmap.org/reverse';
+        }
+        // 避免本端 endpoint 遞迴呼叫自己。
+        if (str_starts_with($nominatimUrl, '/')) {
+            $nominatimUrl = 'https://nominatim.openstreetmap.org/reverse';
+        }
+
+        $acceptLanguage = trim((string) ($_GET['accept-language'] ?? 'zh-HK'));
+        if ($acceptLanguage === '') {
+            $acceptLanguage = 'zh-HK';
+        }
+
+        $userAgent = (string) Config::get('lalamove.nominatim_user_agent', 'GundamShop/1.0 (reverse-geocode)');
+        if ($userAgent === '') {
+            $userAgent = 'GundamShop/1.0 (reverse-geocode)';
+        }
+
+        $query = http_build_query([
+            'format' => 'jsonv2',
+            'lat' => $lat,
+            'lon' => $lon,
+            'accept-language' => $acceptLanguage,
+        ], '', '&', PHP_QUERY_RFC3986);
+
+        $url = $nominatimUrl . (str_contains($nominatimUrl, '?') ? '&' : '?') . $query;
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => ['Accept: application/json'],
+            CURLOPT_USERAGENT => $userAgent,
+            CURLOPT_TIMEOUT => 12,
+        ]);
+        $raw = curl_exec($ch);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($raw === false || $httpCode !== 200) {
+            $this->json(['success' => false, 'error' => 'nominatim_failed', 'message' => 'nominatim_failed'], 502);
+            return;
+        }
+
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            $this->json(['success' => false, 'error' => 'nominatim_invalid_response', 'message' => 'nominatim_invalid_response'], 502);
+            return;
+        }
+
+        $this->json($decoded);
+    }
+
     public function create(): void
     {
         $this->setupJsonApi();

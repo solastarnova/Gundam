@@ -46,8 +46,7 @@ return [
     'map_client' => [
         'leaflet_css' => 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
         'leaflet_js' => 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
-        'nominatim_reverse_url' => 'https://nominatim.openstreetmap.org/reverse',
-        'maptiler_reverse_geocode_url' => 'https://api.maptiler.com/geocoding',
+        'nominatim_reverse_url' => '/api/address/reverse-geocode',
         'maptiler_sdk_css' => 'https://cdn.maptiler.com/maptiler-sdk-js/v4.0.1/maptiler-sdk.css',
         'maptiler_sdk_js' => 'https://cdn.maptiler.com/maptiler-sdk-js/v4.0.1/maptiler-sdk.umd.min.js',
         'maptiler_leaflet_js' => 'https://cdn.maptiler.com/leaflet-maptilersdk/v4.1.0/leaflet-maptilersdk.umd.min.js',

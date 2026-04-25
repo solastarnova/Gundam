@@ -38,26 +38,19 @@ class PayPalService
         }
 
         $token = $this->getAccessToken();
-        $attempts = 3;
-        $lastData = null;
-
-        for ($i = 0; $i < $attempts; $i++) {
-            $data = $this->fetchOrderData($orderId, $token);
-            $lastData = $data;
-            $parsed = $this->parseVerifiedOrder($data, $orderId);
-            if ($parsed['status'] === 'COMPLETED') {
-                return $parsed;
-            }
-            if ($i < $attempts - 1) {
-                usleep(250000);
-            }
+        $data = $this->fetchOrderData($orderId, $token);
+        $parsed = $this->parseVerifiedOrder($data, $orderId);
+        if ($parsed['status'] === 'COMPLETED') {
+            return $parsed;
         }
 
-        if (is_array($lastData)) {
-            return $this->parseVerifiedOrder($lastData, $orderId);
+        // If buyer has approved but not captured yet, capture via server-side API.
+        if ($parsed['status'] === 'APPROVED') {
+            $captured = $this->captureOrder($orderId, $token);
+            return $this->parseVerifiedOrder($captured, $orderId);
         }
 
-        throw new RuntimeException('Unable to verify PayPal order status.');
+        return $parsed;
     }
 
     /**
@@ -104,6 +97,25 @@ class PayPalService
         $data = json_decode($response, true);
         if (!is_array($data)) {
             throw new RuntimeException('Invalid PayPal order response.');
+        }
+
+        return $data;
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function captureOrder(string $orderId, string $token): array
+    {
+        $url = $this->baseUrl . '/v2/checkout/orders/' . rawurlencode($orderId) . '/capture';
+        $response = $this->request('POST', $url, [
+            'Authorization: Bearer ' . $token,
+            'Content-Type: application/json',
+            'Prefer: return=representation',
+        ], '{}');
+        $data = json_decode($response, true);
+        if (!is_array($data)) {
+            throw new RuntimeException('Invalid PayPal capture response.');
         }
 
         return $data;

@@ -65,6 +65,7 @@ $router->get('/api/points/logs', 'PointsController', 'apiLogs');
 
 $router->get('/api/address/list', 'AddressController', 'list');
 $router->get('/api/address/get', 'AddressController', 'get');
+$router->get('/api/address/reverse-geocode', 'AddressController', 'reverseGeocode');
 $router->post('/api/address/create', 'AddressController', 'create');
 $router->post('/api/address/update', 'AddressController', 'update');
 $router->post('/api/address/delete', 'AddressController', 'delete');

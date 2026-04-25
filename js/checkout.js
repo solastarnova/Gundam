@@ -16,7 +16,6 @@
     const maptilerSdkJsUrl = mapCfg.maptilerSdkJsUrl;
     const maptilerLeafletPluginUrl = mapCfg.maptilerLeafletPluginUrl;
     const maptilerGeocodingControlJsUrl = mapCfg.maptilerGeocodingControlJsUrl;
-    const maptilerReverseGeocodeUrl = mapCfg.maptilerReverseGeocodeUrl;
     const mapAssetLoader = window.MapShared && typeof window.MapShared.createAssetLoader === 'function'
         ? window.MapShared.createAssetLoader({
             leafletCssUrl: leafletCssUrl,
@@ -462,13 +461,59 @@
     function updateAddressFieldsFromNominatim(data) {
         if (!data || !data.address) return;
         var addr = data.address || {};
-        var district = addr.city_district || addr.suburb || addr.borough || addr.town || addr.city || addr.county || addr.state_district || '';
-        var road = addr.road || addr.pedestrian || addr.residential || addr.footway || '';
-        var houseNumber = addr.house_number || '';
-        var street = [road, houseNumber].filter(function(v) {
-            return String(v || '').trim() !== '';
-        }).join(' ');
-        var building = addr.building || addr.commercial || addr.amenity || addr.shop || '';
+        function firstNonEmpty() {
+            for (var i = 0; i < arguments.length; i++) {
+                var v = String(arguments[i] || '').trim();
+                if (v) return v;
+            }
+            return '';
+        }
+        function parseDisplayTokens() {
+            return String(data.display_name || '')
+                .split(',')
+                .map(function(v) { return String(v || '').trim(); })
+                .filter(function(v) { return v !== ''; });
+        }
+        function isAdminLike(text) {
+            var t = String(text || '').trim().toLowerCase();
+            if (!t) return true;
+            return /hong kong|kowloon|new territories|china|香港|九龍|九龙|新界|中国/.test(t);
+        }
+        var district = firstNonEmpty(
+            addr.city_district,
+            addr.suburb,
+            addr.borough,
+            addr.county,
+            addr.town,
+            addr.city,
+            addr.state_district
+        );
+        var streetName = firstNonEmpty(addr.road, addr.pedestrian, addr.residential, addr.footway, addr.path, addr.cycleway);
+        var houseNumber = firstNonEmpty(addr.house_number, addr.block_number);
+        var street = [streetName, houseNumber].filter(function(v) { return String(v || '').trim() !== ''; }).join(' ');
+        var village = firstNonEmpty(addr.neighbourhood, addr.quarter, addr.residential, addr.hamlet, addr.allotments);
+        var building = firstNonEmpty(
+            addr.building,
+            addr.house_name,
+            addr.commercial,
+            addr.amenity,
+            addr.shop,
+            addr.office,
+            addr.tourism,
+            addr.leisure
+        );
+        if (!building) {
+            var displayTokens = parseDisplayTokens();
+            for (var i = 0; i < displayTokens.length; i++) {
+                var token = displayTokens[i];
+                if (!token || isAdminLike(token)) continue;
+                if (district && token.indexOf(district) !== -1) continue;
+                if (streetName && token.indexOf(streetName) !== -1) continue;
+                if (houseNumber && token.indexOf(houseNumber) !== -1) continue;
+                building = token;
+                break;
+            }
+        }
         var unit = '';
 
         var districtEl = document.getElementById('district');
@@ -489,44 +534,8 @@
         applyAutofillFieldValue(streetEl, street);
         applyAutofillFieldValue(buildingEl, building);
         applyAutofillFieldValue(unitEl, unit);
-        applyAutofillFieldValue(villageEl, addr.neighbourhood || addr.quarter || '');
-        endMapAutofill();
-    }
-
-    function updateAddressFieldsFromMapTiler(data) {
-        if (!data || !Array.isArray(data.features) || data.features.length === 0) return false;
-        var f = data.features[0] || {};
-        var p = f.properties || {};
-        var district = p.district || p.suburb || p.city || p.county || p.municipality || '';
-        var street = [p.street || '', p.housenumber || ''].filter(function(v) {
-            return String(v || '').trim() !== '';
-        }).join(' ');
-        var building = p.name || p.poi || '';
-        var unit = '';
-        var village = p.neighbourhood || '';
-
-        var districtEl = document.getElementById('district');
-        var streetEl = document.getElementById('street');
-        var buildingEl = document.getElementById('building');
-        var unitEl = document.getElementById('unit');
-        var villageEl = document.getElementById('villageEstate');
-
-        beginMapAutofill();
-        autoSelectRegionByText([
-            f.place_name_zh_hant || '',
-            f.place_name || '',
-            p.city || '',
-            p.county || '',
-            p.state || '',
-            district
-        ].join(' '));
-        applyAutofillFieldValue(districtEl, district);
-        applyAutofillFieldValue(streetEl, street);
-        applyAutofillFieldValue(buildingEl, building);
-        applyAutofillFieldValue(unitEl, unit);
         applyAutofillFieldValue(villageEl, village);
         endMapAutofill();
-        return true;
     }
 
     function reverseGeocode(lat, lng) {
@@ -538,27 +547,15 @@
                 lng: lng,
                 token: token,
                 isTokenCurrent: function(currentToken) { return currentToken === reverseGeocodeToken; },
-                maptilerReverseGeocodeUrl: maptilerReverseGeocodeUrl,
                 nominatimReverseUrl: nominatimReverseUrl,
-                maptilerApiKey: String(window.MAPTILER_API_KEY || '').trim(),
-                maptilerLanguage: 'zh-Hant',
                 nominatimLanguage: 'zh-HK',
-                onMapTilerData: function(data) {
-                    var updated = updateAddressFieldsFromMapTiler(data);
-                    if (!updated) {
-                        return false;
-                    }
-                    var feature = data.features && data.features[0] ? data.features[0] : {};
-                    var displayName = feature.place_name_zh_hant || feature.place_name || feature.text || '';
-                    setMapStatus(displayName ? (CI.mapResolvedAddress || '') + ': ' + shortenStatusAddress(displayName, 24) : (CI.mapResolvedAddress || ''), 'success');
-                    return true;
-                },
                 onNominatimData: function(data) {
                     updateAddressFieldsFromNominatim(data);
+                    var resolvedPrefix = (CI.mapResolvedAddress || '');
                     if (data && data.display_name) {
-                        setMapStatus((CI.mapResolvedAddress || '') + ': ' + shortenStatusAddress(data.display_name, 24), 'success');
+                        setMapStatus(resolvedPrefix + ': ' + shortenStatusAddress(data.display_name, 24), 'success');
                     } else {
-                        setMapStatus(CI.mapResolvedAddress || '', 'success');
+                        setMapStatus(resolvedPrefix, 'success');
                     }
                 }
             }).catch(function() {
@@ -750,105 +747,6 @@
                 containerEl.style.display = 'none';
             });
     }
-
-    window.openAddAddressModal = function() {
-        var modal = document.getElementById('addressModal');
-        var modalLabel = document.getElementById('addressModalLabel');
-        var form = document.getElementById('addressForm');
-        if (!modal || !form) return;
-        if (modalLabel) modalLabel.textContent = CI.modalAddAddress || '';
-        form.reset();
-        var aid = document.getElementById('addressId');
-        if (aid) aid.value = '';
-        var isDef = document.getElementById('isDefault');
-        if (isDef) isDef.checked = false;
-        form.querySelectorAll('.is-invalid').forEach(function(el) { el.classList.remove('is-invalid'); });
-        updateMapLatLng('', '');
-        hasMapSelection = false;
-        addressEditedAfterMapPick = false;
-        reverseGeocodeToken += 1;
-        updateMapVisualState(false);
-        getAddressInputEls().forEach(function(el) {
-            delete el.dataset.lastAutofill;
-        });
-        setMapStatus(CI.mapHelp || '', 'default');
-        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            var bsModal = new bootstrap.Modal(modal);
-            bsModal.show();
-        }
-    };
-
-    window.saveCheckoutAddress = async function() {
-        var form = document.getElementById('addressForm');
-        if (!form) return;
-        var formData = new FormData(form);
-        var addressId = formData.get('id');
-        var data = Object.fromEntries(formData.entries());
-        var hasAddressText = !!(
-            String(data.region || '').trim() ||
-            String(data.district || '').trim() ||
-            String(data.street || '').trim() ||
-            String(data.village_estate || '').trim() ||
-            String(data.building || '').trim()
-        );
-        var hasLatLng = String(data.lat || '').trim() !== '' && String(data.lng || '').trim() !== '';
-        if (!data.recipient_name || !data.phone || !data.region || !data.district || !data.building) {
-            alert(CI.alertRequired || '');
-            return;
-        }
-        if (!data.village_estate && !data.street) {
-            alert(CI.alertVillageOrStreet || '');
-            return;
-        }
-        if (hasAddressText && !hasLatLng) {
-            alert(CI.mapRequirePinForQuote || CI.mapHelp || '');
-            setMapStatus(CI.mapHelp || '', 'warning');
-            return;
-        }
-        if (hasMapSelection && addressEditedAfterMapPick) {
-            var shouldContinue = confirm(CI.mapAddressChangedConfirm || '');
-            if (!shouldContinue) {
-                return;
-            }
-        }
-        data.is_default = document.getElementById('isDefault') && document.getElementById('isDefault').checked ? 1 : 0;
-        var payload = addressId ? Object.assign({}, data, { id: addressId }) : data;
-        if (!addressId) {
-            delete payload.id;
-        }
-        var path = addressId ? 'api/address/update' : 'api/address/create';
-        try {
-            var response = await fetch(baseUrl + path, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            var result = await response.json();
-            if (!result.success) {
-                throw new Error(result.message || result.error || CI.errSaveGeneric || '');
-            }
-            var modalEl = document.getElementById('addressModal');
-            if (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                var inst = bootstrap.Modal.getInstance(modalEl);
-                if (inst) inst.hide();
-            }
-            var newId = result.address_id || addressId;
-            loadAddresses(newId);
-            if (lalamoveEnabled && !checkoutBlocked && payload.lat && payload.lng) {
-                setTimeout(function() {
-                    scheduleLalamoveQuote();
-                }, 600);
-            }
-        } catch (err) {
-            console.error('saveCheckoutAddress:', err);
-            var reason = err && err.message ? String(err.message).trim() : '';
-            if (reason) {
-                alert((CI.alertSaveAddressFailedWithReason || CI.alertSaveAddressFailed || '') + reason);
-            } else {
-                alert(CI.alertSaveAddressFailed || '');
-            }
-        }
-    };
 
     function getShippingMethod() {
         var el = document.getElementById('shipping');
@@ -1469,24 +1367,14 @@
                         });
                     });
                 },
-                onApprove: function(data, actions) {
-                    return actions.order.capture().then(function(details) {
-                        var purchaseUnit = (details && details.purchase_units && details.purchase_units[0]) ? details.purchase_units[0] : null;
-                        var capture = (purchaseUnit && purchaseUnit.payments && purchaseUnit.payments.captures && purchaseUnit.payments.captures[0])
-                            ? purchaseUnit.payments.captures[0]
-                            : null;
-                        var amountNode = (capture && capture.amount) ? capture.amount : (purchaseUnit && purchaseUnit.amount ? purchaseUnit.amount : null);
-                        var payload = {
-                            paypal_order_id: details.id,
-                            payment_method: 'paypal',
-                            paypal_capture_status: capture && capture.status ? String(capture.status) : '',
-                            paypal_amount: amountNode && amountNode.value != null ? String(amountNode.value) : '',
-                            paypal_currency: amountNode && amountNode.currency_code ? String(amountNode.currency_code) : '',
-                            paypal_capture_id: capture && capture.id ? String(capture.id) : ''
-                        };
-                        if (orderNumberForConfirm) payload.order_number = orderNumberForConfirm;
-                        return confirmOrder(payload);
-                    }).then(function(data) {
+                onApprove: function(data) {
+                    var payload = {
+                        // Capture is done on server side to avoid Smart API buyer-token dependency.
+                        paypal_order_id: data && data.orderID ? String(data.orderID) : '',
+                        payment_method: 'paypal'
+                    };
+                    if (orderNumberForConfirm) payload.order_number = orderNumberForConfirm;
+                    return confirmOrder(payload).then(function(data) {
                         if (data.success) {
                             alert((CI.orderConfirmedPrefix || '') + (data.order_number || data.order_id));
                             window.location.href = baseUrl + 'account/orders';
@@ -1610,22 +1498,8 @@
                     }
                 });
             }
-            var usingSharedAddressModal = initSharedAddressModal();
-            if (!usingSharedAddressModal) {
-                var saveAddrBtn = document.getElementById('saveCheckoutAddressBtn');
-                if (saveAddrBtn) {
-                    saveAddrBtn.addEventListener('click', function() {
-                        if (typeof window.saveCheckoutAddress === 'function') {
-                            window.saveCheckoutAddress();
-                        }
-                    });
-                }
-                var modalEl = document.getElementById('addressModal');
-                if (modalEl) {
-                    modalEl.addEventListener('shown.bs.modal', function() {
-                        initAddressMap();
-                    });
-                }
+            if (!initSharedAddressModal()) {
+                console.error('createAddressModalManager is unavailable');
             }
         }
         if (document.readyState === 'loading') {

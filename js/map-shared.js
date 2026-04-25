@@ -14,7 +14,6 @@
             maptilerSdkJsUrl: window.MAPTILER_SDK_JS || 'https://cdn.maptiler.com/maptiler-sdk-js/v4.0.1/maptiler-sdk.umd.min.js',
             maptilerLeafletPluginUrl: window.MAPTILER_LEAFLET_JS || 'https://cdn.maptiler.com/leaflet-maptilersdk/v4.1.0/leaflet-maptilersdk.umd.min.js',
             maptilerGeocodingControlJsUrl: window.MAPTILER_GEOCODING_CONTROL_JS || 'https://cdn.maptiler.com/maptiler-geocoding-control/v3.0.0/leaflet.umd.js',
-            maptilerReverseGeocodeUrl: window.MAPTILER_REVERSE_GEOCODE_URL || 'https://api.maptiler.com/geocoding',
         };
     }
 
@@ -261,13 +260,29 @@
         var lng = opts.lng;
         var token = opts.token;
         var isTokenCurrent = typeof opts.isTokenCurrent === 'function' ? opts.isTokenCurrent : function() { return true; };
-        var maptilerReverseGeocodeUrl = String(opts.maptilerReverseGeocodeUrl || '');
         var nominatimReverseUrl = String(opts.nominatimReverseUrl || '');
-        var maptilerApiKey = String(opts.maptilerApiKey || '').trim();
-        var maptilerLanguage = String(opts.maptilerLanguage || 'zh-Hant');
         var nominatimLanguage = String(opts.nominatimLanguage || 'zh-HK');
-        var onMapTilerData = typeof opts.onMapTilerData === 'function' ? opts.onMapTilerData : function() { return false; };
         var onNominatimData = typeof opts.onNominatimData === 'function' ? opts.onNominatimData : function() {};
+
+        function resolveApiUrl(url) {
+            var raw = String(url || '').trim();
+            if (!raw) {
+                return raw;
+            }
+            // Absolute URL or protocol-relative URL: keep as-is.
+            if (/^https?:\/\//i.test(raw) || /^\/\//.test(raw)) {
+                return raw;
+            }
+            var appBase = String(window.APP_BASE || '').trim();
+            appBase = appBase.replace(/\/+$/, '');
+            if (!appBase) {
+                return raw.charAt(0) === '/' ? raw : ('/' + raw);
+            }
+            if (raw.charAt(0) === '/') {
+                return appBase + raw;
+            }
+            return appBase + '/' + raw;
+        }
 
         function ensureCurrent() {
             if (!isTokenCurrent(token)) {
@@ -275,55 +290,56 @@
             }
         }
 
-        function runMapTiler() {
-            if (!maptilerApiKey || !maptilerReverseGeocodeUrl) {
-                return Promise.reject(new Error('maptiler_key_missing'));
-            }
-            var maptilerUrl = maptilerReverseGeocodeUrl + '/' + encodeURIComponent(lng) + ',' + encodeURIComponent(lat)
-                + '.json?key=' + encodeURIComponent(maptilerApiKey)
-                + '&language=' + encodeURIComponent(maptilerLanguage)
-                + '&limit=1';
-            return fetch(maptilerUrl, { headers: { Accept: 'application/json' } })
-                .then(function(r) {
-                    if (!r.ok) {
-                        throw new Error('maptiler_reverse_failed');
-                    }
-                    return r.json();
-                })
-                .then(function(data) {
-                    ensureCurrent();
-                    var handled = !!onMapTilerData(data);
-                    if (!handled) {
-                        throw new Error('maptiler_no_features');
-                    }
-                    return { provider: 'maptiler', data: data };
-                });
-        }
-
         function runNominatim() {
             if (!nominatimReverseUrl) {
                 return Promise.reject(new Error('nominatim_url_missing'));
             }
-            var nominatimUrl = nominatimReverseUrl + '?format=jsonv2&lat=' + encodeURIComponent(lat)
-                + '&lon=' + encodeURIComponent(lng)
-                + '&accept-language=' + encodeURIComponent(nominatimLanguage);
-            return fetch(nominatimUrl, { headers: { Accept: 'application/json' } })
-                .then(function(r) {
-                    if (!r.ok) {
-                        throw new Error('nominatim_failed');
-                    }
-                    return r.json();
-                })
-                .then(function(data) {
-                    ensureCurrent();
-                    onNominatimData(data);
-                    return { provider: 'nominatim', data: data };
+            var rawNominatimUrl = String(nominatimReverseUrl || '').trim();
+            var resolvedNominatimUrl = resolveApiUrl(rawNominatimUrl);
+            var candidates = [];
+
+            function pushCandidate(url) {
+                var u = String(url || '').trim();
+                if (!u) return;
+                if (candidates.indexOf(u) === -1) candidates.push(u);
+            }
+
+            pushCandidate(resolvedNominatimUrl);
+            // For sub-path deployments, also try root-relative URL as fallback.
+            if (rawNominatimUrl.charAt(0) === '/') {
+                pushCandidate(rawNominatimUrl);
+            }
+
+            function requestOne(baseUrl) {
+                var nominatimUrl = baseUrl + '?format=jsonv2&lat=' + encodeURIComponent(lat)
+                    + '&lon=' + encodeURIComponent(lng)
+                    + '&accept-language=' + encodeURIComponent(nominatimLanguage);
+                return fetch(nominatimUrl, { headers: { Accept: 'application/json' } })
+                    .then(function(r) {
+                        if (!r.ok) {
+                            throw new Error('nominatim_failed');
+                        }
+                        return r.json();
+                    });
+            }
+
+            function tryAt(index) {
+                if (index >= candidates.length) {
+                    return Promise.reject(new Error('nominatim_failed'));
+                }
+                return requestOne(candidates[index]).catch(function() {
+                    return tryAt(index + 1);
                 });
+            }
+
+            return tryAt(0).then(function(data) {
+                ensureCurrent();
+                onNominatimData(data);
+                return { provider: 'nominatim', data: data };
+            });
         }
 
-        return runMapTiler().catch(function() {
-            return runNominatim();
-        });
+        return runNominatim();
     }
 
     function autoSelectHongKongRegion(regionEl, sourceText) {

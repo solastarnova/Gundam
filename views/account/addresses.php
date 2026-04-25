@@ -4,6 +4,10 @@ $asset = $asset ?? fn($p) => $p;
 $addresses = $addresses ?? [];
 $account_nav_active = 'addresses';
 $mapClientConfig = (isset($mapClientConfig) && is_array($mapClientConfig)) ? $mapClientConfig : [];
+$mapSharedJsPath = dirname(__DIR__, 2) . '/js/map-shared.js';
+$mapSharedJsVersion = is_file($mapSharedJsPath) ? (string) filemtime($mapSharedJsPath) : (string) time();
+$addressModalSharedJsPath = dirname(__DIR__, 2) . '/js/address-modal.shared.js';
+$addressModalSharedJsVersion = is_file($addressModalSharedJsPath) ? (string) filemtime($addressModalSharedJsPath) : (string) time();
 ?>
 <div class="container account-page my-5 pt-5">
     <div class="row account-layout">
@@ -162,7 +166,6 @@ $mapClientConfig = (isset($mapClientConfig) && is_array($mapClientConfig)) ? $ma
 window.LEAFLET_CSS_URL = <?= json_encode((string) ($mapClientConfig['leaflet_css'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
 window.LEAFLET_JS_URL = <?= json_encode((string) ($mapClientConfig['leaflet_js'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
 window.NOMINATIM_REVERSE_URL = <?= json_encode((string) ($mapClientConfig['nominatim_reverse_url'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
-window.MAPTILER_REVERSE_GEOCODE_URL = <?= json_encode((string) ($mapClientConfig['maptiler_reverse_geocode_url'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
 window.MAPTILER_API_KEY = <?= json_encode((string) ($mapClientConfig['maptiler_api_key'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
 window.MAPTILER_SDK_CSS = <?= json_encode((string) ($mapClientConfig['maptiler_sdk_css'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
 window.MAPTILER_SDK_JS = <?= json_encode((string) ($mapClientConfig['maptiler_sdk_js'] ?? ''), JSON_UNESCAPED_UNICODE) ?>;
@@ -199,4 +202,5 @@ window.ADDRESS_PAGE_I18N = <?= json_encode([
     'mapRequirePinForQuote' => __m('checkout.js_map_require_pin_for_quote'),
 ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?>;
 </script>
-<script src="<?= $asset('js/address-modal.shared.js') ?>"></script>
+<script src="<?= $asset('js/map-shared.js') ?>?v=<?= urlencode($mapSharedJsVersion) ?>"></script>
+<script src="<?= $asset('js/address-modal.shared.js') ?>?v=<?= urlencode($addressModalSharedJsVersion) ?>"></script>
